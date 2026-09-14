@@ -2,7 +2,7 @@ const CREDENTIALS = {
   'iris-7x91': { name: 'Íris Tenebra Vasconcellos', clearance: 'NÍVEL DE ACESSO: 05' },
   'andre-4k27': { name: 'André Torres', clearance: 'NÍVEL DE ACESSO: 04' },
   'matias-9q63': { name: 'Matias Valen Azevedo', clearance: 'NÍVEL DE ACESSO: 04' },
-  'celine-2m84': { name: 'Celine Lind Noir', clearance: 'NÍVEL DE ACESSO: 04' },
+  'celine-2m84': { name: 'Celine Lins Noir', clearance: 'NÍVEL DE ACESSO: 04' },
   'convidado-26': { name: 'AGENTE CONVIDADO', clearance: 'NÍVEL DE ACESSO: 03' }
 };
 
