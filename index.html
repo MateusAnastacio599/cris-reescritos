@@ -14,14 +14,20 @@
     <div class="login-noise" aria-hidden="true"></div>
     <div class="login-grid" aria-hidden="true"></div>
     <main class="login-box">
-      <img class="cris-logo login-logo" src="cris-logo.png" alt="C.R.I.S.">
+      <img class="cris-logo login-logo" src="cris-logo.png" alt="Símbolo da Ordo Realitas">
+      <div class="login-brand-name">C.R.I.S.</div>
       <div class="login-kicker">CENTRAL DE RECONHECIMENTO DE IRREGULARIDADES SOBRENATURAIS</div>
       <div class="login-line"></div>
       <div class="login-status"><span class="status-dot"></span> CANAL SEGURO // AUTENTICAÇÃO NECESSÁRIA</div>
       <label for="password">CREDENCIAL DE AGENTE</label>
       <div class="password-wrap">
         <input id="password" type="password" autocomplete="off" spellcheck="false" placeholder="INSIRA SUA SENHA">
-        <button id="password-toggle" class="password-toggle" type="button" aria-label="Mostrar senha" aria-pressed="false">MOSTRAR</button>
+        <button id="password-toggle" class="password-toggle" type="button" aria-label="Mostrar senha" aria-pressed="false">
+          <svg class="password-eye" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M2.5 12s3.5-5.5 9.5-5.5S21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z"></path>
+            <circle cx="12" cy="12" r="2.7"></circle>
+          </svg>
+        </button>
         <button id="login-button" type="button">AUTENTICAR</button>
       </div>
       <p id="login-error" class="login-error" aria-live="polite"></p>

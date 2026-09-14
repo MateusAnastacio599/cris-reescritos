@@ -49,9 +49,12 @@ document.addEventListener('DOMContentLoaded', () => {
   togglePassword.addEventListener('click', () => {
     const visible = input.type === 'text';
     input.type = visible ? 'password' : 'text';
-    togglePassword.textContent = visible ? 'MOSTRAR' : 'OCULTAR';
+    togglePassword.innerHTML = visible
+      ? '<svg class="password-eye" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 12s3.5-5.5 9.5-5.5S21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>'
+      : '<svg class="password-eye" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3l18 18"></path><path d="M10.6 6.7A10.9 10.9 0 0 1 12 6.5c6 0 9.5 5.5 9.5 5.5a18.8 18.8 0 0 1-3.1 3.6"></path><path d="M6.1 6.9C3.8 8.3 2.5 12 2.5 12S6 17.5 12 17.5c1.2 0 2.3-.2 3.3-.6"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>';
     togglePassword.setAttribute('aria-label', visible ? 'Mostrar senha' : 'Ocultar senha');
     togglePassword.setAttribute('aria-pressed', String(!visible));
+    togglePassword.classList.toggle('is-visible', !visible);
   });
 
   menuToggle.addEventListener('click', () => {
@@ -71,8 +74,10 @@ document.addEventListener('DOMContentLoaded', () => {
     login.classList.remove('hidden', 'authenticated');
     input.value = '';
     input.type = 'password';
-    togglePassword.textContent = 'MOSTRAR';
+    togglePassword.innerHTML = '<svg class="password-eye" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 12s3.5-5.5 9.5-5.5S21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>';
+    togglePassword.setAttribute('aria-label', 'Mostrar senha');
     togglePassword.setAttribute('aria-pressed', 'false');
+    togglePassword.classList.remove('is-visible');
     error.textContent = '';
     input.focus();
   });
