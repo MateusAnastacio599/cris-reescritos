@@ -217,6 +217,28 @@ input {
 
 
 /* =========================================================
+   RODAPÉ DA AUTENTICAÇÃO
+   ========================================================= */
+
+.login-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 17px;
+  padding-top: 13px;
+  border-top: 1px solid #30273d;
+  color: #8e8499;
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.login-footer span:last-child {
+  text-align: right;
+}
+
+
+/* =========================================================
    CAMPO DE SENHA
    ========================================================= */
 
@@ -483,7 +505,8 @@ input {
   flex-direction: column;
   position: sticky;
   top: 82px;
-  height: calc(100vh - 82px);
+  height: fit-content;
+  align-self: start;
   z-index: 900;
 }
 
@@ -555,7 +578,7 @@ input {
 }
 
 .sidebar-footer {
-  margin-top: auto;
+  margin-top: 15px;
   color: #554b60;
   font-size: 9px;
   line-height: 2.1;
@@ -1149,16 +1172,17 @@ h2 {
 
   /* SIDEBAR MOBILE */
   .sidebar {
-    position: absolute;
+    position: fixed;
     z-index: 900;
     top: 76px;
     left: 0;
     right: 0;
 
-    height: auto;
+    height: fit-content;
     max-height: calc(100vh - 76px);
 
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
 
     background: #0c0911;
 
@@ -1405,5 +1429,6 @@ h2 {
 
   .login-footer {
     font-size: 8px;
+    gap: 10px;
   }
 }
