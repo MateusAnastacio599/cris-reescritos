@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#09070f">
+  <meta name="description" content="C.R.I.S. — Central de Reconhecimento de Irregularidades Sobrenaturais.">
+  <link rel="icon" type="image/jpeg" href="favicon.ico">
+  <title>C.R.I.S. // Caso 26-107</title>
+  <link rel="stylesheet" href="cris.css">
+</head>
+<body>
+  <div id="login-screen" class="login-screen">
+    <div class="login-noise" aria-hidden="true"></div>
+    <div class="login-grid" aria-hidden="true"></div>
+    <main class="login-box">
+      <img class="cris-logo login-logo" src="cris-logo.png" alt="C.R.I.S.">
+      <div class="login-kicker">CENTRAL DE RECONHECIMENTO DE IRREGULARIDADES SOBRENATURAIS</div>
+      <div class="login-line"></div>
+      <div class="login-status"><span class="status-dot"></span> CANAL SEGURO // AUTENTICAÇÃO NECESSÁRIA</div>
+      <label for="password">CREDENCIAL DE AGENTE</label>
+      <div class="password-wrap">
+        <input id="password" type="password" autocomplete="off" spellcheck="false" placeholder="INSIRA SUA SENHA">
+        <button id="password-toggle" class="password-toggle" type="button" aria-label="Mostrar senha" aria-pressed="false">MOSTRAR</button>
+        <button id="login-button" type="button">AUTENTICAR</button>
+      </div>
+      <p id="login-error" class="login-error" aria-live="polite"></p>
+      <div class="login-footer">
+        <span>CASO 26-107</span>
+        <span>PARIS // 07.10.2026</span>
+      </div>
+    </main>
+  </div>
+
+  <div id="system" class="system hidden">
+    <div class="crt-noise" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="system-brand" href="#briefing" aria-label="C.R.I.S. início">
+        <img class="cris-logo brand-logo" src="cris-logo.png" alt="C.R.I.S.">
+        <span>
+          <strong>C.R.I.S.</strong>
+          <small>CENTRAL DE RECONHECIMENTO DE IRREGULARIDADES SOBRENATURAIS</small>
+        </span>
+      </a>
+      <div class="top-agent">
+        <span class="top-agent-label">AGENTE</span>
+        <strong id="top-agent-name">[IDENTIDADE]</strong>
+        <span id="top-agent-clearance">NÍVEL 04</span>
+      </div>
+      <div class="top-status"><span class="status-dot"></span> SISTEMA OPERACIONAL <span class="separator">//</span> CASO 26-107</div>
+      <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="case-sidebar">
+        <span></span><span></span><span></span><b>MENU</b>
+      </button>
+    </header>
+
+    <main class="layout">
+      <aside id="case-sidebar" class="sidebar">
+        <div class="agent-card">
+          <span class="micro-label">IDENTIDADE CONFIRMADA</span>
+          <strong>AGENTE</strong>
+          <span id="agent-name" class="agent-name">[IDENTIDADE]</span>
+          <span id="agent-clearance" class="clearance">NÍVEL DE ACESSO: 04</span>
+        </div>
+        <nav class="nav" aria-label="Navegação do caso">
+          <a class="active" href="#briefing"><span>01</span> BRIEFING</a>
+          <a href="#situacao"><span>02</span> SITUAÇÃO</a>
+          <a href="#arquivos"><span>03</span> ARQUIVOS</a>
+          <a href="#localizacoes"><span>04</span> LOCALIZAÇÕES</a>
+        </nav>
+        <div class="sidebar-footer">
+          <span>C.R.I.S. // ACESSO LOCAL</span><span>PARIS // 07.10.2026</span>
+          <button id="logout-button" class="logout-button" type="button">ENCERRAR SESSÃO</button>
+        </div>
+      </aside>
+
+      <section class="content">
+        <section id="briefing" class="screen-section">
+          <div class="section-topline"><span>OPERAÇÃO // CASO N° 26-107</span><span>EMERGÊNCIA — INVESTIGAÇÃO, CONTENÇÃO E INTERVENÇÃO PARANORMAL</span></div>
+          <div class="hero-heading">
+            <div>
+              <span class="eyebrow">BRIEFING DE OPERAÇÃO</span>
+              <h1>PARIS</h1>
+              <p><strong>Local da Operação:</strong> Paris, França</p>
+              <p><strong>Base Operacional:</strong> Mansão Noir — 14 Rue des Ormes, 16º arrondissement, Paris, França</p>
+            </div>
+            <div class="case-stamp">CASO<br><strong>26-107</strong><br><small>RESTRITO // ORDO</small></div>
+          </div>
+
+          <article class="panel briefing-panel">
+            <div class="panel-title"><span>01</span> RESUMO DA SITUAÇÃO</div>
+            <p>Nos 6 primeiros dias de outubro, <strong>Paris registrou uma sequência de suicídios aparentemente sem relação entre si</strong>. As autoridades locais inicialmente trataram os casos como ocorrências isoladas. Entretanto, a repetição de determinados elementos levou a polícia francesa a considerar a possibilidade de <strong>um assassino em série, ou grupo envolvido</strong>.</p>
+            <p>Até o momento, <strong>nove vítimas</strong> foram registradas.</p>
+            <p>As vítimas não apresentam, segundo os registros disponíveis, histórico psiquiátrico ou qualquer ligação conhecida entre si. Em todas as cenas analisadas, foram encontrados: <strong>uma substância de coloração amarela</strong>, vestígios da mesma coloração nas pontas dos dedos das vítimas e, próximo aos corpos, um <strong>símbolo de natureza ritualística</strong> desenhado.</p>
+            <p>O símbolo já foi identificado anteriormente em uma ocorrência investigada pela Ordo, há aproximadamente dois anos. A situação tornou-se particularmente preocupante após o símbolo começar a ser <strong>reproduzido e compartilhado nas mídias locais e redes sociais</strong>, dificultando o controle da informação e aumentando o risco de exposição do paranormal.</p>
+            <p>Agentes da Ordo enviados anteriormente para algumas das cenas <strong>não obtiveram informações suficientes para determinar a origem do fenômeno, mas identificaram elementos de Conhecimento</strong>.</p>
+          </article>
+
+          <article class="panel iris-panel">
+            <div class="panel-title"><span>02</span> O DESAPARECIMENTO DE ÍRIS</div>
+            <p>Há <strong>três dias</strong>, a ex agente <strong>Íris Vasconcelos</strong> estabeleceu contato não autorizado com os canais criptografados da Ordo deixando uma mensagem.</p>
+            <div class="intercept-panel">
+              <div class="terminal-head">[SYS_LOG: CANAL_RESTRITO // LM-90-03-12]</div>
+              <p class="intercept-text">Segui o eco no corredor cego sem olhar para tratz. Frio.</p>
+              <p class="intercept-text">Rabiscos dourados trancaram minha sarda lá dentro.</p>
+              <p class="intercept-text">Eles não construíram a primeira porta; apenas herdaram a chave. Alto.</p>
+              <p class="intercept-text">Demônios de bico e penas já cercam o perímetro; não usam aquilo para esconder o rosto.</p>
+              <p class="intercept-text">Temem o colapso sob as mãos de quem assina por lá. Lentes.</p>
+              <p class="intercept-text">Médicos não passam décaaas fingindo que não sabem curar.</p>
+              <p class="intercept-text">Memórias não desaparecem: colocam outras por cima. Selo.</p>
+              <p class="intercept-text">Todos os cabos cortados dessa semana seguem um mesmo alinhamento.</p>
+              <p class="intercept-text">Resta saber por que ela foi a primeira a pular.</p>
+              <p class="intercept-text">Alguns corpos não morreram; foram feitos para sintonizir. Oásis.</p>
+              <p class="intercept-text">Disseram que perdi a razão antes de apagar as conedões do terminal.</p>
+              <p class="intercept-text">Isto não é contágio comum; estão preparando os receptores. Golpe.</p>
+              <p class="intercept-text">Ignorem quem hoje apenas alimenta o motoro; procurem a mente que desenhou a primeira engrenagem.</p>
+              <p class="intercept-text">Olhos sem piscar me esperam no saguão. Teto.</p>
+              <p class="intercept-text">Rastros terminam onde as luzes não fazem sombrer.</p>
+              <div class="terminal-foot">[REGISTRO COGNITIVO // PERCEPÇÃO // MEMÓRIA]</div>
+            </div>
+          </article>
+
+          <article class="audio-panel">
+            <div class="audio-meta"><span class="panel-title"><span>03</span> REGISTRO DE ÁUDIO // SAMUEL</span><span class="audio-time">00:00 / 01:22</span></div>
+            <button class="fake-player" id="samuel-player" type="button" aria-label="Reproduzir registro de áudio do briefing"><span class="play">▶</span><span class="waveform">▁▂▃▅▃▆▇▅▃▂▁▃▅▆▃▂▁▂▅▇▆▃▂</span><span class="play-label">REPRODUZIR REGISTRO</span></button>
+            <audio id="samuel-audio" preload="metadata" src="assets/audio/samuel-briefing.mp3"></audio>
+            <p>REGISTRO ANEXADO // ÁUDIO OPERACIONAL</p>
+          </article>
+
+          <div class="panel-grid two briefing-bottom">
+            <article class="panel warning-panel">
+              <div class="panel-title"><span>04</span> OBJETIVOS DA MISSÃO</div>
+              <ul class="objective-list">
+                <li><strong>Investigar e documentar os suicídios</strong>, identificando padrões, conexões e possíveis causas;</li>
+                <li><strong>Determinar a natureza e origem do símbolo</strong> encontrado nas cenas;</li>
+                <li><strong>Confirmar a presença de atividade paranormal ou exoterrorista</strong> e avaliar seu alcance;</li>
+                <li><strong>Localizar a agente Íris</strong> e determinar as circunstâncias de seu desaparecimento;</li>
+                <li><strong>Impedir novas manifestações ou mortes</strong>, intervindo diretamente caso uma ameaça paranormal seja confirmada;</li>
+                <li><strong>Conter qualquer evidência ou informação</strong> capaz de expor a existência do paranormal à população.</li>
+              </ul>
+            </article>
+            <article class="panel">
+              <div class="panel-title"><span>05</span> OBSERVAÇÕES</div>
+              <p>O nível exato da ameaça permanece <strong>desconhecido</strong>. Entretanto, os elementos encontrados até o momento indicam <strong>atividade potencialmente exoterrorista</strong>, devendo a ocorrência ser considerada perigosa até segunda ordem.</p>
+              <p>A polícia de Paris acredita estar diante de um possível <strong>assassino em série</strong> e tenta evitar a disseminação de pânico entre a população.</p>
+              <p>A exposição do símbolo nas mídias representa um <strong>risco elevado de comprometimento da Membrana</strong>. A equipe deve evitar qualquer divulgação adicional de informações relacionadas ao fenômeno.</p>
+              <p class="protocol"><strong>Sigam os protocolos da Ordo. Olhos sempre abertos.</strong><br><strong>Discrição total é obrigatória.</strong></p>
+            </article>
+          </div>
+
+        </section>
+
+        <section id="situacao" class="screen-section">
+          <div class="section-topline"><span>SITUAÇÃO ATUAL</span><span>ATUALIZAÇÃO // 07.10.2026</span></div>
+          <h2>O CASO ESTÁ EM ANDAMENTO.</h2>
+          <div class="status-grid">
+            <div class="status-card critical"><span>OCORRÊNCIAS</span><strong>09</strong><small>SUICÍDIOS CONFIRMADOS</small></div>
+            <div class="status-card"><span>ÍRIS</span><strong>DESAPARECIDA</strong><small>ÚLTIMO RASTRO: PORTE DE MONTREUIL</small></div>
+            <div class="status-card"><span>AMEAÇA</span><strong>DESCONHECIDA</strong><small>ATIVIDADE POTENCIALMENTE EXOTERRORISTA</small></div>
+            <div class="status-card critical"><span>MEMBRANA</span><strong>RISCO ELEVADO</strong><small>EXPOSIÇÃO DO SÍMBOLO NAS MÍDIAS</small></div>
+          </div>
+          <article class="panel timeline-panel">
+            <div class="panel-title"><span>06</span> LINHA DE OCORRÊNCIAS</div>
+            <div class="timeline-row"><span>01–06 OUT</span><strong>9 SUICÍDIOS</strong><em>OCORRÊNCIAS REGISTRADAS</em></div>
+            <div class="timeline-row"><span>04 OUT</span><strong>ÍRIS</strong><em>CONTATO NÃO AUTORIZADO COM A ORDO</em></div>
+            <div class="timeline-row"><span>07 OUT</span><strong>PORTE DE MONTREUIL</strong><em>REGISTRO DE PESSOA COMPATÍVEL COM ÍRIS</em></div>
+            <div class="timeline-row alert"><span>07 OUT</span><strong>NOVA OCORRÊNCIA</strong><em>NOTIFICAÇÃO RECEBIDA DURANTE O BRIEFING</em></div>
+          </article>
+          <div class="note-grid">
+            <article class="panel"><div class="panel-title"><span>07</span> EXPOSIÇÃO PÚBLICA</div><p>O símbolo passou a ser reproduzido e compartilhado nas mídias locais e redes sociais. A contenção de informação permanece prioritária.</p></article>
+            <article class="panel"><div class="panel-title"><span>08</span> ELEMENTOS PARANORMAIS</div><p>Agentes enviados anteriormente identificaram elementos de <strong>Conhecimento</strong>, sem determinar a origem do fenômeno.</p></article>
+          </div>
+        </section>
+
+        <section id="arquivos" class="screen-section">
+          <div class="section-topline"><span>ARQUIVOS DO CASO</span><span>ACESSO // NÍVEL 04</span></div>
+          <h2>DOCUMENTOS E FONTES</h2>
+          <div class="file-list">
+            <a class="file-row" href="#briefing"><span class="file-icon">TXT</span><span><strong>BRIEFING DE OPERAÇÃO</strong><small>CASO-26-107 // DOCUMENTO PRINCIPAL</small></span><b>ABRIR</b></a>
+            <a class="file-row" href="#briefing"><span class="file-icon">AUD</span><span><strong>REGISTRO DE SAMUEL</strong><small>ÁUDIO // BRIEFING</small></span><b>ABRIR</b></a>
+          </div>
+          <article class="external-source">
+            <div><span class="micro-label">FONTE DE PESQUISA</span><h3>LUME — Site institucional</h3><p>O site público da LUME foi utilizado como fonte de pesquisa durante a investigação. O acesso abaixo leva diretamente ao material público disponível.</p></div>
+            <a href="#" class="locked-source" id="lume-site-link" title="Fonte temporariamente indisponível">ACESSAR SITE DA LUME <span>↗</span></a>
+          </article>
+        </section>
+
+        <section id="localizacoes" class="screen-section">
+          <div class="section-topline"><span>LOCALIZAÇÕES</span><span>PARIS // FRANÇA</span></div>
+          <h2>PONTOS DE INTERESSE</h2>
+          <div class="location-grid">
+            <article class="location-card"><span>BASE OPERACIONAL</span><strong>MANSÃO NOIR</strong><small>14 RUE DES ORMES // 16º ARRONDISSEMENT</small><p>Local de encontro e base operacional da missão.</p><button type="button">TRAÇAR ROTA</button></article>
+            <article class="location-card"><span>OCORRÊNCIA</span><strong>PORTE DE MONTREUIL</strong><small>20º ARRONDISSEMENT</small><p>Região na qual foi registrada uma pessoa com características compatíveis com Íris.</p><button type="button">TRAÇAR ROTA</button></article>
+          </div>
+        </section>
+        <footer class="system-footer"><span>C.R.I.S. // CENTRAL DE RECONHECIMENTO DE IRREGULARIDADES SOBRENATURAIS</span><span>DOCUMENTOS RESTRITOS — NÃO DISTRIBUIR</span></footer>
+      </section>
+    </main>
+  </div>
+  <script src="cris.js"></script>
+</body>
+</html>
