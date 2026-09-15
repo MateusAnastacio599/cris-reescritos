@@ -40,16 +40,12 @@ body:before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(
-      circle at 70% 20%,
+    radial-gradient(circle at 70% 20%,
       rgba(125, 57, 210, .08),
-      transparent 34%
-    ),
-    radial-gradient(
-      circle at 20% 80%,
+      transparent 34%),
+    radial-gradient(circle at 20% 80%,
       rgba(91, 49, 149, .07),
-      transparent 30%
-    );
+      transparent 30%);
   z-index: -1;
 }
 
@@ -73,12 +69,10 @@ input {
   pointer-events: none;
   z-index: 20;
   opacity: .035;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0,
-    transparent 2px,
-    #fff 3px
-  );
+  background: repeating-linear-gradient(0deg,
+      transparent 0,
+      transparent 2px,
+      #fff 3px);
 }
 
 
@@ -107,12 +101,10 @@ input {
   position: absolute;
   inset: 0;
   opacity: .06;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0,
-    transparent 2px,
-    #fff 3px
-  );
+  background: repeating-linear-gradient(0deg,
+      transparent 0,
+      transparent 2px,
+      #fff 3px);
 }
 
 .login-grid {
@@ -120,20 +112,14 @@ input {
   inset: -20%;
   opacity: .18;
   background-image:
-    linear-gradient(
+    linear-gradient(rgba(155, 92, 255, .15) 1px,
+      transparent 1px),
+    linear-gradient(90deg,
       rgba(155, 92, 255, .15) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      rgba(155, 92, 255, .15) 1px,
-      transparent 1px
-    );
+      transparent 1px);
   background-size: 70px 70px;
   transform:
-    perspective(500px)
-    rotateX(62deg)
-    translateY(28%);
+    perspective(500px) rotateX(62deg) translateY(28%);
   transform-origin: center bottom;
 }
 
@@ -156,8 +142,7 @@ input {
   margin: 0 auto 8px;
   image-rendering: auto;
   filter:
-    saturate(1.2)
-    drop-shadow(0 0 14px rgba(155, 92, 255, .4));
+    saturate(1.2) drop-shadow(0 0 14px rgba(155, 92, 255, .4));
 }
 
 .login-brand-name {
@@ -181,12 +166,10 @@ input {
 
 .login-line {
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--purple-dark),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      var(--purple-dark),
+      transparent);
   margin: 22px 0;
 }
 
@@ -213,28 +196,6 @@ input {
   font-size: 11px;
   letter-spacing: .1em;
   margin-bottom: 8px;
-}
-
-
-/* =========================================================
-   RODAPÉ DA AUTENTICAÇÃO
-   ========================================================= */
-
-.login-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-top: 17px;
-  padding-top: 13px;
-  border-top: 1px solid #30273d;
-  color: #8e8499;
-  font-size: 10px;
-  letter-spacing: .08em;
-}
-
-.login-footer span:last-child {
-  text-align: right;
 }
 
 
@@ -304,15 +265,11 @@ input {
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(
-    0 0 5px rgba(155, 92, 255, .3)
-  );
+  filter: drop-shadow(0 0 5px rgba(155, 92, 255, .3));
 }
 
 .password-toggle.is-visible .password-eye {
-  filter: drop-shadow(
-    0 0 8px rgba(155, 92, 255, .55)
-  );
+  filter: drop-shadow(0 0 8px rgba(155, 92, 255, .55));
 }
 
 
@@ -373,8 +330,7 @@ input {
   object-fit: contain;
   image-rendering: auto;
   filter:
-    saturate(1.15)
-    drop-shadow(0 0 8px rgba(155, 92, 255, .18));
+    saturate(1.15) drop-shadow(0 0 8px rgba(155, 92, 255, .18));
 }
 
 .system-brand strong {
@@ -505,8 +461,7 @@ input {
   flex-direction: column;
   position: sticky;
   top: 82px;
-  height: fit-content;
-  align-self: start;
+  height: calc(100vh - 82px);
   z-index: 900;
 }
 
@@ -578,7 +533,7 @@ input {
 }
 
 .sidebar-footer {
-  margin-top: 15px;
+  margin-top: auto;
   color: #554b60;
   font-size: 9px;
   line-height: 2.1;
@@ -696,6 +651,149 @@ h2 {
   font-size: 8px;
 }
 
+
+/* =========================================================
+   EQUIPE
+   ========================================================= */
+
+.team-panel {
+  margin-top: 22px;
+  padding: 22px;
+  background: #0d0a12;
+  border: 1px solid var(--line);
+  border-left: 2px solid rgba(155, 92, 255, .32);
+}
+
+.section-block-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.section-block-head h2 {
+  margin: 5px 0 0;
+  font-family: Arial, sans-serif;
+  font-size: 24px;
+  letter-spacing: -.02em;
+}
+
+.section-code {
+  color: #655b70;
+  font-size: 9px;
+  letter-spacing: .09em;
+  white-space: nowrap;
+}
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agent-file {
+  min-width: 0;
+  background: #100c15;
+  border: 1px solid #30263a;
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.agent-file:hover {
+  background: #15101b;
+  border-color: #4a3858;
+  transform: translateY(-2px);
+}
+
+.agent-photo {
+  aspect-ratio: 4 / 3;
+  border-bottom: 1px solid #30263a;
+  overflow: hidden;
+}
+
+.agent-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.agent-photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background:
+    linear-gradient(135deg, rgba(155, 92, 255, .07), transparent 55%),
+    #0a080d;
+  color: #695d73;
+}
+
+.agent-photo-placeholder span {
+  font-size: 18px;
+  color: #806d91;
+  letter-spacing: .12em;
+}
+
+.agent-photo-placeholder small {
+  font-size: 7px;
+  color: #514957;
+  letter-spacing: .08em;
+}
+
+.agent-photo-placeholder.unknown span {
+  font-size: 42px;
+  line-height: 1;
+  color: #a879d0;
+  text-shadow: 0 0 18px rgba(155, 92, 255, .28);
+}
+
+.agent-file-body {
+  padding: 12px;
+}
+
+.agent-number {
+  display: block;
+  margin-bottom: 7px;
+  color: #675d70;
+  font-size: 8px;
+  letter-spacing: .1em;
+}
+
+.agent-file h3 {
+  min-height: 34px;
+  margin: 0 0 9px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+.agent-clearance-card {
+  display: inline-block;
+  padding: 4px 6px;
+  border: 1px solid #3d304a;
+  color: #a991b9;
+  font-size: 7px;
+  letter-spacing: .06em;
+}
+
+.agent-file-body p {
+  margin: 9px 0 0;
+  color: #675d6d;
+  font-size: 7px;
+  line-height: 1.4;
+  letter-spacing: .04em;
+}
+
+.agent-unknown {
+  border-color: #3d304a;
+}
+
+.agent-unknown .agent-file-body h3 {
+  color: #b990d3;
+}
 
 /* =========================================================
    PAINÉIS
@@ -1045,7 +1143,7 @@ h2 {
   min-height: 245px;
 }
 
-.location-card > span {
+.location-card>span {
   font-size: 9px;
   color: var(--purple2);
   letter-spacing: .1em;
@@ -1128,6 +1226,12 @@ h2 {
    MOBILE
    ========================================================= */
 
+@media (max-width: 1100px) {
+  .agent-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
 
   .topbar {
@@ -1172,17 +1276,16 @@ h2 {
 
   /* SIDEBAR MOBILE */
   .sidebar {
-    position: fixed;
+    position: absolute;
     z-index: 900;
     top: 76px;
     left: 0;
     right: 0;
 
-    height: fit-content;
+    height: auto;
     max-height: calc(100vh - 76px);
 
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: auto;
 
     background: #0c0911;
 
@@ -1229,6 +1332,24 @@ h2 {
     margin-top: 8px;
   }
 
+
+  .section-block-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .section-code {
+    white-space: normal;
+  }
+
+  .agent-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .agent-file h3 {
+    min-height: auto;
+  }
 
   /* CONTEÚDO */
   .screen-section {
@@ -1333,6 +1454,10 @@ h2 {
 
 
   /* TOPO */
+  .agent-grid {
+    grid-template-columns: 1fr;
+  }
+
   .topbar {
     padding: 0 12px;
   }
@@ -1429,6 +1554,251 @@ h2 {
 
   .login-footer {
     font-size: 8px;
-    gap: 10px;
+  }
+}
+
+/* =========================================================
+   CRIS — EQUIPE, FICHAS E VIEWS
+   ========================================================= */
+.team-toggle {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #3a2d47;
+  background: #0b0810;
+  color: #9f91aa;
+  padding: 8px 10px;
+  font-size: 8px;
+  letter-spacing: .1em;
+  cursor: pointer
+}
+
+.team-toggle b {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--purple2);
+  font-weight: 400;
+  transition: transform .18s ease
+}
+
+.agent-profile-card {
+  cursor: pointer
+}
+
+.agent-profile-card:focus-visible {
+  outline: 1px solid var(--purple2);
+  outline-offset: 2px
+}
+
+.restricted-section {
+  display: none
+}
+
+.restricted-section.is-open {
+  display: block
+}
+
+.content.view-restricted #briefing,
+.content.view-restricted #situacao {
+  display: none
+}
+
+.content.view-restricted .system-footer {
+  display: none
+}
+
+.agent-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 30px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .18s ease, visibility .18s ease
+}
+
+.agent-modal.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto
+}
+
+.agent-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 3, 8, .84);
+  backdrop-filter: blur(3px)
+}
+
+.agent-modal-card {
+  position: relative;
+  z-index: 1;
+  width: min(900px, 100%);
+  max-height: min(760px, calc(100vh - 60px));
+  overflow: auto;
+  padding: 25px;
+  background: #0d0a12;
+  border: 1px solid #40324f;
+  border-left: 2px solid rgba(155, 92, 255, .55);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, .55)
+}
+
+.agent-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #3a2d47;
+  background: #0b0810;
+  color: #a991b9;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer
+}
+
+.agent-modal-close:hover {
+  color: #eee8f2;
+  border-color: var(--purple-dark)
+}
+
+.agent-modal-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding-right: 45px;
+  margin-bottom: 22px;
+  color: #675d70;
+  font-size: 8px;
+  letter-spacing: .1em
+}
+
+.agent-modal-access {
+  color: #a991b9
+}
+
+.agent-modal-layout {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 28px
+}
+
+.agent-modal-photo {
+  aspect-ratio: 4 / 5;
+  border: 1px solid #30263a;
+  background: #09070d center / cover no-repeat;
+  overflow: hidden;
+
+  display: grid;
+  place-items: center;
+
+  color: #a879d0;
+  font-size: 64px;
+  line-height: 1;
+  text-shadow: 0 0 18px rgba(155, 92, 255, .28);
+}
+
+.agent-modal-info h2 {
+  margin: 8px 0 7px;
+  font-size: 34px;
+  color: #eee8f2
+}
+
+.agent-modal-status {
+  color: #a991b9;
+  font-size: 9px;
+  letter-spacing: .08em;
+  margin-bottom: 25px
+}
+
+.agent-modal-block {
+  padding: 13px 0;
+  border-top: 1px solid #2b2234
+}
+
+.agent-modal-block>span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--purple2);
+  font-size: 8px;
+  letter-spacing: .12em
+}
+
+.agent-modal-block p {
+  margin: 0;
+  color: #b9b0c0;
+  font-size: 13px;
+  line-height: 1.65
+}
+
+body.modal-open {
+  overflow: hidden
+}
+
+@media (max-width:900px) {
+  .section-block-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center
+  }
+
+  .team-toggle {
+    display: inline-flex
+  }
+
+  .team-panel.collapsed .agent-grid {
+    display: none
+  }
+
+  .team-panel.collapsed .team-toggle b {
+    transform: rotate(180deg)
+  }
+
+  .agent-modal {
+    padding: 15px
+  }
+
+  .agent-modal-card {
+    max-height: calc(100vh - 30px);
+    padding: 20px
+  }
+
+  .agent-modal-layout {
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 20px
+  }
+}
+
+@media (max-width:560px) {
+  .section-block-head {
+    grid-template-columns: minmax(0, 1fr) auto
+  }
+
+  .section-block-head h2 {
+    font-size: 20px
+  }
+
+  .section-code {
+    display: none
+  }
+
+  .team-toggle {
+    min-width: 68px
+  }
+
+  .agent-modal-layout {
+    grid-template-columns: 1fr
+  }
+
+  .agent-modal-photo {
+    max-width: 180px
+  }
+
+  .agent-modal-info h2 {
+    font-size: 28px
   }
 }
