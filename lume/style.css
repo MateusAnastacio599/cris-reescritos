@@ -2465,3 +2465,45 @@ footer {
     grid-template-columns: 1fr;
   }
 }
+
+/* IMPACTO HUMANO */
+.impact-note {
+  margin-top: 52px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,.18);
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.impact-note-label {
+  font-size: 11px;
+  letter-spacing: .16em;
+  font-weight: 700;
+  opacity: .72;
+}
+.impact-note p {
+  max-width: 760px;
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.7;
+  color: rgba(255,255,255,.82);
+}
+@media (max-width: 700px) {
+  .impact-note {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 36px;
+  }
+  .impact-note p {
+    font-size: 15px;
+  }
+}
+
+/* Impacto humano */
+.impact-stories{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:42px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.12)}
+.impact-story{padding:28px;background:#11100f}
+.impact-story span{display:block;font-size:10px;letter-spacing:.16em;color:#b8a68b;margin-bottom:18px}
+.impact-story strong{display:block;font-size:34px;line-height:1;margin-bottom:12px;color:#f4f0e8}
+.impact-story p{margin:0;color:#bcb6ac;line-height:1.65;font-size:14px}
+@media (max-width:800px){.impact-stories{grid-template-columns:1fr}.impact-story{padding:24px}}

@@ -185,26 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
      LINK DA LUME
      ========================================================= */
 
-  // O link principal da LUME fica propositalmente indisponível nesta versão.
-  // Isso permite tratar a manutenção do material como parte da experiência do mestre.
-
-  lumeLink.addEventListener('click', e => {
-    e.preventDefault();
-
-    lumeLink.textContent =
-      'FONTE EM REVISÃO // SPOILERS EM MANUTENÇÃO';
-
-    setTimeout(() => {
-      lumeLink.innerHTML =
-        'ACESSAR SITE DA LUME <span>↗</span>';
-    }, 2600);
-  });
-
-
-  /* =========================================================
-     NAVEGAÇÃO / SEÇÕES
-     ========================================================= */
-
   const links = [
     ...document.querySelectorAll('.nav a')
   ];

@@ -1276,7 +1276,7 @@ h2 {
 
   /* SIDEBAR MOBILE */
   .sidebar {
-    position: absolute;
+    position: fixed;
     z-index: 900;
     top: 76px;
     left: 0;
