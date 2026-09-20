@@ -76,6 +76,7 @@
           <a href="#situacao"><span>02</span> SITUAÇÃO</a>
           <a href="#arquivos"><span>03</span> ARQUIVOS</a>
           <a href="#localizacoes"><span>04</span> LOCALIZAÇÕES</a>
+          <a href="#fichas"><span>05</span> FICHAS</a>
         </nav>
         <div class="sidebar-footer">
           <span>C.R.I.S. // ACESSO LOCAL</span><span>PARIS // 07.10.2026</span>
@@ -355,6 +356,283 @@
             </article>
           </div>
         </section>
+        <section id="fichas" class="screen-section restricted-section">
+          <div class="section-topline">
+            <span>FICHAS DE PERSONAGEM</span>
+            <span>ORDEM PARANORMAL 2 // CRIADOR</span>
+          </div>
+
+          <div class="ficha-heading">
+            <div>
+              <span class="eyebrow">CRIADOR DE FICHA</span>
+              <h2>PERSONAGEM</h2>
+              <p>Monte, edite e salve uma ficha localmente no C.R.I.S.</p>
+            </div>
+            <div class="ficha-actions">
+              <button type="button" id="ficha-new" class="ficha-action ficha-action--ghost">NOVA FICHA</button>
+              <button type="button" id="ficha-import" class="ficha-action ficha-action--ghost">IMPORTAR</button>
+              <button type="button" id="ficha-export" class="ficha-action ficha-action--ghost">EXPORTAR</button>
+              <button type="button" id="ficha-delete" class="ficha-action ficha-action--danger">APAGAR FICHA</button>
+              <button type="button" id="ficha-save" class="ficha-action">SALVAR</button>
+              <input id="ficha-import-file" type="file" accept=".json,application/json" hidden>
+            </div>
+          </div>
+
+          <section id="ficha-wizard" class="ficha-wizard">
+            <div class="wizard-head">
+              <div>
+                <span class="eyebrow">CRIAÇÃO GUIADA</span>
+                <h3 id="wizard-title">ETAPA 01 // IDENTIDADE</h3>
+                <p id="wizard-intro">Comece pelo básico. Você poderá revisar tudo antes de finalizar a ficha.</p>
+                <p class="wizard-preview-note">PRÉVIA DO C.R.I.S. // NOVAS REGRAS E OCUPAÇÕES SERÃO INTEGRADAS EM ATUALIZAÇÕES FUTURAS.</p>
+              </div>
+              <span id="wizard-counter" class="wizard-counter">01 / 07</span>
+            </div>
+
+            <div class="wizard-progress" aria-hidden="true"><span id="wizard-progress-bar"></span></div>
+
+            <div class="wizard-step active" data-wizard-step="1">
+              <div class="wizard-explain">
+                <span>01</span>
+                <div><strong>IDENTIDADE</strong><p>Defina quem é seu personagem e quem o controla na mesa.</p></div>
+              </div>
+              <div class="wizard-fields two">
+                <label><span>NOME DA PERSONAGEM</span><input id="wizard-name" type="text" placeholder="Nome"></label>
+                <label><span>JOGADOR</span><input id="wizard-player" type="text" placeholder="Seu nome"></label>
+                <label><span>TIPO DE PERSONAGEM</span><select id="wizard-type"><option value="agente">AGENTE</option><option value="sobrevivente">SOBREVIVENTE</option></select></label>
+                <label class="wizard-wide-field"><span>CONCEITO <small class="field-optional">OPCIONAL</small></span><input id="wizard-concept" type="text" placeholder="Em poucas palavras, quem é essa pessoa?"></label>
+              </div>
+            </div>
+
+            <div class="wizard-step" data-wizard-step="2">
+              <div class="wizard-explain">
+                <span>02</span>
+                <div><strong>PERFIL</strong><p>O Perfil descreve sua maneira mais natural de resolver problemas. Ele não limita o que você pode fazer.</p></div>
+              </div>
+              <div class="wizard-profile-grid">
+                <button type="button" class="wizard-profile-card" data-wizard-profile="executor"><strong>EXECUTOR</strong><span>Age primeiro e vence pela perseverança.</span></button>
+                <button type="button" class="wizard-profile-card" data-wizard-profile="analista"><strong>ANALISTA</strong><span>Observa, entende e se prepara antes de agir.</span></button>
+                <button type="button" class="wizard-profile-card" data-wizard-profile="vigilante"><strong>VIGILANTE</strong><span>Percebe brechas e se adapta sob pressão.</span></button>
+              </div>
+              <p class="wizard-note">Nenhum Perfil é melhor que outro. Eles oferecem experiências diferentes de jogo.</p>
+            </div>
+
+            <div class="wizard-step" data-wizard-step="3">
+              <div class="wizard-explain">
+                <span>03</span>
+                <div><strong>OCUPAÇÃO</strong><p>Representa o que seu personagem faz da vida. No sistema, a Ocupação também fornece uma habilidade.</p></div>
+              </div>
+              <label class="wizard-wide-field"><span>OCUPAÇÃO <small class="field-optional">EM DESENVOLVIMENTO</small></span><input id="wizard-occupation" type="text" placeholder="Ex.: médica, policial, estudante..."></label>
+              <p class="wizard-note">A lista oficial de Ocupações ainda será apresentada em uma próxima versão. Este campo é uma adaptação provisória do C.R.I.S.</p>
+              <div class="wizard-fields two">
+                <label><span>NÍVEL</span><input id="wizard-level" type="number" min="1" max="10" value="1"></label>
+                <label><span>NEX</span><input id="wizard-nex" type="number" min="0" max="100" value="0"></label>
+              </div>
+            </div>
+
+            <div class="wizard-step" data-wizard-step="4">
+              <div class="wizard-explain">
+                <span>04</span>
+                <div><strong>ATRIBUTOS</strong><p>Físico, Mente e Emoção representam as capacidades inatas do personagem. Nesta prévia, d6 é o ponto de partida; as regras completas de distribuição serão adicionadas posteriormente.</p></div>
+              </div>
+              <div class="wizard-die-scale"><span>d4</span><span>d6</span><span>d8</span><span>d10</span><span>d12</span></div>
+              <div class="wizard-attributes">
+                <div class="wizard-attribute-card" title="FÍSICO: Potência muscular, agilidade motora, equilíbrio cinético, coordenação corporal e resistência respiratória.">
+                  <span>FÍSICO</span>
+                  <small>Força, coordenação, velocidade, ginástica e fôlego.</small>
+                  <button type="button" data-wizard-die="fisico"></button>
+                </div>
+                <div class="wizard-attribute-card" title="MENTE: Capacidade analítica, lógica dedutiva, conhecimento enciclopédico, instrução científica e acuidade perceptiva.">
+                  <span>MENTE</span>
+                  <small>Raciocínio, educação, perícias técnicas e percepção.</small>
+                  <button type="button" data-wizard-die="mente"></button>
+                </div>
+                <div class="wizard-attribute-card" title="EMOÇÃO: Vontade psíquica, controle de pânico, intuição subconsciente e magnetismo interpessoal.">
+                  <span>EMOÇÃO</span>
+                  <small>Vontade, instintos, frieza emocional e lábia social.</small>
+                  <button type="button" data-wizard-die="emocao"></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-step" data-wizard-step="5">
+              <div class="wizard-explain">
+                <span>05</span>
+                <div><strong>PERÍCIAS</strong><p>Perícias representam conhecimentos e técnicas específicas. O dado da perícia é somado ao dado do atributo no teste.</p></div>
+              </div>
+              <div id="wizard-skill-list" class="wizard-skill-list"></div>
+              <p class="wizard-note">Os valores iniciais das Perícias ainda não possuem regras completas de distribuição no playtest. No C.R.I.S., elas começam em <strong>d4</strong> e aguardam a progressão oficial.</p>
+              <div class="wizard-aptidao-wrap"><span class="wizard-subhead">APTIDÃO</span><div id="wizard-aptidao-list" class="wizard-aptidao-list"></div></div>
+            </div>
+
+            <div class="wizard-step" data-wizard-step="6">
+              <div class="wizard-explain">
+                <span>06</span>
+                <div><strong>RECURSOS</strong><p>PV mede sua resistência física. PD mede sua resistência mental e determinação.</p></div>
+              </div>
+              <div class="wizard-resources">
+                <label><span>PV ATUAL</span><input id="wizard-pv-current" type="number" min="0" value="0"></label>
+                <label><span>PV MÁXIMO</span><input id="wizard-pv-max" type="number" min="0" value="0"></label>
+                <label><span>PD ATUAL</span><input id="wizard-pd-current" type="number" min="0" value="0"></label>
+                <label><span>PD MÁXIMO</span><input id="wizard-pd-max" type="number" min="0" value="0"></label>
+              </div>
+              <p class="wizard-note">Os valores iniciais podem depender da versão completa das regras. Nesta prévia, registre os valores definidos para sua personagem.</p>
+            </div>
+
+            <div class="wizard-step" data-wizard-step="7">
+              <div class="wizard-explain">
+                <span>07</span>
+                <div><strong>HABILIDADES</strong><p>Você começa com habilidades fornecidas pelo Perfil e pela Ocupação. Adicione outras quando necessário.</p></div>
+              </div>
+              <div id="wizard-ability-list" class="wizard-ability-list"></div>
+              <button type="button" id="wizard-add-ability" class="sheet-add-line">+ NOVA HABILIDADE</button>
+            </div>
+
+            <div class="wizard-actions">
+              <button type="button" id="wizard-back" class="ficha-action ficha-action--ghost">VOLTAR</button>
+              <button type="button" id="wizard-next" class="ficha-action">CONTINUAR</button>
+            </div>
+          </section>
+
+          <div class="character-sheet hidden">
+            <div class="sheet-main">
+              <section class="sheet-header-card">
+                <div class="sheet-title-row">
+                  <input id="sheet-name" class="sheet-name" type="text" placeholder="NOME DA PERSONAGEM" autocomplete="off">
+                  <span class="sheet-status" id="ficha-status">RASCUNHO // LOCAL</span>
+                </div>
+
+                <div class="sheet-identity-grid">
+                  <button type="button" class="sheet-portrait" id="sheet-portrait-button" aria-label="Adicionar retrato">
+                    <img id="sheet-portrait-image" alt="" hidden>
+                    <span id="sheet-portrait-placeholder"><b>IMG</b><small>ADICIONAR RETRATO</small></span>
+                  </button>
+                  <input id="sheet-portrait-file" type="file" accept="image/*" hidden>
+
+                  <div class="sheet-fields">
+                    <label><span>JOGADOR</span><input id="sheet-player" type="text" placeholder="Nome do jogador"></label>
+                    <div class="sheet-field-row">
+                      <label><span>PERFIL</span>
+                        <select id="sheet-profile">
+                          <option value="executor">EXECUTOR</option>
+                          <option value="analista">ANALISTA</option>
+                          <option value="vigilante">VIGILANTE</option>
+                        </select>
+                      </label>
+                      <label><span>TIPO</span>
+                        <select id="sheet-type">
+                          <option value="agente">AGENTE</option>
+                          <option value="sobrevivente">SOBREVIVENTE</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label><span>OCUPAÇÃO</span><input id="sheet-occupation" type="text" placeholder="Ocupação"></label>
+                    <div class="sheet-field-row">
+                      <label><span>NÍVEL</span><input id="sheet-level" type="number" min="1" max="10" value="1"></label>
+                      <label><span>NEX</span><input id="sheet-nex" type="number" min="0" max="100" value="0"></label>
+                    </div>
+                  </div>
+
+                  <div class="sheet-attributes">
+                    <div class="sheet-block-head"><span>ATRIBUTOS</span><small>ESCADA DE DADOS</small></div>
+                    <div class="attribute-grid">
+                      <div class="attribute-card" title="FÍSICO: Potência muscular, agilidade motora, equilíbrio cinético, coordenação corporal e resistência respiratória.">
+                        <div>
+                          <span>FÍSICO</span>
+                          <small>Força, coordenação, velocidade e fôlego.</small>
+                        </div>
+                        <button type="button" class="die-control" data-die-field="fisico" aria-label="Alterar dado de Físico"></button>
+                      </div>
+                      <div class="attribute-card" title="MENTE: Capacidade analítica, lógica dedutiva, conhecimento enciclopédico, instrução científica e acuidade perceptiva.">
+                        <div>
+                          <span>MENTE</span>
+                          <small>Raciocínio, educação e percepção.</small>
+                        </div>
+                        <button type="button" class="die-control" data-die-field="mente" aria-label="Alterar dado de Mente"></button>
+                      </div>
+                      <div class="attribute-card" title="EMOÇÃO: Vontade psíquica, controle de pânico, intuição subconsciente e magnetismo interpessoal.">
+                        <div>
+                          <span>EMOÇÃO</span>
+                          <small>Força de vontade, magnetismo social e instintos.</small>
+                        </div>
+                        <button type="button" class="die-control" data-die-field="emocao" aria-label="Alterar dado de Emoção"></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sheet-resources">
+                  <div class="resource-card">
+                    <div><span>PV</span><small>VIDA</small></div>
+                    <input id="pv-current" type="number" min="0" value="0" aria-label="PV atual">
+                    <b>/</b>
+                    <input id="pv-max" type="number" min="0" value="0" aria-label="PV máximo">
+                    <div class="resource-pips" id="pv-pips" aria-label="Trilha de PV"></div>
+                  </div>
+                  <div class="resource-card">
+                    <div><span>PD</span><small>DETERMINAÇÃO</small></div>
+                    <input id="pd-current" type="number" min="0" value="0" aria-label="PD atual">
+                    <b>/</b>
+                    <input id="pd-max" type="number" min="0" value="0" aria-label="PD máximo">
+                    <div class="resource-pips" id="pd-pips" aria-label="Trilha de PD"></div>
+                  </div>
+                </div>
+              </section>
+
+              <nav class="sheet-tabs" aria-label="Conteúdo da ficha">
+                <button type="button" class="sheet-tab active" data-sheet-tab="habilidades">HABILIDADES</button>
+                <button type="button" class="sheet-tab" data-sheet-tab="inventario">INVENTÁRIO</button>
+                <button type="button" class="sheet-tab" data-sheet-tab="biografia">BIOGRAFIA</button>
+                <button type="button" class="sheet-tab" data-sheet-tab="notas">NOTAS</button>
+              </nav>
+
+              <section class="sheet-tab-panel active" data-sheet-panel="habilidades">
+                <div class="sheet-panel-head"><span>HABILIDADES</span><button type="button" id="add-ability" class="sheet-small-button">+ NOVA HABILIDADE</button></div>
+                <div id="ability-list" class="sheet-item-list"></div>
+                <div id="ability-empty" class="sheet-empty-state"><strong>NENHUMA HABILIDADE CADASTRADA</strong><p>Adicione habilidades para mantê-las na ficha.</p></div>
+              </section>
+
+              <section class="sheet-tab-panel" data-sheet-panel="inventario">
+                <div class="sheet-panel-head"><span>INVENTÁRIO</span><button type="button" id="add-item" class="sheet-small-button">+ NOVO ITEM</button></div>
+                <div id="inventory-list" class="sheet-item-list"></div>
+                <div id="inventory-empty" class="sheet-empty-state"><strong>NENHUM ITEM CADASTRADO</strong><p>Equipamentos, ferramentas e outros itens podem ser adicionados aqui.</p></div>
+              </section>
+
+              <section class="sheet-tab-panel" data-sheet-panel="biografia">
+                <div class="sheet-panel-head"><span>BIOGRAFIA</span><small class="sheet-panel-status">REGISTRO PESSOAL</small></div>
+                <div class="sheet-bio-grid">
+                  <label><span>CONCEITO / DESCRIÇÃO</span><textarea id="sheet-concept" class="sheet-notes sheet-bio-short" placeholder="Quem é essa pessoa? Como ela se apresenta ao grupo?"></textarea></label>
+                  <label><span>DESCRIÇÃO FÍSICA</span><textarea id="sheet-appearance" class="sheet-notes sheet-bio-short" placeholder="Aparência, marcas, roupas ou características importantes."></textarea></label>
+                  <label class="sheet-bio-wide"><span>HISTÓRIA</span><textarea id="sheet-history" class="sheet-notes sheet-bio-history" placeholder="Passado, acontecimentos importantes e outras informações da personagem."></textarea></label>
+                </div>
+              </section>
+
+              <section class="sheet-tab-panel" data-sheet-panel="notas">
+                <div class="sheet-panel-head"><span>NOTAS</span><small class="sheet-panel-status">ANOTAÇÕES LIVRES</small></div>
+                <textarea id="sheet-notes" class="sheet-notes" placeholder="Pistas, lembretes, informações de sessão e outras anotações..."></textarea>
+              </section>
+            </div>
+
+            <aside class="sheet-skills">
+              <div class="sheet-skills-head">
+                <span>PERÍCIAS</span>
+                <label class="sheet-search"><span>⌕</span><input id="skill-search" type="search" placeholder="BUSCAR" aria-label="Buscar perícias"></label>
+              </div>
+
+              <details class="skill-group" open>
+                <summary><span><b>›</b> APTIDÃO</span><span class="skill-attribute-label">MENTE</span></summary>
+                <div id="aptidao-list" class="aptidao-list"></div>
+                <p class="sheet-group-note">Conhecimento em campos específicos. A lista oficial desta prévia é fixa.</p>
+              </details>
+
+              <div id="skill-list" class="skill-list"></div>
+              <p class="sheet-help">As Perícias começam em <strong>d4</strong> nesta prévia. Passe o cursor para ver os detalhes e uso de cada uma.</p>
+            </aside>
+          </div>
+
+          <p id="ficha-feedback" class="ficha-feedback" aria-live="polite"></p>
+        </section>
+
         <div id="agent-modal" class="agent-modal" aria-hidden="true">
           <div class="agent-modal-backdrop" data-close-agent></div>
           <article class="agent-modal-card" role="dialog" aria-modal="true" aria-labelledby="agent-modal-name">
