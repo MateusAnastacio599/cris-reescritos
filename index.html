@@ -77,6 +77,7 @@
           <a href="#arquivos"><span>03</span> ARQUIVOS</a>
           <a href="#localizacoes"><span>04</span> LOCALIZAÇÕES</a>
           <a href="#fichas"><span>05</span> FICHAS</a>
+          <a href="#quadro"><span>06</span> QUADRO</a>
         </nav>
         <div class="sidebar-footer">
           <span>C.R.I.S. // ACESSO LOCAL</span><span>PARIS // 07.10.2026</span>
@@ -437,21 +438,9 @@
               </div>
               <div class="wizard-die-scale"><span>d4</span><span>d6</span><span>d8</span><span>d10</span><span>d12</span></div>
               <div class="wizard-attributes">
-                <div class="wizard-attribute-card" title="FÍSICO: Potência muscular, agilidade motora, equilíbrio cinético, coordenação corporal e resistência respiratória.">
-                  <span>FÍSICO</span>
-                  <small>Força, coordenação, velocidade, ginástica e fôlego.</small>
-                  <button type="button" data-wizard-die="fisico"></button>
-                </div>
-                <div class="wizard-attribute-card" title="MENTE: Capacidade analítica, lógica dedutiva, conhecimento enciclopédico, instrução científica e acuidade perceptiva.">
-                  <span>MENTE</span>
-                  <small>Raciocínio, educação, perícias técnicas e percepção.</small>
-                  <button type="button" data-wizard-die="mente"></button>
-                </div>
-                <div class="wizard-attribute-card" title="EMOÇÃO: Vontade psíquica, controle de pânico, intuição subconsciente e magnetismo interpessoal.">
-                  <span>EMOÇÃO</span>
-                  <small>Vontade, instintos, frieza emocional e lábia social.</small>
-                  <button type="button" data-wizard-die="emocao"></button>
-                </div>
+                <div class="wizard-attribute-card"><span>FÍSICO</span><small>Força, coordenação, velocidade e fôlego.</small><button type="button" data-wizard-die="fisico"></button></div>
+                <div class="wizard-attribute-card"><span>MENTE</span><small>Raciocínio, educação e percepção.</small><button type="button" data-wizard-die="mente"></button></div>
+                <div class="wizard-attribute-card"><span>EMOÇÃO</span><small>Vontade, magnetismo social e instintos.</small><button type="button" data-wizard-die="emocao"></button></div>
               </div>
             </div>
 
@@ -536,27 +525,9 @@
                   <div class="sheet-attributes">
                     <div class="sheet-block-head"><span>ATRIBUTOS</span><small>ESCADA DE DADOS</small></div>
                     <div class="attribute-grid">
-                      <div class="attribute-card" title="FÍSICO: Potência muscular, agilidade motora, equilíbrio cinético, coordenação corporal e resistência respiratória.">
-                        <div>
-                          <span>FÍSICO</span>
-                          <small>Força, coordenação, velocidade e fôlego.</small>
-                        </div>
-                        <button type="button" class="die-control" data-die-field="fisico" aria-label="Alterar dado de Físico"></button>
-                      </div>
-                      <div class="attribute-card" title="MENTE: Capacidade analítica, lógica dedutiva, conhecimento enciclopédico, instrução científica e acuidade perceptiva.">
-                        <div>
-                          <span>MENTE</span>
-                          <small>Raciocínio, educação e percepção.</small>
-                        </div>
-                        <button type="button" class="die-control" data-die-field="mente" aria-label="Alterar dado de Mente"></button>
-                      </div>
-                      <div class="attribute-card" title="EMOÇÃO: Vontade psíquica, controle de pânico, intuição subconsciente e magnetismo interpessoal.">
-                        <div>
-                          <span>EMOÇÃO</span>
-                          <small>Força de vontade, magnetismo social e instintos.</small>
-                        </div>
-                        <button type="button" class="die-control" data-die-field="emocao" aria-label="Alterar dado de Emoção"></button>
-                      </div>
+                      <div class="attribute-card"><div><span>FÍSICO</span><small>Força, coordenação, velocidade e fôlego.</small></div><button type="button" class="die-control" data-die-field="fisico" aria-label="Alterar dado de Físico"></button></div>
+                      <div class="attribute-card"><div><span>MENTE</span><small>Raciocínio, educação e percepção.</small></div><button type="button" class="die-control" data-die-field="mente" aria-label="Alterar dado de Mente"></button></div>
+                      <div class="attribute-card"><div><span>EMOÇÃO</span><small>Força de vontade, magnetismo social e instintos.</small></div><button type="button" class="die-control" data-die-field="emocao" aria-label="Alterar dado de Emoção"></button></div>
                     </div>
                   </div>
                 </div>
@@ -622,15 +593,47 @@
               <details class="skill-group" open>
                 <summary><span><b>›</b> APTIDÃO</span><span class="skill-attribute-label">MENTE</span></summary>
                 <div id="aptidao-list" class="aptidao-list"></div>
-                <p class="sheet-group-note">Conhecimento em campos específicos. A lista oficial desta prévia é fixa.</p>
+                <p class="sheet-group-note">Escolha uma Aptidão específica durante a criação. A lista oficial desta prévia é fixa.</p>
               </details>
 
               <div id="skill-list" class="skill-list"></div>
-              <p class="sheet-help">As Perícias começam em <strong>d4</strong> nesta prévia. Passe o cursor para ver os detalhes e uso de cada uma.</p>
+              <p class="sheet-help">As Perícias começam em <strong>d4</strong> nesta prévia. O atributo ao lado é a combinação usada no teste e pode variar conforme a situação.</p>
             </aside>
           </div>
 
           <p id="ficha-feedback" class="ficha-feedback" aria-live="polite"></p>
+        </section>
+
+        <section id="quadro" class="screen-section restricted-section board-launch-section">
+          <div class="section-topline">
+            <span>QUADRO INVESTIGATIVO</span>
+            <span>CASO 26-107 // MESA COMPARTILHADA</span>
+          </div>
+
+          <div class="board-launch-grid">
+            <article class="board-launch-card board-launch-card--primary">
+              <div class="board-launch-status"><span></span><b id="board-status-label">MESA OFICIAL DO CASO</b></div>
+              <div class="board-engine-chip">MOTOR DO QUADRO // ALPHA 0.29.8</div>
+              <span class="eyebrow">INVESTIGAÇÃO COLABORATIVA</span>
+              <h2>QUADRO 26-107</h2>
+              <p>Organize evidências, conecte suspeitos, monte linhas de investigação e trabalhe em conjunto com os outros agentes.</p>
+              <div class="board-launch-features">
+                <span>IMAGENS</span><span>NOTAS</span><span>FIOS</span><span>OBJETOS</span><span>ENIGMAS</span>
+              </div>
+              <div class="board-launch-actions">
+                <a class="board-launch-button" id="board-primary-action" href="quadro/?sala=CASO26107">ENTRAR NA MESA</a>
+                <a class="board-launch-link" id="board-secondary-action" href="quadro/" hidden>ABRIR QUADRO LOCAL</a>
+              </div>
+            </article>
+
+            <aside class="board-launch-info">
+              <span class="micro-label">ACESSO INTEGRADO</span>
+              <strong id="board-access-title">ACESSO INTEGRADO</strong>
+              <p id="board-access-copy">A mesa principal usa sempre o mesmo identificador do caso e reconhece automaticamente a credencial do agente autenticado.</p>
+              <div class="board-launch-code">SALA // CASO26107</div>
+              <small id="board-access-note">Se o Mestre ainda não tiver iniciado a transmissão, o quadro aguarda e tenta reconectar automaticamente.</small>
+            </aside>
+          </div>
         </section>
 
         <div id="agent-modal" class="agent-modal" aria-hidden="true">
