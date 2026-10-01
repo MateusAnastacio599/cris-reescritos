@@ -1,0 +1,11 @@
+{
+  "duplicate_ids": [],
+  "about_button_visible_code": false,
+  "feedback_creator_refs": false,
+  "halloween_button_code": false,
+  "obs_button_in_html": false,
+  "fullscreen_button": true,
+  "alpha_badge_in_nav": false,
+  "soundboard": true,
+  "audio_readme": true
+}

@@ -2,9 +2,9 @@
 <html lang="pt-BR">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="cris-board-engine" content="Hips & Hops Alpha 0.29.8 + CRIS V6">
-        <title>C.R.I.S. // Quadro Investigativo · Alpha 0.29.8</title>
-        <link rel="stylesheet" href="quadro-alpha0298-cris-v6.css">
+        <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="cris-board-engine" content="C.R.I.S. Quadro Investigativo">
+        <title>C.R.I.S. // Quadro Investigativo</title>
+        <link rel="stylesheet" href="quadro-cris-v7.css">
     </head>
     <body class="ui">
         <div id="view">
@@ -120,7 +120,6 @@
                     <option value="cortica">Cortiça</option>
                     <option value="feltro">Feltro verde</option>
                     <option value="escuro">Escura</option>
-                    <option value="transparente">Transparente (OBS)</option>
                 </select>
             </div>
             <div class="g">
@@ -176,14 +175,11 @@
                         <input type="checkbox" data-p="tools">Ferramentas
                     </label>
                     <label>
-                        <input type="checkbox" data-p="help">Dicas
-                    </label>
-                    <label>
                         <input type="checkbox" data-p="mini">Minimapa (M)
                     </label>
                 </div>
             </div>
-            <button class="b red" id="hideBtn" title="Esconder a interface (H)">Modo OBS</button>
+            <button class="b" id="hideBtn" title="Tela cheia (H)">Tela cheia</button>
             <button class="b" data-min="top" title="Minimizar a barra">–</button>
         </div>
         <div class="panel" id="props"></div>
@@ -266,7 +262,7 @@
                 <i>
                     <kbd>H</kbd>
                 </i>
-                OBS
+                tela cheia
             </span>
             <span class="hc">
                 <i>
@@ -330,7 +326,6 @@
             <div id="lensGlass"></div>
         </div>
         <button class="panel mtab" id="tab-tools" data-restore="tools" style="display:none">Ferramentas ›</button>
-        <button class="panel mtab" id="tab-help" data-restore="help" style="display:none">? Dicas</button>
         <button class="panel mtab" id="tab-mini" data-restore="mini" style="display:none">▣ Mapa</button>
         <button class="panel mtab" id="tab-top" data-restore="top" style="display:none">▾ Menu</button>
         <div id="markMenu"></div>
@@ -421,6 +416,6 @@
         <input type="file" id="fileArt" accept="image/*" hidden>
         <input type="file" id="fileAud" accept="audio/*" hidden>
         <input type="file" id="fileInto" accept="image/*" multiple hidden>
-        <script src="quadro-alpha0298-cris-v6.js"></script>
+        <script src="quadro-cris-v7.js"></script>
     </body>
 </html>
