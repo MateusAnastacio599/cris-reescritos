@@ -17,6 +17,16 @@ Abra o site publicado em um navegador moderno, no computador ou no celular. As t
 
 As edições são locais a cada navegador/origem, sem sincronização automática entre aparelhos. Exportar/importar é o caminho para transferi-las. A continuidade com tela bloqueada depende do navegador/sistema. O YouTube usa seu player oficial visível; a disponibilidade de vídeos e a permissão de reprodução dependem do provedor. A transição de dois vídeos do YouTube usa um único player; o crossfade simultâneo é fornecido para áudio local.
 
+## Atualização 3.5 — fades de efeitos e camadas
+
+- **Biblioteca → Editar áudio:** padrões opcionais de fade in e fade out de 0 a 30 segundos para efeitos e loops. Campos vazios herdam o comportamento anterior; 0 desativa o fade. As alterações valem no próximo play.
+- **Direção da cena:** camadas, gatilhos, efeitos da timeline e ações “Tocar efeito” nas cues podem escolher tempos próprios. “Parar camada” também aceita um fade out.
+- **Ambientes:** cada camada pode escolher sua entrada e saída. No modo ocasional, os fades são aplicados a cada som; em loop, na ativação e desativação. Playlists mantêm o crossfade separado entre faixas. A transição explícita de uma cena/cue tem prioridade sobre os padrões do ambiente.
+- Efeitos fazem a saída antes do final do arquivo. Os fades de arquivos curtos são reduzidos proporcionalmente para evitar sobreposição; pausa, buffering e busca na faixa refazem o envelope pelo tempo de reprodução. Volume e amplificação usam ganhos separados.
+- “Silêncio total” continua imediato. Os campos são opcionais no backup V3; arquivos, roteiros e configurações existentes permanecem no navegador.
+
+Novos módulos: `audio-fades.js` (envelope dos efeitos, sem timers) e `fade-ui.js` (controles compartilhados). O motor e a interface permanecem independentes para a futura integração ao CRIS.
+
 ## Organização
 
 | Arquivo | Responsabilidade |

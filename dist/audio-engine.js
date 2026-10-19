@@ -3,6 +3,7 @@ import { VolumeEnvelope } from './volume-envelope.js';
 import { AmbienceBus } from './ambience-engine.js';
 import { musicMethods } from './music-methods.js';
 import { removeSceneAudio } from './audio-assets.js';
+import {EffectFades,fadeSeconds} from './audio-fades.js';
 
 const clamp = (n,min=0,max=1) => Math.max(min,Math.min(max,Number(n)||0));
 export const formatTime = seconds => {const s=Math.max(0,Math.floor(seconds||0));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;};
@@ -52,28 +53,32 @@ export class AudioEngine extends EventTarget {
     gain.linearRampToValueAtTime(track.volume,t+Math.max(0,Number(seconds)||0));
   }
   dispose(track) {
-    if(!track||track.disposed)return;track.disposed=true;track.audio.pause();track.audio.removeAttribute('src');track.audio.load();
+    if(!track||track.disposed)return;track.disposed=true;track.effectFades?.dispose();track.audio.pause();track.audio.removeAttribute('src');track.audio.load();
     clearTimeout(track.retireTimer);
-    try{track.source.disconnect();track.boostGain?.disconnect();track.gain.disconnect();}catch{}
+    try{track.source.disconnect();track.boostGain?.disconnect();track.envelopeGain?.disconnect();track.gain.disconnect();}catch{}
     this.effects.delete(track);this.retiring.delete(track);
   }
   retire(track,seconds=this.getState().settings.crossfade) {
     if(!track||track.disposed)return;if(!seconds){this.dispose(track);return;}this.retiring.add(track);this.ramp(track,0,seconds);
     clearTimeout(track.retireTimer);track.retireTimer=setTimeout(()=>this.dispose(track),(seconds+.04)*1000);
   }
-  async createTrack(asset,{loop=false,volume=1,group='sfx',fade=0,epoch=this.epoch,startSeconds=0,preparedAudio=null}={}) {
+  async createTrack(asset,{loop=false,volume=1,group='sfx',fade=0,epoch=this.epoch,startSeconds=0,preparedAudio=null,effectFades=null}={}) {
     if(this.removedAssets.has(asset.id))return null;
     const resolved=await resolveAsset(asset);if(epoch!==this.epoch||this.removedAssets.has(asset.id))return null;
     const cached=preparedAudio||(group==='music'&&this.preloadedMusic?.assetId===asset.id?this.preloadedMusic.audio:null);
     const audio=cached||new Audio(resolved.url||resolved.src);if(cached&&cached===this.preloadedMusic?.audio)this.preloadedMusic=null;audio.preload='auto';audio.loop=loop;
     if(startSeconds>0){try{audio.currentTime=startSeconds;}catch{}}
     const source=this.context.createMediaElementSource(audio),gain=this.context.createGain(),boostGain=this.context.createGain(),boost=clamp(asset.boost??1,1,4);gain.gain.value=fade?0:clamp(volume);boostGain.gain.value=boost;
-    source.connect(boostGain);boostGain.connect(gain);gain.connect(this.groups[group]||this.groups.sfx);
+    source.connect(boostGain);boostGain.connect(gain);
     const track={audio,source,gain,boostGain,boost,assetId:asset.id,name:asset.name,volume:clamp(volume),group,loop,disposed:false};
+    if(effectFades&&(effectFades.fadeIn||effectFades.fadeOut)){
+      track.envelopeGain=this.context.createGain();gain.connect(track.envelopeGain);track.envelopeGain.connect(this.groups[group]||this.groups.sfx);
+      track.effectFades=new EffectFades(audio,this.context,track.envelopeGain.gain,effectFades.fadeIn,effectFades.fadeOut);
+    }else gain.connect(this.groups[group]||this.groups.sfx);
     audio.onerror=()=>{if(!track.disposed){this.error(`Não foi possível reproduzir “${asset.name}”.`);this.dispose(track);this.emit();}};
     try{await audio.play();}catch(error){this.dispose(track);throw new Error(error.name==='NotAllowedError'?'Toque novamente em reproduzir para liberar o áudio no navegador.':`Não foi possível reproduzir “${asset.name}”.`);}
     if(epoch!==this.epoch||this.removedAssets.has(asset.id)){this.dispose(track);return null;}
-    if(fade)this.ramp(track,volume,fade);return track;
+    track.effectFades?.sync();if(fade)this.ramp(track,volume,fade);return track;
   }
   async startScene(scene,location) {
     if(this.active?.key===location.key) {
@@ -87,16 +92,17 @@ export class AudioEngine extends EventTarget {
     const fade=this.getState().settings.crossfade;
     const results=await Promise.allSettled(scene.layers.map(async layer=>{
       const asset=this.asset(layer.assetId,layer.src);if(!asset)throw new Error(`Arquivo da camada “${layer.name}” não encontrado.`);
+      const enter=fadeSeconds(layer.fadeIn??asset.fadeIn??fade),exit=fadeSeconds(layer.fadeOut??asset.fadeOut??fade);
       const prior=previous.get(layer.id);
-      if(prior&&prior.assetId===asset.id&&!prior.disposed){previous.delete(layer.id);prior.audio.play().catch(e=>this.error(e.message));this.ramp(prior,layer.volume,fade);this.tracks.set(layer.id,prior);return;}
-      const track=await this.createTrack(asset,{loop:true,volume:layer.volume,group:layer.group||'ambience',fade,epoch});
-      if(track&&epoch===this.epoch)this.tracks.set(layer.id,track);
+      if(prior&&prior.assetId===asset.id&&!prior.disposed){previous.delete(layer.id);prior.audio.play().catch(e=>this.error(e.message));this.ramp(prior,layer.volume,enter);prior.fadeOut=exit;this.tracks.set(layer.id,prior);return;}
+      const track=await this.createTrack(asset,{loop:true,volume:layer.volume,group:layer.group||'ambience',fade:enter,epoch});
+      if(track&&epoch===this.epoch){track.fadeOut=exit;this.tracks.set(layer.id,track);}
     }));
-    for(const track of previous.values())this.retire(track,fade);
+    for(const track of previous.values())this.retire(track,track.fadeOut??fade);
     if(epoch!==this.epoch)return;
     for(const r of results)if(r.status==='rejected')this.error(r.reason.message);
-    if(scene.ambienceId==='stop')this.ambiences.stop(scene.ambienceFade??fade);
-    else if(scene.ambienceId){const preset=this.getState().ambiences?.find(a=>a.id===scene.ambienceId);if(preset)await this.ambiences.apply(preset,{fade:scene.ambienceFade??fade});}
+    if(scene.ambienceId==='stop')this.ambiences.stop(scene.ambienceFade);
+    else if(scene.ambienceId){const preset=this.getState().ambiences?.find(a=>a.id===scene.ambienceId);if(preset)await this.ambiences.apply(preset,{fade:scene.ambienceFade});}
     if(!scene.ambienceId&&wasPaused)await this.ambiences.resume();
     try{await this.applySceneMusic(scene,{resume:wasPaused});}catch(error){this.error(error.message);}
     this.updateMediaSession();this.emit();
@@ -108,30 +114,32 @@ export class AudioEngine extends EventTarget {
     this.emit('tick',{time:this.currentTime()});
   }
   executeEvent(event) {
-    if(event.action==='oneshot')this.oneShot(this.asset(event.assetId,event.src),.65).catch(e=>this.error(e.message));
-    if(event.action==='fade')this.ramp(this.tracks.get(event.layer),event.to,event.duration||2);
+    if(event.action==='oneshot')this.oneShot(this.asset(event.assetId,event.src),.65,{fadeIn:event.fadeIn,fadeOut:event.fadeOut}).catch(e=>this.error(e.message));
+    if(event.action==='fade')this.ramp(this.tracks.get(event.layer),event.to,event.duration??2);
     if(event.action==='cue'){const cue=this.active?.scene.cues?.find(c=>c.id===event.cueId);if(cue)this.fireCue(cue);}
     this.emit();
   }
-  async oneShot(asset,volume=.8,{group='sfx',owner=null}={}) {
+  async oneShot(asset,volume=.8,{group='sfx',owner=null,fadeIn,fadeOut}={}) {
     if(!asset)throw new Error('Este efeito não está na biblioteca.');
     if(asset.provider==='youtube')throw new Error('Use um arquivo de áudio para efeitos; links do YouTube ficam no canal de música.');
     const epoch=this.epoch;await this.init();if(epoch!==this.epoch)return;
-    const track=await this.createTrack(asset,{volume,group,epoch});if(!track)return;
+    const fades={fadeIn:fadeSeconds(fadeIn??asset.fadeIn),fadeOut:fadeSeconds(fadeOut??asset.fadeOut)};
+    const track=await this.createTrack(asset,{volume,group,epoch,effectFades:fades});if(!track)return;
+    track.fadeOut=fadeOut??asset.fadeOut;
     track.owner=owner;this.effects.add(track);track.audio.onended=()=>{const after=track.afterEnd;this.dispose(track);this.emit();after?.();};this.emit();return track;
   }
   fireCue(cue) {
     if(!cue)return;this.pendingCue=cue.name;
     for(const action of cue.actions){const execute=()=>{
       if(action.assetId&&this.removedAssets.has(action.assetId)&&!action.playlistId)return;
-      if(action.type==='play')this.oneShot(this.asset(action.assetId),action.volume??.8).catch(e=>this.error(e.message));
+      if(action.type==='play')this.oneShot(this.asset(action.assetId),action.volume??.8,{fadeIn:action.fadeIn,fadeOut:action.fadeOut}).catch(e=>this.error(e.message));
       if(action.type==='fade')this.ramp(this.tracks.get(action.layerId),action.to,action.duration??1);
-      if(action.type==='stop'){const track=this.tracks.get(action.layerId);if(track){this.dispose(track);this.tracks.delete(action.layerId);}}
+      if(action.type==='stop'){const track=this.tracks.get(action.layerId);if(track){this.retire(track,action.duration??track.fadeOut??0);this.tracks.delete(action.layerId);}}
       if(action.type==='music-play'){const asset=this.asset(action.assetId),options={fadeIn:action.fadeIn,fadeOut:action.fadeOut,volume:action.volume??1,startSeconds:action.startSeconds||0,youtubeIndex:asset?.shuffle?undefined:action.youtubeIndex||0};const playlist=this.getState().playlists.find(p=>p.id===action.playlistId);(playlist?this.playPlaylist(playlist,playlist.shuffle?null:action.index||0,options):this.playMusic(asset,options)).catch(e=>this.error(e.message));}
       if(action.type==='music-stop')this.stopMusic(action.duration??2).catch(e=>this.error(e.message));
       if(action.type==='music-volume')this.fadeMusicTo(action.to,action.duration??2);
-      if(action.type==='ambience'){const preset=this.getState().ambiences?.find(a=>a.id===action.ambienceId);this.ambiences.apply(preset,{fade:action.duration??2}).catch(e=>this.error(e.message));}
-      if(action.type==='ambience-stop')this.ambiences.stop(action.duration??2);
+      if(action.type==='ambience'){const preset=this.getState().ambiences?.find(a=>a.id===action.ambienceId);this.ambiences.apply(preset,{fade:action.duration}).catch(e=>this.error(e.message));}
+      if(action.type==='ambience-stop')this.ambiences.stop(action.duration);
       if(action.type==='mix')this.fadeMix(action.group||'master',action.to,action.duration??2);
       if(action.type==='message')this.emit('message',{message:action.message||cue.name});
       if(action.type==='navigate')this.emit('navigate',{pageId:action.pageId,sceneId:action.sceneId||null});
@@ -142,7 +150,7 @@ export class AudioEngine extends EventTarget {
   async fireTrigger(trigger,scene) {
     if(!trigger)throw new Error('Este botão não tem um efeito ou uma cue configurada.');
     if(trigger.cue){const cue=scene.cues?.find(c=>c.id===(trigger.cueId||trigger.id));if(!cue)throw new Error('Configure as ações desta cue.');this.fireCue(cue);}
-    else await this.oneShot(this.asset(trigger.assetId,trigger.src),trigger.volume??(trigger.id==='sino'?1:.8));
+    else await this.oneShot(this.asset(trigger.assetId,trigger.src),trigger.volume??(trigger.id==='sino'?1:.8),{fadeIn:trigger.fadeIn,fadeOut:trigger.fadeOut});
     this.emit('cue',{id:trigger.id,name:trigger.name});
   }
   pause() {
@@ -187,9 +195,9 @@ export class AudioEngine extends EventTarget {
   setLayerVolume(id,volume){const t=this.tracks.get(id);if(t)this.ramp(t,volume,.08);this.emit();}
   async toggleLibraryLayer(asset) {
     const key=`library:${asset.id}`;const active=this.tracks.get(key);
-    if(active){this.retire(active,.35);this.tracks.delete(key);this.emit();return;}
+    if(active){this.retire(active,asset.fadeOut??.35);this.tracks.delete(key);this.emit();return;}
     const epoch=this.epoch;await this.init();if(epoch!==this.epoch)return;
-    const t=await this.createTrack(asset,{loop:true,group:'ambience',volume:.65,fade:.5,epoch});if(t)this.tracks.set(key,t);this.emit();
+    const t=await this.createTrack(asset,{loop:true,group:'ambience',volume:.65,fade:asset.fadeIn??.5,epoch});if(t)this.tracks.set(key,t);this.emit();
   }
   toggleTransport(){if(this.running||this.ytPlaying||this.music&&!this.music.audio.paused||this.ambiences.isPlaying||[...this.tracks.values()].some(t=>!t.audio.paused))this.pause();else this.resume().catch(e=>this.error(e.message));}
   async youtubeAPI() {

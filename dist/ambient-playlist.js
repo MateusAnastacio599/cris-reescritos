@@ -38,6 +38,7 @@ export class AmbientPlaylist {
     if(!track&&this.valid&&!this.engine.removedAssets.has(asset.id))track=await this.engine.createTrack(asset,{group:'ambience',volume:this.layer.volume,fade});
     if(!track)return;if(!this.valid){this.engine.dispose(track);return;}
     const prior=this.track;this.track=track;track.name=this.layer.name;track.assetName=asset.name;track.owner={presetId:this.bus.active.id,layerId:this.layer.id,playlistId:this.layer.playlistId};
+    track.fadeOut=this.layer.fadeOut??this.bus.active.fadeOut??this.engine.getState().settings.crossfade;
     this.bus.tracks.set(this.layer.id,track);if(prior)this.engine.retire(prior,fade);if(this.bus.paused)track.audio.pause();
     track.audio.onended=()=>{if(!this.valid||this.track!==track)return;this.engine.dispose(track);this.track=null;this.bus.tracks.delete(this.layer.id);if(!this.bus.paused)this.advance();this.engine.emit();};
     const onError=track.audio.onerror;track.audio.onerror=()=>{onError?.();if(this.valid){this.stop(0);this.bus.sequences.delete(this.layer.id);this.engine.emit();}};
@@ -53,10 +54,11 @@ export class AmbientPlaylist {
     if(this.preloaded?.assetId===assetId)this.clearPreload();
     if(this.track?.assetId===assetId){const old=this.track;this.engine.dispose(old);if(this.bus.tracks.get(this.layer.id)===old)this.bus.tracks.delete(this.layer.id);this.track=null;if(!this.bus.paused)this.advance(0);}
   }
-  stop(fade=0){
+  stop(fade=0,{override=false}={}){
     this.closed=true;this.clearPreload();const track=this.track;this.track=null;
     if(this.bus.tracks.get(this.layer.id)===track)this.bus.tracks.delete(this.layer.id);
-    if(track)fade?this.engine.retire(track,fade):this.engine.dispose(track);
-    for(const old of [...this.engine.retiring])if(old.owner?.presetId===this.bus.active?.id&&old.owner?.layerId===this.layer.id)fade?this.engine.retire(old,fade):this.engine.dispose(old);
+    const out=track=>fade===0||override?fade:track.fadeOut??fade;
+    if(track)this.engine.retire(track,out(track));
+    for(const old of [...this.engine.retiring])if(old.owner?.presetId===this.bus.active?.id&&old.owner?.layerId===this.layer.id)this.engine.retire(old,out(old));
   }
 }

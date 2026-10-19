@@ -49,6 +49,7 @@ export function initialState() {
 export function validateState(s) {
   if (!s || s.schemaVersion !== 3 || !Array.isArray(s.campaigns) || !s.campaigns.length || !Array.isArray(s.audioAssets) || !Array.isArray(s.playlists)) throw new Error('Este arquivo não é um backup CRIS Director V3.');
   const ids = new Set();
+  const fades=value=>{if(['fadeIn','fadeOut'].some(key=>value[key]!==undefined&&(!Number.isFinite(value[key])||value[key]<0||value[key]>30)))throw new Error('Fade de áudio inválido: use de 0 a 30 segundos.');};
   const identity = o => {if (!o || typeof o.id !== 'string' || !o.id || ids.has(o.id)) throw new Error('O backup contém identificadores inválidos ou duplicados.'); ids.add(o.id);};
   for (const c of s.campaigns) {
     identity(c); if(typeof c.title !== 'string'||!Array.isArray(c.pages)||!c.pages.length) throw new Error('Campanha inválida no backup.');
@@ -59,6 +60,7 @@ export function validateState(s) {
       for (const x of p.scenes) {
         if(typeof x.id!=='string'||sceneIds.has(x.id)||typeof x.title!=='string'||typeof x.markdown!=='string'||!Array.isArray(x.layers)||!Array.isArray(x.triggers)||!Array.isArray(x.timeline)) throw new Error('Cena inválida no backup.');
         sceneIds.add(x.id);
+        x.layers.forEach(fades);x.triggers.forEach(fades);x.timeline.forEach(fades);
         for(const l of x.layers) if(typeof l.id!=='string'||typeof l.name!=='string'||!Number.isFinite(l.volume)||l.volume<0||l.volume>1) throw new Error('Camada de áudio inválida.');
         for(const t of x.timeline) if(!Number.isFinite(t.at)||t.at<0||!['oneshot','fade','cue'].includes(t.action)) throw new Error('Evento de timeline inválido.');
         if(x.cues!==undefined&&!Array.isArray(x.cues)) throw new Error('Lista de cues inválida.');
@@ -66,12 +68,14 @@ export function validateState(s) {
         for(const cue of x.cues||[]) {
           if(typeof cue.id!=='string'||typeof cue.name!=='string'||!Array.isArray(cue.actions)) throw new Error('Cue inválida.');
           for(const a of cue.actions) if(!CUE_ACTIONS.includes(a.type)||!Number.isFinite(a.delay)||a.delay<0) throw new Error('Ação de cue inválida.');
+          cue.actions.forEach(fades);
         }
       }
     }
   }
   for(const a of s.audioAssets) {
     identity(a);
+    fades(a);
     if(typeof a.name!=='string'||!['local','upload','youtube'].includes(a.provider)||!['music','ambience','sfx'].includes(a.kind)) throw new Error('Item de áudio inválido.');
     if(a.provider==='local'&&!/^assets\/audio\/[a-zA-Z0-9_.-]+$/.test(a.src||'')) throw new Error('Caminho de áudio inválido.');
     if(a.youtubeTracks!==undefined&&(!Array.isArray(a.youtubeTracks)||a.youtubeTracks.some(t=>!t||!/^[\w-]{11}$/.test(t.videoId||'')||typeof t.title!=='string'||t.alias!==undefined&&typeof t.alias!=='string')))throw new Error('Lista de vídeos inválida.');
@@ -83,8 +87,10 @@ export function validateState(s) {
   if(s.ambiences===undefined)s.ambiences=defaultAmbiences();
   if(!Array.isArray(s.ambiences))throw new Error('Lista de ambientes inválida.');
   for(const a of s.ambiences){
+    fades(a);
     identity(a);if(typeof a.name!=='string'||!Array.isArray(a.layers)||!Array.isArray(a.pads))throw new Error('Ambiente inválido.');
     const layerIds=new Set();for(const l of a.layers){
+      fades(l);
       const file=typeof l.assetId==='string'&&!!l.assetId,playlist=typeof l.playlistId==='string'&&!!l.playlistId;
       if(typeof l.id!=='string'||layerIds.has(l.id)||file===playlist||!['loop','random'].includes(l.mode)||!Number.isFinite(l.volume)||l.volume<0||l.volume>1||l.shuffle!==undefined&&typeof l.shuffle!=='boolean'||l.crossfade!==undefined&&(!Number.isFinite(l.crossfade)||l.crossfade<0||l.crossfade>30))throw new Error('Camada de ambiente inválida.');
       layerIds.add(l.id);if(l.mode==='random'&&(!Number.isFinite(l.minInterval)||!Number.isFinite(l.maxInterval)||l.minInterval<.1||l.maxInterval<l.minInterval))throw new Error('Intervalo de ambiente inválido.');

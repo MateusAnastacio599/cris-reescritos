@@ -21,10 +21,10 @@ class Param{constructor(){this.value=0;this.transitions=[];}setTargetAtTime(v){t
 class Node{constructor(){this.gain=new Param();this.outputs=[];}connect(target){this.outputs.push(target);}disconnect(){this.disconnected=true;}}
 class Context{constructor(){this.currentTime=0;this.state='running';this.destination={};}createGain(){return new Node();}createMediaElementSource(){return new Node();}createDynamicsCompressor(){const node=new Node();for(const key of ['threshold','knee','ratio','attack','release'])node[key]=new Param();return node;}async resume(){this.state='running';}}
 const created=[];
-class AudioMock{
-  constructor(src){this.src=src;this.paused=true;this.currentTime=0;created.push(this);}
-  async play(){this.paused=false;}
-  pause(){this.paused=true;}
+class AudioMock extends EventTarget{
+  constructor(src){super();this.src=src;this.paused=true;this.currentTime=0;created.push(this);}
+  async play(){this.paused=false;this.dispatchEvent(new Event('playing'));}
+  pause(){this.paused=true;this.dispatchEvent(new Event('pause'));}
   removeAttribute(name){delete this[name];}
   load(){}
 }
@@ -389,4 +389,60 @@ test('atualização aplica os três textos uma vez preservando toda a biblioteca
 test('limpar demonstrações remove referências antigas por src e mantém áudios enviados',()=>{
   const state=initialState(),scene=state.campaigns[0].pages[0].scenes[0],text=scene.markdown;state.audioAssets.push({id:'meu-upload',name:'Minha chuva',kind:'ambience',provider:'upload',filename:'chuva.wav'});scene.layers.push({id:'minha-chuva',assetId:'meu-upload',volume:.5,name:'Minha chuva'});state.playlists.push({id:'minha-playlist',name:'Minha lista',assetIds:['meu-upload'],shuffle:true});
   for(const asset of [...state.audioAssets].filter(a=>a.builtin))removeAudioAsset(state,asset.id);assert.deepEqual(state.audioAssets.map(a=>a.id),['meu-upload']);assert.equal(scene.markdown,text);assert.ok(scene.layers.some(l=>l.assetId==='meu-upload'));assert.ok(!scene.triggers.some(t=>t.src?.endsWith('bell-demo.wav')));assert.deepEqual(state.playlists.at(-1).assetIds,['meu-upload']);validateState(state);
+});
+
+test('efeito herda fades do arquivo com ganho independente do mixer e da amplificação',async()=>{
+  const {engine}=fixture(),asset=engine.asset('asset-bell');Object.assign(asset,{fadeIn:2,fadeOut:3,boost:2.5});
+  const shot=await engine.oneShot(asset,.4);assert.ok(shot.effectFades);assert.equal(shot.effectFades.fadeIn,2);assert.equal(shot.effectFades.fadeOut,3);
+  assert.strictEqual(shot.gain.outputs[0],shot.envelopeGain);assert.equal(shot.boostGain.gain.value,2.5);assert.equal(shot.volume,.4);
+  shot.audio.duration=10;shot.audio.currentTime=8.5;shot.audio.pause();assert.equal(shot.envelopeGain.gain.value,.5);
+  engine.ramp(shot,.2,.1);assert.equal(shot.envelopeGain.gain.value,.5);assert.equal(shot.boostGain.gain.value,2.5);
+  engine.context.currentTime=20;await engine.resume();assert.equal(shot.envelopeGain.gain.transitions.at(-1).time,21.5);
+  const immediate=await engine.oneShot(asset,.4,{fadeIn:0,fadeOut:0});assert.equal(immediate.effectFades,undefined);assert.equal(immediate.gain.gain.value,.4);
+  const envelope=shot.effectFades;engine.silence();assert.equal(shot.disposed,true);assert.equal(envelope.closed,true);assert.equal(shot.envelopeGain.disconnected,true);
+});
+test('gatilhos, timeline e cues transmitem seus próprios fades de efeitos',async()=>{
+  const {engine,scene}=fixture(),heard=[];engine.oneShot=async(asset,volume,options)=>heard.push({id:asset.id,options});
+  await engine.fireTrigger({id:'custom',assetId:'asset-bell',fadeIn:1,fadeOut:2},scene);
+  engine.executeEvent({action:'oneshot',assetId:'asset-door',fadeIn:3,fadeOut:4});
+  engine.fireCue({id:'fade-cue',name:'Fade',actions:[{type:'play',assetId:'asset-thunder',fadeIn:0,fadeOut:5,delay:0}]});
+  assert.deepEqual(heard,[{id:'asset-bell',options:{fadeIn:1,fadeOut:2}},{id:'asset-door',options:{fadeIn:3,fadeOut:4}},{id:'asset-thunder',options:{fadeIn:0,fadeOut:5}}]);
+});
+test('camada da cena usa fades próprios e cue pode encerrar com duração explícita',async()=>{
+  const {engine,scene,location}=fixture();scene.layers=[{id:'rain',name:'Chuva',assetId:'asset-rain',volume:.4,fadeIn:3,fadeOut:4}];
+  await engine.startScene(scene,location);const rain=engine.tracks.get('rain');assert.equal(rain.gain.gain.transitions.at(-1).time,3);
+  await engine.startScene({...scene,layers:[]},{...location,key:'scene-two'});assert.ok(engine.retiring.has(rain));assert.equal(rain.gain.gain.transitions.at(-1).time,4);
+  await engine.startScene(scene,location);const next=engine.tracks.get('rain');engine.fireCue({id:'stop-loop',name:'Fim',actions:[{type:'stop',layerId:'rain',duration:.7,delay:0}]});
+  assert.ok(engine.retiring.has(next));assert.equal(next.gain.gain.transitions.at(-1).time,.7);assert.equal(engine.tracks.has('rain'),false);
+});
+test('ambiente e camada têm fades independentes ao iniciar e encerrar',async()=>{
+  const {engine,state}=fixture(),preset=state.ambiences[0];preset.fadeIn=3;preset.fadeOut=4;Object.assign(preset.layers[0],{fadeIn:.5,fadeOut:.8});
+  await engine.ambiences.apply(preset);const rain=engine.ambiences.tracks.get('amb-rain'),room=engine.ambiences.tracks.get('amb-room');
+  assert.equal(rain.gain.gain.transitions.at(-1).time,.5);assert.equal(room.gain.gain.transitions.at(-1).time,3);
+  engine.ambiences.stop();assert.equal(rain.gain.gain.transitions.at(-1).time,.8);assert.equal(room.gain.gain.transitions.at(-1).time,4);
+  await engine.ambiences.apply(preset);const again=engine.ambiences.tracks.get('amb-rain');engine.ambiences.stop(.2);assert.equal(again.gain.gain.transitions.at(-1).time,.2);
+});
+test('fade da cena prevalece sobre padrão do ambiente e desativar camada usa sua saída',async()=>{
+  const {engine,state,scene,location}=fixture(),preset=state.ambiences[0];preset.fadeIn=3;preset.fadeOut=4;Object.assign(preset.layers[0],{fadeIn:.5,fadeOut:.8});
+  scene.ambienceId=preset.id;scene.ambienceFade=1.2;await engine.startScene(scene,location);const rain=engine.ambiences.tracks.get('amb-rain'),room=engine.ambiences.tracks.get('amb-room');
+  assert.equal(rain.gain.gain.transitions.at(-1).time,1.2);await engine.ambiences.toggleLayer('amb-rain',false);assert.equal(rain.gain.gain.transitions.at(-1).time,.8);assert.equal(room.disposed,false);
+  engine.silence();assert.equal(rain.disposed,true);assert.equal(room.disposed,true);
+});
+test('playlist conserva crossfade entre faixas e usa fade de entrada e saída da camada',async()=>{
+  const {engine,preset}=ambiencePlaylistFixture();preset.fadeOut=0;Object.assign(preset.layers[0],{fadeIn:2,fadeOut:3});await engine.ambiences.apply(preset);
+  const sequence=engine.ambiences.sequences.get('voices'),first=sequence.track;assert.equal(first.gain.gain.transitions.at(-1).time,2);
+  await sequence.advance();const second=sequence.track;assert.equal(second.gain.gain.transitions.at(-1).time,.02);assert.equal(first.gain.gain.transitions.at(-1).time,.02);
+  engine.ambiences.stop();assert.equal(second.gain.gain.transitions.at(-1).time,3);assert.equal(sequence.closed,true);
+  await engine.ambiences.apply(preset);const again=engine.ambiences.tracks.get('voices');engine.ambiences.stop(0);assert.equal(again.disposed,true);
+});
+test('sons ocasionais usam os fades da camada e agendam a próxima faixa apenas no fim',async()=>{
+  const {engine,preset}=ambiencePlaylistFixture();Object.assign(preset.layers[0],{mode:'random',minInterval:.1,maxInterval:.1,fadeIn:.4,fadeOut:.6});
+  await engine.ambiences.apply(preset);const job=engine.ambiences.jobs.get('voices');clearTimeout(job.timer);engine.ambiences.schedule(job,0);await new Promise(resolve=>setTimeout(resolve,15));
+  const shot=[...engine.effects][0];assert.ok(shot);assert.equal(shot.effectFades.fadeIn,.4);assert.equal(shot.effectFades.fadeOut,.6);assert.equal(job.timer,null);
+  shot.audio.onended();assert.ok(job.timer);assert.equal(shot.effectFades.closed,true);
+});
+test('backup preserva fades e aceita dados antigos, mas rejeita tempos inválidos',async()=>{
+  const state=initialState(),scene=state.campaigns[0].pages[0].scenes[0];state.audioAssets[0].fadeIn=1.5;scene.triggers[0].fadeOut=2;scene.layers[0].fadeIn=3;state.ambiences[0].layers[0].fadeOut=4;
+  saveState(state);assert.equal(loadState().audioAssets[0].fadeIn,1.5);const data=JSON.parse(await (await exportWorkspace(state)).text());assert.deepEqual(validateState(data.state),state);validateState(initialState());
+  for(const value of [-1,31,'2',null,NaN]){const invalid=structuredClone(state);invalid.ambiences[0].layers[0].fadeOut=value;assert.throws(()=>validateState(invalid),/Fade de áudio inválido/);}
 });
