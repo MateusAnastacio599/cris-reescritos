@@ -14,6 +14,11 @@ export function removeAudioAsset(state,assetId){
   state.audioAssets=state.audioAssets.filter(a=>a.id!==assetId);
   for(const playlist of state.playlists)playlist.assetIds=playlist.assetIds.filter(id=>id!==assetId);
   for(const campaign of state.campaigns)for(const page of campaign.pages)for(const scene of page.scenes)removeSceneAudio(scene,assetId);
-  for(const ambience of state.ambiences||[]){ambience.layers=ambience.layers.filter(l=>l.assetId!==assetId);ambience.pads=ambience.pads.filter(id=>id!==assetId);}
+  for(const ambience of state.ambiences||[]){ambience.layers=ambience.layers.filter(l=>l.assetId!==assetId);ambience.pads=ambience.pads.filter(id=>id!==assetId);if(ambience.music?.assetId===assetId)delete ambience.music;}
   return true;
+}
+export function removePlaylist(state,playlistId){
+  state.playlists=state.playlists.filter(p=>p.id!==playlistId);
+  for(const ambience of state.ambiences||[]){ambience.layers=ambience.layers.filter(l=>l.playlistId!==playlistId);if(ambience.music?.playlistId===playlistId)delete ambience.music;}
+  for(const campaign of state.campaigns)for(const page of campaign.pages)for(const scene of page.scenes){if(scene.music?.playlistId===playlistId)scene.music={mode:'keep'};for(const cue of scene.cues||[])cue.actions=cue.actions.filter(a=>a.playlistId!==playlistId);}
 }

@@ -9,7 +9,7 @@ import {parseBlocks,blocksToMarkdown,inlineHTML,parseYouTube,renderReadBlocks} f
 import {AudioEngine} from '../dist/audio-engine.js';
 import {VolumeEnvelope} from '../dist/volume-envelope.js';
 import {PlaylistOrder} from '../dist/playlist-order.js';
-import {removeAudioAsset} from '../dist/audio-assets.js';
+import {removeAudioAsset,removePlaylist} from '../dist/audio-assets.js';
 
 const memory=new Map();
 globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)};
@@ -271,4 +271,91 @@ test('playlist YouTube recém-carregada resolve seleção por ID antes do fade',
 test('restaurar um áudio excluído funciona após interromper a sessão para importar backup',async()=>{
   const {engine,state}=fixture(),asset={id:'restored-audio',name:'Restaurado',kind:'music',provider:'local',src:'assets/audio/bell-demo.wav'};state.audioAssets.push(asset);
   await engine.removeAsset(asset.id);removeAudioAsset(state,asset.id);engine.stop();state.audioAssets.push(asset);await engine.playMusic(asset,{fadeIn:0});assert.equal(engine.musicAsset.id,asset.id);assert.equal(engine.music.audio.paused,false);
+});
+
+function ambiencePlaylistFixture(){
+  const f=fixture(),playlist={id:'voices-playlist',name:'Conversas',shuffle:true,assetIds:['asset-bell','asset-door','asset-thunder','asset-riser']};f.state.playlists.push(playlist);
+  const preset={id:'cafe-test',name:'Café',layers:[{id:'voices',name:'Pessoas conversando',playlistId:playlist.id,mode:'loop',shuffle:true,crossfade:.02,volume:.3,enabled:true}],pads:[]};
+  return {...f,playlist,preset};
+}
+const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('ambiente reproduz uma rodada inteira de sua playlist sem repetir',async()=>{
+  const {engine,preset,playlist}=ambiencePlaylistFixture();await engine.ambiences.apply(preset,{fade:0});const bus=engine.ambiences,heard=[];
+  for(let i=0;i<playlist.assetIds.length;i++){const track=bus.tracks.get('voices');heard.push(track.assetId);assert.equal(track.audio.loop,false);assert.equal(track.group,'ambience');assert.equal(track.volume,.3);track.audio.onended();await settle();}
+  assert.equal(new Set(heard).size,4);assert.notEqual(bus.tracks.get('voices').assetId,heard.at(-1));assert.equal(engine.musicAsset,null);
+});
+test('duas playlists do ambiente têm filas e volumes independentes da música',async()=>{
+  const {engine,preset}=ambiencePlaylistFixture();preset.layers.push({...preset.layers[0],id:'crowd-other',name:'Outra conversa',volume:.15});await engine.playMusic(engine.asset('asset-rain'),{fadeIn:0});const music=engine.music;
+  await engine.ambiences.apply(preset,{fade:0});const bus=engine.ambiences,other=bus.tracks.get('crowd-other');assert.equal(bus.sequences.size,2);assert.notStrictEqual(bus.sequences.get('voices').order,bus.sequences.get('crowd-other').order);
+  await bus.sequences.get('voices').advance(0);assert.strictEqual(bus.tracks.get('crowd-other'),other);bus.setVolume('voices',.7);assert.equal(bus.tracks.get('voices').volume,.7);assert.equal(other.volume,.15);assert.strictEqual(engine.music,music);assert.equal(music.audio.paused,false);
+});
+test('crossfade do ambiente usa a mesma faixa preparada e preserva o preload musical',async()=>{
+  const {engine,state,preset}=ambiencePlaylistFixture();await engine.playPlaylist(state.playlists[0],0,{fadeIn:0,fadeOut:0});await settle();const musicPreload=engine.preloadedMusic;
+  await engine.ambiences.apply(preset,{fade:0});await settle();const bus=engine.ambiences,sequence=bus.sequences.get('voices'),prepared=sequence.preloaded,prior=sequence.track;
+  assert.equal(prepared.assetId,sequence.order.peek());prior.audio.duration=100;prior.audio.currentTime=99.99;bus.tick();await settle();
+  assert.equal(sequence.track.assetId,prepared.assetId);assert.strictEqual(sequence.track.audio,prepared.audio);assert.ok(engine.retiring.has(prior));assert.strictEqual(engine.preloadedMusic,musicPreload);
+});
+test('playlist sequencial da camada respeita sua ordem mesmo com shuffle na biblioteca',async()=>{
+  const {engine,preset,playlist}=ambiencePlaylistFixture();preset.layers[0].shuffle=false;await engine.ambiences.apply(preset,{fade:0});const sequence=engine.ambiences.sequences.get('voices');assert.equal(sequence.track.assetId,playlist.assetIds[0]);await sequence.advance(0);assert.equal(sequence.track.assetId,playlist.assetIds[1]);
+});
+test('reaplicar ambiente e trocar de cena preservam a faixa e a rodada da camada',async()=>{
+  const {engine,preset,scene,location}=ambiencePlaylistFixture();await engine.ambiences.apply(preset,{fade:0});const sequence=engine.ambiences.sequences.get('voices'),track=sequence.track,order=sequence.order;
+  await engine.ambiences.apply({...preset,description:'Outra descrição'},{fade:0});assert.strictEqual(engine.ambiences.sequences.get('voices'),sequence);assert.strictEqual(sequence.track,track);assert.strictEqual(sequence.order,order);
+  scene.ambienceId=preset.id;engine.getState().ambiences.push(preset);await engine.startScene(scene,location);assert.strictEqual(engine.ambiences.tracks.get('voices'),track);assert.equal(track.audio.paused,false);
+});
+test('pausa retém a faixa e silêncio total impede o callback antigo de avançar',async()=>{
+  const {engine,preset}=ambiencePlaylistFixture();await engine.ambiences.apply(preset,{fade:0});const bus=engine.ambiences,sequence=bus.sequences.get('voices'),track=sequence.track;
+  engine.pause();assert.equal(track.audio.paused,true);await engine.resume();assert.strictEqual(sequence.track,track);assert.equal(track.audio.paused,false);const ended=track.audio.onended;
+  engine.stop();ended();await settle();assert.equal(bus.sequences.size,0);assert.equal(bus.tracks.size,0);assert.equal(track.disposed,true);
+});
+test('desativar uma playlist cancela sua fila sem parar outra camada',async()=>{
+  const {engine,preset}=ambiencePlaylistFixture();preset.layers.push({id:'rain-local',assetId:'asset-rain',name:'Chuva',mode:'loop',volume:.2});await engine.ambiences.apply(preset,{fade:0});const bus=engine.ambiences,sequence=bus.sequences.get('voices'),rain=bus.tracks.get('rain-local');
+  await bus.toggleLayer('voices',false);assert.equal(sequence.closed,true);assert.equal(bus.sequences.has('voices'),false);assert.strictEqual(bus.tracks.get('rain-local'),rain);assert.equal(rain.audio.paused,false);
+});
+test('playlist ocasional espera o término antes de sortear outro áudio',async()=>{
+  const {engine,preset}=ambiencePlaylistFixture();preset.layers[0].mode='random';preset.layers[0].minInterval=10;preset.layers[0].maxInterval=10;await engine.ambiences.apply(preset,{fade:0});const bus=engine.ambiences,heard=[];
+  for(let i=0;i<4;i++){const job=bus.jobs.get('voices');bus.schedule(job,0);await new Promise(r=>setTimeout(r,5));assert.equal(engine.effects.size,1);assert.equal(job.timer,null);const effect=[...engine.effects][0];heard.push(effect.assetId);effect.audio.onended();assert.ok(job.timer);assert.equal(engine.effects.size,0);}
+  assert.equal(new Set(heard).size,4);assert.equal(bus.tracks.size,0);
+});
+test('trilha vinculada inicia com as conversas e só ela é encerrada junto do lugar',async()=>{
+  const {engine,state,preset}=ambiencePlaylistFixture();const musicList={id:'jazz-list',name:'Jazz',shuffle:true,assetIds:['asset-rain','asset-room']};state.playlists.push(musicList);preset.music={mode:'play',playlistId:musicList.id,volume:.45,fadeIn:0,fadeOut:0};
+  await engine.ambiences.apply(preset,{fade:0});assert.equal(engine.playlist.id,musicList.id);assert.equal(engine.music.volume,.45);assert.equal(engine.ambiences.ownsMusic,true);assert.equal(engine.ambiences.sequences.size,1);
+  await engine.nextMusic();assert.equal(engine.ambiences.ownsMusic,true);engine.ambiences.stop(0);await settle();assert.equal(engine.musicAsset,null);
+  await engine.ambiences.apply(preset,{fade:0});await engine.playMusic(engine.asset('asset-bell'),{fadeIn:0});const independent=engine.music;engine.ambiences.stop(0);await settle();assert.strictEqual(engine.music,independent);assert.equal(independent.audio.paused,false);
+});
+test('alterar volume e reaplicar o ambiente não reinicia sua trilha musical',async()=>{
+  const {engine,preset}=ambiencePlaylistFixture();preset.music={mode:'play',assetId:'asset-bell',volume:.4,fadeIn:0};await engine.ambiences.apply(preset,{fade:0});const music=engine.music;
+  engine.ambiences.setMusicVolume(.2);preset.music.volume=.2;await engine.ambiences.apply(preset,{fade:0});assert.strictEqual(engine.music,music);assert.equal(music.volume,.2);
+});
+test('cena inicia a trilha do lugar e uma escolha musical da própria cena tem prioridade',async()=>{
+  const {engine,state,preset,scene,location}=ambiencePlaylistFixture();state.ambiences.push(preset);preset.music={mode:'play',assetId:'asset-bell',volume:.3,fadeIn:0};scene.ambienceId=preset.id;
+  await engine.startScene(scene,location);assert.equal(engine.musicAsset.id,'asset-bell');assert.equal(engine.ambiences.ownsMusic,true);
+  engine.stop();scene.music={mode:'play',assetId:'asset-door',fadeIn:0};await engine.startScene(scene,location);assert.equal(engine.musicAsset.id,'asset-door');assert.equal(engine.ambiences.ownsMusic,false);engine.ambiences.stop(0);assert.equal(engine.musicAsset.id,'asset-door');
+});
+test('encerrar ambiente sem trilha mantém a música independente mesmo quando não havia ambiente',async()=>{
+  const {engine}=fixture();await engine.playMusic(engine.asset('asset-bell'),{fadeIn:0});const music=engine.music;engine.ambiences.stop(0);assert.strictEqual(engine.music,music);assert.equal(music.audio.paused,false);
+});
+test('trilha do YouTube cancelada durante carregamento não toca após encerrar o ambiente',async()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine);let releaseAPI;engine.youtubeAPI=()=>new Promise(resolve=>{releaseAPI=resolve;});const preset={id:'loading-jazz',name:'Café',layers:[],pads:[],music:{mode:'play',assetId:'youtube-jazz',fadeIn:0}};engine.getState().audioAssets.push({id:'youtube-jazz',provider:'youtube',kind:'music',name:'Jazz',videoId:'dQw4w9WgXcQ'});
+  const applying=engine.ambiences.apply(preset,{fade:0});await settle();assert.ok(releaseAPI);engine.ambiences.stop(0);releaseAPI();await applying;assert.equal(engine.musicAsset,null);assert.ok(!fake.calls.some(c=>c[0]==='loadVideo'));
+});
+test('playlist do YouTube é aceita na trilha e não vira uma camada local incompleta',async()=>{
+  const {engine,state,preset,playlist}=ambiencePlaylistFixture();const fake=fakeYouTube(engine),yt={id:'cafe-youtube',name:'Jazz YT',kind:'music',provider:'youtube',playlistId:'PLabcdefghijk'};state.audioAssets.push(yt);playlist.assetIds.push(yt.id);let warning;engine.addEventListener('error',e=>warning=e.detail.message);
+  await engine.ambiences.apply(preset,{fade:0});assert.equal(engine.ambiences.sequences.size,0);assert.match(warning,/trilha musical/);preset.layers=[];preset.music={mode:'play',assetId:yt.id,fadeIn:0};await engine.ambiences.apply(preset,{fade:0});assert.equal(engine.musicAsset.id,yt.id);assert.ok(fake.calls.some(c=>c[0]==='loadPlaylist'));assert.equal(engine.ambiences.ownsMusic,true);
+});
+test('backup aceita playlists e trilha no ambiente sem alterar os ambientes antigos',async()=>{
+  const {state,preset}=ambiencePlaylistFixture();preset.music={mode:'play',assetId:'asset-bell',volume:.4,fadeIn:1,fadeOut:2};state.ambiences.push(preset);const data=JSON.parse(await (await exportWorkspace(state)).text());const restored=validateState(data.state);assert.equal(restored.ambiences.at(-1).layers[0].playlistId,'voices-playlist');assert.equal(restored.ambiences.at(-1).music.volume,.4);assert.equal(restored.ambiences[0].layers[0].assetId,'asset-rain');
+  const invalid=structuredClone(state);invalid.ambiences.at(-1).layers[0].assetId='asset-bell';assert.throws(()=>validateState(invalid),/Camada/);
+});
+test('excluir a faixa de uma playlist de ambiente avança só aquela camada',async()=>{
+  const {engine,state,preset}=ambiencePlaylistFixture();const extra={id:'voices-custom',name:'Conversa',kind:'ambience',provider:'local',src:'assets/audio/bell-demo.wav'};state.audioAssets.push(extra);const playlist=state.playlists.find(p=>p.id==='voices-playlist');playlist.assetIds=[extra.id,'asset-door'];preset.layers[0].shuffle=false;preset.layers.push({id:'rain-other',name:'Chuva',assetId:'asset-rain',mode:'loop',volume:.2});
+  await engine.ambiences.apply(preset,{fade:0});const bus=engine.ambiences,rain=bus.tracks.get('rain-other');assert.equal(bus.tracks.get('voices').assetId,extra.id);await engine.removeAsset(extra.id);removeAudioAsset(state,extra.id);await settle();assert.equal(bus.tracks.get('voices').assetId,'asset-door');assert.strictEqual(bus.tracks.get('rain-other'),rain);assert.equal(rain.audio.paused,false);
+});
+test('editar camadas após escolher música manual preserva a escolha do mestre',async()=>{
+  const {engine,preset}=ambiencePlaylistFixture();preset.music={mode:'play',assetId:'asset-bell',fadeIn:0};await engine.ambiences.apply(preset,{fade:0});await engine.playMusic(engine.asset('asset-door'),{fadeIn:0});const manual=engine.music;
+  preset.layers[0].volume=.6;await engine.ambiences.apply(preset,{fade:0});assert.strictEqual(engine.music,manual);assert.equal(engine.ambiences.ownsMusic,false);assert.equal(manual.audio.paused,false);
+});
+test('excluir playlist remove seus vínculos e encerra só a fila correspondente',async()=>{
+  const {engine,state,preset,playlist}=ambiencePlaylistFixture();state.ambiences.push(preset);preset.layers.push({id:'rain-stays',assetId:'asset-rain',name:'Chuva',mode:'loop',volume:.2});await engine.ambiences.apply(preset,{fade:0});const bus=engine.ambiences,sequence=bus.sequences.get('voices'),rain=bus.tracks.get('rain-stays');
+  removePlaylist(state,playlist.id);bus.removePlaylist(playlist.id);assert.equal(sequence.closed,true);assert.equal(bus.sequences.size,0);assert.strictEqual(bus.tracks.get('rain-stays'),rain);assert.equal(rain.audio.paused,false);assert.ok(!preset.layers.some(l=>l.playlistId===playlist.id));assert.equal(state.audioAssets.length,6);validateState(state);
 });

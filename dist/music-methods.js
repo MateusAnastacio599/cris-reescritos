@@ -18,7 +18,7 @@ export const musicMethods={
   },
   async playMusic(asset,options={}){
     if(!asset)throw new Error('Escolha uma faixa na biblioteca.');
-    const opts=this.musicOptions(options),generation=++this.musicEpoch,isCurrent=()=>generation===this.musicEpoch&&!this.removedAssets.has(asset.id);
+    const opts=this.musicOptions(options),generation=++this.musicEpoch,isCurrent=()=>generation===this.musicEpoch&&!this.removedAssets.has(asset.id)&&(opts.ambienceMusicToken===undefined||this.ambiences.active?.id===opts.ambienceOwnerId&&this.ambiences.musicToken===opts.ambienceMusicToken);
     this.ytRampInfo=null;this.ytEnvelope.cancel();this.musicAdvancePending=this.music;await this.init();if(!isCurrent())return;
     if(asset.provider==='youtube'){
       const wasPlaying=this.ytPlaying;

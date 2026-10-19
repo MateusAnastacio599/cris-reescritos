@@ -54,11 +54,11 @@ export class AudioEngine extends EventTarget {
     if(!track||track.disposed)return;if(!seconds){this.dispose(track);return;}this.retiring.add(track);this.ramp(track,0,seconds);
     clearTimeout(track.retireTimer);track.retireTimer=setTimeout(()=>this.dispose(track),(seconds+.04)*1000);
   }
-  async createTrack(asset,{loop=false,volume=1,group='sfx',fade=0,epoch=this.epoch,startSeconds=0}={}) {
+  async createTrack(asset,{loop=false,volume=1,group='sfx',fade=0,epoch=this.epoch,startSeconds=0,preparedAudio=null}={}) {
     if(this.removedAssets.has(asset.id))return null;
     const resolved=await resolveAsset(asset);if(epoch!==this.epoch||this.removedAssets.has(asset.id))return null;
-    const cached=group==='music'&&this.preloadedMusic?.assetId===asset.id?this.preloadedMusic.audio:null;
-    const audio=cached||new Audio(resolved.url||resolved.src);if(cached)this.preloadedMusic=null;audio.preload='auto';audio.loop=loop;
+    const cached=preparedAudio||(group==='music'&&this.preloadedMusic?.assetId===asset.id?this.preloadedMusic.audio:null);
+    const audio=cached||new Audio(resolved.url||resolved.src);if(cached&&cached===this.preloadedMusic?.audio)this.preloadedMusic=null;audio.preload='auto';audio.loop=loop;
     if(startSeconds>0){try{audio.currentTime=startSeconds;}catch{}}
     const source=this.context.createMediaElementSource(audio),gain=this.context.createGain();gain.gain.value=fade?0:clamp(volume);
     source.connect(gain);gain.connect(this.groups[group]||this.groups.sfx);
@@ -97,7 +97,7 @@ export class AudioEngine extends EventTarget {
   currentTime(){return this.running?this.elapsed+(performance.now()-this.startedAt)/1000:this.elapsed;}
   tick(){
     if(this.running&&this.active){const time=this.currentTime();this.active.scene.timeline.forEach((event,index)=>{if(!this.fired.has(index)&&event.at<=time){this.fired.add(index);this.executeEvent(event);}});}
-    this.tickMusic();
+    this.tickMusic();this.ambiences.tick();
     this.emit('tick',{time:this.currentTime()});
   }
   executeEvent(event) {
@@ -168,9 +168,11 @@ export class AudioEngine extends EventTarget {
     for(const [id,track] of this.tracks)if(track.assetId===assetId){this.dispose(track);this.tracks.delete(id);}
     for(const track of [...this.effects,...this.retiring])if(track.assetId===assetId)this.dispose(track);
     const bus=this.ambiences;
+    for(const sequence of bus.sequences.values())sequence.removeAsset(assetId);
     for(const [id,track] of bus.tracks)if(track.assetId===assetId){this.dispose(track);bus.tracks.delete(id);}
     for(const [id,job] of bus.jobs)if(job.layer.assetId===assetId){clearTimeout(job.timer);bus.jobs.delete(id);}
-    if(bus.active){bus.active.layers=bus.active.layers.filter(l=>l.assetId!==assetId);bus.active.pads=bus.active.pads.filter(id=>id!==assetId);}
+    if(bus.active){bus.active.layers=bus.active.layers.filter(l=>l.assetId!==assetId);bus.active.pads=bus.active.pads.filter(id=>id!==assetId);if(bus.active.music?.assetId===assetId)delete bus.active.music;}
+    bus.refreshSources();
     if(this.active){const scene=this.active.scene,fired=new Set(scene.timeline.filter((_,i)=>this.fired.has(i)));removeSceneAudio(scene,assetId);this.fired=new Set(scene.timeline.flatMap((event,i)=>fired.has(event)?[i]:[]));}
     if(this.preloadedMusic?.assetId===assetId)this.clearPreload();
     this.emit();

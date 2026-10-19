@@ -5,7 +5,7 @@ import {$,$$,esc,openForm,field,option,confirmAction,toast} from './ui.js';
 import {formatTime} from './audio-engine.js';
 import {YouTubeLibrary} from './youtube-library.js';
 import {openMusicSettings} from './music-ui.js';
-import {removeAudioAsset} from './audio-assets.js';
+import {removeAudioAsset,removePlaylist} from './audio-assets.js';
 
 const labels={music:'Música',ambience:'Ambiência',sfx:'Efeito'};
 const glyph=a=>a.provider==='youtube'?'youtube':({ambience:'rain',sfx:'bolt',music:'music'})[a.kind];
@@ -83,7 +83,7 @@ export class LibraryUI {
     };
     openForm({title:playlist?'Editar playlist':'Criar playlist',body:field('Nome da playlist','name',playlist?.name||'','required maxlength="100"')+`<label class="check-field"><input type="checkbox" name="shuffle" ${(playlist?playlist.shuffle===true:true)?'checked':''}><span>Reproduzir em ordem aleatória, sem repetir até completar a lista</span></label>`+'<span class="section-eyebrow">ORDEM DE REPRODUÇÃO</span><div id="playlistTracks"></div><div class="inline-add"><select id="playlistAddSelect" aria-label="Faixa para adicionar"></select><button type="button" class="btn outline" id="playlistAddTrack">Adicionar</button></div><p class="form-hint">Com o aleatório desativado, vale a ordem acima. Ao terminar, a playlist continua tocando. Ambiências e efeitos usados aqui se comportam como faixas.</p>'+(playlist?'<button type="button" class="btn danger full" id="deletePlaylist">Excluir playlist</button>':''),onReady:root=>{
       renderList(root);$('#playlistAddTrack',root).onclick=()=>{const id=$('#playlistAddSelect',root).value;if(id&&!ids.includes(id)){ids.push(id);renderList(root);}};
-      $('#deletePlaylist',root)?.addEventListener('click',()=>confirmAction('Excluir playlist?',`A playlist “${playlist.name}” será excluída. Os áudios continuam na biblioteca.`,()=>{state.playlists=state.playlists.filter(p=>p.id!==playlist.id);this.playlistId=null;this.ctx.commit();return ()=>this.render(this.root);}));
+      $('#deletePlaylist',root)?.addEventListener('click',()=>confirmAction('Excluir playlist?',`A playlist “${playlist.name}” será excluída. Os áudios continuam na biblioteca; os vínculos desta playlist em ambientes, cenas e cues serão removidos.`,()=>{removePlaylist(state,playlist.id);this.ctx.engine.ambiences.removePlaylist(playlist.id);if(this.ctx.engine.playlist?.id===playlist.id){this.ctx.engine.playlist=null;this.ctx.engine.musicOrder=null;this.ctx.engine.clearPreload();}this.playlistId=null;this.ctx.commit();return ()=>this.render(this.root);}));
     },onSubmit:form=>{
       const name=String(form.get('name')).trim();if(!name)throw new Error('Informe um nome.');if(playlist){playlist.name=name;playlist.assetIds=ids;playlist.shuffle=form.has('shuffle');this.ctx.engine.refreshPlaylist(playlist);}else{const p={id:uid('playlist'),name,assetIds:ids,shuffle:form.has('shuffle')};state.playlists.push(p);this.playlistId=p.id;}this.ctx.commit();return ()=>this.render(this.root);
     }});

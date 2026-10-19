@@ -64,6 +64,21 @@ Novos módulos: `music-methods.js` (direção musical e YouTube), `volume-envelo
 
 Novos módulos: `playlist-order.js` (fila, rodadas e histórico) e `audio-assets.js` (remoção das referências). O formato de backup permanece V3; `shuffle` é opcional em arquivos antigos.
 
+## Atualização 3.3 — playlists nos ambientes
+
+Em **Ambientes → Adicionar playlist**, escolha uma playlist de arquivos da biblioteca. Cada camada tem sua própria fila, volume, opção de aleatório e comportamento:
+
+- **Contínuo:** toca uma faixa após a outra, com pré-carregamento e crossfade configurável. Em modo aleatório, percorre todas as faixas antes de repetir e evita repetir a última na virada da rodada.
+- **Ocasional:** escolhe uma faixa e espera seu término; depois sorteia o intervalo até o próximo som. A fila continua sem repetição dentro da rodada.
+
+Várias camadas podem tocar juntas sem ocupar o player musical. O cartão informa o áudio atual e permite avançar uma playlist contínua. A fila e a faixa são mantidas ao navegar, pausar, retomar ou reaplicar o mesmo ambiente.
+
+A seção **Trilha musical do lugar** aceita uma faixa ou playlist, incluindo YouTube, com volume e fades. Ela começa junto do ambiente e usa o canal de música da mesa. Ao encerrar/trocar o lugar, apenas a trilha ainda pertencente a ele é encerrada; uma escolha musical manual posterior é preservada. Configure **Ambiente salvo ao iniciar** na música da cena para chamar tudo junto. Uma música explicitamente configurada na própria cena tem prioridade sobre a trilha do lugar.
+
+Exemplo de uso: criar na biblioteca a playlist “Conversas do café” com quatro arquivos; adicioná-la ao ambiente “Café”, em modo aleatório; adicionar talheres ocasionais e escolher uma playlist de jazz na trilha musical. Os arquivos devem ser fornecidos pelo mestre. Playlists com links do YouTube usam a trilha musical, pois o player oficial permanece único e visível.
+
+O módulo `ambient-playlist.js` mantém a reprodução por camada separada do motor musical. O formato continua `schemaVersion: 3`: a camada passa a aceitar `playlistId` em lugar de `assetId`, com `shuffle` e `crossfade` opcionais; o ambiente pode conter `music`. Backups anteriores continuam válidos. A exclusão de áudio ou playlist também limpa os vínculos nos ambientes e cancela as filas correspondentes.
+
 ## Verificação
 
 ```sh

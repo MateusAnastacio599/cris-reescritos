@@ -79,7 +79,15 @@ export function validateState(s) {
   for(const p of s.playlists) {identity(p);if(typeof p.name!=='string'||!Array.isArray(p.assetIds)||p.assetIds.some(id=>typeof id!=='string')||p.shuffle!==undefined&&typeof p.shuffle!=='boolean') throw new Error('Playlist inválida.');}
   if(s.ambiences===undefined)s.ambiences=defaultAmbiences();
   if(!Array.isArray(s.ambiences))throw new Error('Lista de ambientes inválida.');
-  for(const a of s.ambiences){identity(a);if(typeof a.name!=='string'||!Array.isArray(a.layers)||!Array.isArray(a.pads))throw new Error('Ambiente inválido.');const layerIds=new Set();for(const l of a.layers){if(typeof l.id!=='string'||layerIds.has(l.id)||typeof l.assetId!=='string'||!['loop','random'].includes(l.mode)||!Number.isFinite(l.volume)||l.volume<0||l.volume>1)throw new Error('Camada de ambiente inválida.');layerIds.add(l.id);if(l.mode==='random'&&(!Number.isFinite(l.minInterval)||!Number.isFinite(l.maxInterval)||l.minInterval<.1||l.maxInterval<l.minInterval))throw new Error('Intervalo de ambiente inválido.');}}
+  for(const a of s.ambiences){
+    identity(a);if(typeof a.name!=='string'||!Array.isArray(a.layers)||!Array.isArray(a.pads))throw new Error('Ambiente inválido.');
+    const layerIds=new Set();for(const l of a.layers){
+      const file=typeof l.assetId==='string'&&!!l.assetId,playlist=typeof l.playlistId==='string'&&!!l.playlistId;
+      if(typeof l.id!=='string'||layerIds.has(l.id)||file===playlist||!['loop','random'].includes(l.mode)||!Number.isFinite(l.volume)||l.volume<0||l.volume>1||l.shuffle!==undefined&&typeof l.shuffle!=='boolean'||l.crossfade!==undefined&&(!Number.isFinite(l.crossfade)||l.crossfade<0||l.crossfade>30))throw new Error('Camada de ambiente inválida.');
+      layerIds.add(l.id);if(l.mode==='random'&&(!Number.isFinite(l.minInterval)||!Number.isFinite(l.maxInterval)||l.minInterval<.1||l.maxInterval<l.minInterval))throw new Error('Intervalo de ambiente inválido.');
+    }
+    if(a.music!==undefined){const m=a.music,file=typeof m?.assetId==='string'&&!!m.assetId,playlist=typeof m?.playlistId==='string'&&!!m.playlistId;if(!m||file===playlist||m.volume!==undefined&&(!Number.isFinite(m.volume)||m.volume<0||m.volume>1)||['fadeIn','fadeOut'].some(key=>m[key]!==undefined&&(!Number.isFinite(m[key])||m[key]<0||m[key]>30)))throw new Error('Trilha musical do ambiente inválida.');}
+  }
   s.settings = {...initialDefaults(),...s.settings};
   for(const key of ['master','music','ambience','sfx']) s.settings[key] = Math.max(0,Math.min(1,Number(s.settings[key])||0));
   s.settings.crossfade = Math.max(0,Math.min(12,Number(s.settings.crossfade)||0));
