@@ -446,3 +446,53 @@ test('backup preserva fades e aceita dados antigos, mas rejeita tempos inválido
   saveState(state);assert.equal(loadState().audioAssets[0].fadeIn,1.5);const data=JSON.parse(await (await exportWorkspace(state)).text());assert.deepEqual(validateState(data.state),state);validateState(initialState());
   for(const value of [-1,31,'2',null,NaN]){const invalid=structuredClone(state);invalid.ambiences[0].layers[0].fadeOut=value;assert.throws(()=>validateState(invalid),/Fade de áudio inválido/);}
 });
+
+test('música individual inicia em loop por padrão e pode desligar repetição sem reiniciar',async()=>{
+  const {engine}=fixture();engine.fireCue({id:'song-loop',name:'Corredor',actions:[{type:'music-play',assetId:'asset-bell',volume:.4,fadeIn:0,delay:0}]});await settle();
+  const track=engine.music;assert.equal(track.audio.loop,true);assert.equal(engine.musicFadeOptions.loop,true);assert.equal(track.volume,.4);
+  engine.setMusicLoop(false);assert.strictEqual(engine.music,track);assert.equal(track.audio.loop,false);engine.setMusicLoop(true);assert.equal(track.audio.loop,true);
+  await engine.playMusic(engine.asset('asset-door'),{loop:false,fadeIn:0});assert.equal(engine.music.audio.loop,false);
+});
+test('playlist continua para a próxima música em vez de repetir sua primeira faixa',async()=>{
+  const {engine,state}=fixture(),playlist={id:'loop-queue',name:'Fila',assetIds:['asset-bell','asset-door']};state.playlists.push(playlist);await engine.playPlaylist(playlist,0,{loop:true});
+  const first=engine.music;assert.equal(first.audio.loop,false);first.audio.onended();await settle();assert.equal(engine.musicAsset.id,'asset-door');assert.equal(engine.music.audio.loop,false);
+});
+test('YouTube repete o mesmo vídeo com volume e fades preservados em cada rodada',async()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine),asset={id:'single-loop',name:'12:00 AM',provider:'youtube',videoId:'dQw4w9WgXcQ'};
+  await engine.playMusic(asset,{fadeIn:0,fadeOut:.1,volume:.4});engine.handleYouTubeState(1);assert.equal(engine.ytLevel,.4);
+  for(let i=0;i<2;i++){
+    engine.handleYouTubeState(0);engine.handleYouTubeState(0);await settle();assert.ok(engine.ytPendingFade);assert.equal(engine.ytPendingFade.level,.4);
+    engine.handleYouTubeState(1);assert.equal(engine.ytLevel,.4);assert.equal(engine.musicFadeOptions.fadeOut,.1);
+  }
+  assert.equal(fake.calls.filter(c=>c[0]==='loadVideo').length,3);
+});
+test('replay manual do mesmo vídeo recupera o volume depois do fade final',async()=>{
+  const {engine,state}=fixture(),fake=fakeYouTube(engine);let position=0;engine.yt.getCurrentTime=()=>position;
+  await engine.playMusic({id:'manual-replay',name:'12:00 AM',provider:'youtube',videoId:'dQw4w9WgXcQ'},{fadeIn:0,fadeOut:.1,volume:.4,loop:false});engine.handleYouTubeState(1);
+  position=99.96;engine.tickMusic();await new Promise(r=>setTimeout(r,80));assert.equal(engine.ytLevel,0);
+  engine.handleYouTubeState(0);await settle();assert.equal(fake.calls.filter(c=>c[0]==='loadVideo').length,1);
+  position=0;engine.handleYouTubeState(1);await new Promise(r=>setTimeout(r,250));assert.equal(engine.ytLevel,.4);assert.equal(engine.ytEndFadeKey,null);
+  engine.fadeMusicTo(.9,0);assert.equal(engine.musicTargetLevel,.9);assert.equal(engine.ytLevel,.9);assert.equal(fake.calls.filter(c=>c[0]==='volume').at(-1)[1],Math.round(state.settings.master*state.settings.music*.9*100));
+});
+test('voltar o vídeo antes de terminar cancela o fade antigo sem exigir evento PLAYING',async()=>{
+  const {engine}=fixture();fakeYouTube(engine);let position=0;engine.yt.getCurrentTime=()=>position;
+  await engine.playMusic({id:'seek-replay',name:'Faixa',provider:'youtube',videoId:'dQw4w9WgXcQ'},{fadeIn:0,fadeOut:.1,volume:.6});engine.handleYouTubeState(1);
+  position=99.96;engine.tickMusic();await new Promise(r=>setTimeout(r,80));assert.equal(engine.ytLevel,0);
+  position=0;engine.tickMusic();await new Promise(r=>setTimeout(r,250));assert.equal(engine.ytLevel,.6);assert.equal(engine.ytEndFadeKey,null);
+});
+test('recuperar replay preserva volume zero intencional e mixer independente',async()=>{
+  const {engine,state}=fixture();fakeYouTube(engine);await engine.playMusic({id:'quiet-loop',name:'Faixa',provider:'youtube',videoId:'dQw4w9WgXcQ'},{fadeIn:0,volume:0,loop:false});engine.handleYouTubeState(1);
+  engine.ytEnded=true;engine.ytEndFadeKey='dQw4w9WgXcQ';engine.handleYouTubeState(1);await new Promise(r=>setTimeout(r,250));assert.equal(engine.ytLevel,0);assert.equal(state.settings.music,.7);
+});
+test('fim atrasado não reinicia uma música enquanto ela está sendo encerrada',async()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine);await engine.playMusic({id:'stop-loop',name:'Faixa',provider:'youtube',videoId:'dQw4w9WgXcQ'},{fadeIn:0});engine.handleYouTubeState(1);
+  const stopping=engine.stopMusic(.04);engine.handleYouTubeState(0);await stopping;assert.equal(engine.musicAsset,null);assert.equal(fake.calls.filter(c=>c[0]==='loadVideo').length,1);
+});
+test('Silêncio total cancela também um reinício automático aguardando o YouTube',async()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine);await engine.playMusic({id:'cancel-loop',name:'Faixa',provider:'youtube',videoId:'dQw4w9WgXcQ'},{fadeIn:0});engine.handleYouTubeState(1);
+  let release;engine.youtubeAPI=()=>new Promise(resolve=>{release=resolve;});engine.handleYouTubeState(0);await settle();engine.silence();release();await settle();assert.equal(engine.musicAsset,null);assert.equal(fake.calls.filter(c=>c[0]==='loadVideo').length,1);assert.equal(engine.ytPlaying,false);
+});
+test('backup guarda repetição por cue, cena e ambiente sem alterar configurações antigas',async()=>{
+  const state=initialState(),scene=state.campaigns[0].pages[0].scenes[0];scene.music={mode:'play',assetId:'asset-bell',loop:false};scene.cues=[{id:'loop-off',name:'Uma vez',actions:[{type:'music-play',assetId:'asset-door',loop:false,delay:0}]}];state.ambiences[0].music={assetId:'asset-bell',volume:.4,loop:true};
+  const data=JSON.parse(await (await exportWorkspace(state)).text());assert.deepEqual(validateState(data.state),state);validateState(initialState());data.state.campaigns[0].pages[0].scenes[0].cues[0].actions[0].loop='false';assert.throws(()=>validateState(data.state),/Repetição/);
+});

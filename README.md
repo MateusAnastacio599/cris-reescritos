@@ -27,6 +27,14 @@ As edições são locais a cada navegador/origem, sem sincronização automátic
 
 Novos módulos: `audio-fades.js` (envelope dos efeitos, sem timers) e `fade-ui.js` (controles compartilhados). O motor e a interface permanecem independentes para a futura integração ao CRIS.
 
+## Atualização 3.5.1 — repetição musical e volume no replay
+
+- Faixas musicais individuais repetem por padrão até trocar/encerrar, inclusive em cues existentes. O controle **Repetir a música** em cues, cenas e trilhas de ambiente permite tocar uma vez. Playlists preservam sua sequência e seu modo aleatório; efeitos sonoros continuam tocando uma vez.
+- Arquivos usam loop do elemento de áudio. Vídeos individuais do YouTube são reiniciados pelo motor ao terminar, preservando volume, fades e posição inicial configurados. As restrições de reprodução e carregamento do YouTube continuam se aplicando.
+- Reiniciar ou voltar o mesmo vídeo cancela o fade final antigo e recupera o volume de destino. Um encerramento explícito ou Silêncio total invalida reinícios pendentes.
+- **Mixer → Faixa atual:** volume independente da faixa e controle de repetição, sem editar a cue ou reiniciar o áudio. O volume final continua multiplicado pelos canais Música e Geral. Mudanças no mixer valem para a reprodução atual; a cue mantém sua configuração salva.
+- `loop` é opcional e booleano no backup V3. Os testes incluem múltiplas rodadas do mesmo vídeo, replay após fade final, seek sem evento de reprodução, fila de músicas e cancelamento de reinício durante carregamento.
+
 ## Organização
 
 | Arquivo | Responsabilidade |

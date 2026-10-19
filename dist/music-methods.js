@@ -4,7 +4,7 @@ const clamp=(n,min=0,max=1)=>Math.max(min,Math.min(max,Number(n)||0));
 
 /** Métodos da direção musical; um único player oficial de YouTube por shell. */
 export const musicMethods={
-  musicOptions(options={}){const s=this.getState().settings;return {...options,fadeIn:clamp(options.fadeIn??s.musicFadeIn??s.crossfade,0,30),fadeOut:clamp(options.fadeOut??s.musicFadeOut??s.crossfade,0,30),volume:clamp(options.volume??1)};},
+  musicOptions(options={}){const s=this.getState().settings;return {...options,loop:options.loop!==false,fadeIn:clamp(options.fadeIn??s.musicFadeIn??s.crossfade,0,30),fadeOut:clamp(options.fadeOut??s.musicFadeOut??s.crossfade,0,30),volume:clamp(options.volume??1)};},
   async applySceneMusic(scene,{resume=false}={}){
     const music=scene.music||(scene.musicAssetId?{mode:'play',assetId:scene.musicAssetId}:{mode:'keep'});
     if(music.mode==='stop')return this.stopMusic(music.fadeOut??this.getState().settings.musicFadeOut);
@@ -19,7 +19,7 @@ export const musicMethods={
   async playMusic(asset,options={}){
     if(!asset)throw new Error('Escolha uma faixa na biblioteca.');
     const opts=this.musicOptions(options),generation=++this.musicEpoch,isCurrent=()=>generation===this.musicEpoch&&!this.removedAssets.has(asset.id)&&(opts.ambienceMusicToken===undefined||this.ambiences.active?.id===opts.ambienceOwnerId&&this.ambiences.musicToken===opts.ambienceMusicToken);
-    this.ytRampInfo=null;this.ytEnvelope.cancel();this.musicAdvancePending=this.music;await this.init();if(!isCurrent())return;
+    this.ytTransitionEpoch=generation;this.ytEnded=false;this.ytEndFadeKey=null;this.ytLastPosition=null;this.ytRampInfo=null;this.ytEnvelope.cancel();this.musicAdvancePending=this.music;await this.init();if(!isCurrent())return;
     if(asset.provider==='youtube'){
       const wasPlaying=this.ytPlaying;
       if(wasPlaying){const faded=await this.ytEnvelope.fade(0,opts.fadeOut,isCurrent);if(!faded||!isCurrent())return;}
@@ -28,14 +28,14 @@ export const musicMethods={
       // A faixa local só sai quando o novo vídeo realmente começar a tocar.
       if(this.music&&this.ytPendingFade)this.ytPendingFade.retireMusic=this.music;
     }else{
-      const track=await this.createTrack(asset,{group:'music',volume:opts.volume,fade:opts.fadeIn,epoch:this.epoch,startSeconds:opts.startSeconds??asset.start??0});
+      const track=await this.createTrack(asset,{group:'music',loop:opts.loop&&!opts.playlist,volume:opts.volume,fade:opts.fadeIn,epoch:this.epoch,startSeconds:opts.startSeconds??asset.start??0});
       if(!track)return;if(!isCurrent()){this.dispose(track);return;}
       if(this.music)this.retire(this.music,opts.fadeOut);this.music=track;
       if(this.ytReady&&this.ytPlaying){this.ytEnvelope.fade(0,opts.fadeOut,isCurrent).then(done=>{if(done&&isCurrent()){this.yt.stopVideo();this.ytPlaying=false;this.emit();}});}
       track.audio.onended=()=>{if(this.music!==track)return;this.dispose(track);this.music=null;if(this.musicAsset?.id===asset.id){if(this.playlist)this.nextMusic();else{this.musicAsset=null;this.emit();}}};
     }
     this.musicAsset=asset;this.musicTargetLevel=opts.volume;this.musicFadeOptions=opts;
-    this.playlist=opts.playlist?{id:opts.playlist.id,index:opts.index||0}:null;if(!this.playlist)this.musicOrder=null;this.paused=false;this.musicAdvancePending=null;this.preloadNextMusic();this.updateMediaSession();this.emit();
+    this.playlist=opts.playlist?{id:opts.playlist.id,index:opts.index||0}:null;if(!this.playlist)this.musicOrder=null;this.paused=false;this.musicAdvancePending=null;this.ytTransitionEpoch=null;this.preloadNextMusic();this.updateMediaSession();this.emit();
   },
   playlistItems(playlist){return [...new Set(playlist.assetIds)].map(id=>this.asset(id)).filter(a=>a&&!this.removedAssets.has(a.id));},
   playlistOrder(playlist){
@@ -58,10 +58,20 @@ export const musicMethods={
     const playlist=this.getState().playlists.find(p=>p.id===this.playlist?.id);if(playlist){const list=this.playlistItems(playlist),order=this.playlistOrder(playlist),id=offset<0?order.previous():order.next(),index=list.findIndex(a=>a.id===id);if(index<0)return this.stopMusic(0);return this.playMusic(list[index],{...this.musicFadeOptions,playlist,index}).catch(e=>this.error(e.message));}
   },
   async stopMusic(seconds=this.getState().settings.musicFadeOut??2){
-    const generation=++this.musicEpoch;this.ytPendingFade=null;this.ytEnvelope.cancel();this.clearPreload();
+    const generation=++this.musicEpoch;this.ytTransitionEpoch=generation;this.ytEnded=false;this.ytEndFadeKey=null;this.ytLastPosition=null;this.ytPendingFade=null;this.ytRampInfo=null;this.ytEnvelope.cancel();this.clearPreload();
     if(this.music){this.retire(this.music,seconds);this.music=null;}
     if(this.ytReady){const complete=await this.ytEnvelope.fade(0,seconds,()=>generation===this.musicEpoch);if(!complete)return;this.yt.stopVideo();this.ytPlaying=false;}
-    if(generation===this.musicEpoch){this.youtubeHardStopped=true;this.musicAsset=null;this.playlist=null;this.musicOrder=null;this.musicAdvancePending=null;this.emit();}
+    if(generation===this.musicEpoch){this.youtubeHardStopped=true;this.musicAsset=null;this.playlist=null;this.musicOrder=null;this.musicAdvancePending=null;this.ytTransitionEpoch=null;this.emit();}
+  },
+  setMusicLoop(enabled){if(!this.musicAsset)return;this.musicFadeOptions??=this.musicOptions();this.musicFadeOptions.loop=enabled===true;if(this.music&&!this.playlist)this.music.audio.loop=enabled===true;this.emit();},
+  startYouTubeFade(level,duration,generation=this.musicEpoch){
+    const ramp={level,duration:duration||0,startedAt:performance.now()};this.ytRampInfo=ramp;
+    this.ytEnvelope.fade(level,duration,()=>generation===this.musicEpoch&&!!this.youtubeAsset&&!this.youtubeHardStopped).then(done=>{if(done&&this.ytRampInfo===ramp)this.ytRampInfo=null;});
+  },
+  recoverYouTubeEndFade(){
+    if(!this.ytEndFadeKey&&!this.ytEnded)return;
+    this.ytEndFadeKey=null;this.ytEnded=false;this.ytRampInfo=null;this.ytEnvelope.cancel();
+    if(this.ytPlaying&&!this.ytPendingFade&&this.ytTransitionEpoch!==this.musicEpoch)this.startYouTubeFade(this.musicTargetLevel,.2);
   },
   fadeMusicTo(volume,seconds=2){this.musicTargetLevel=clamp(volume);if(this.ytPendingFade)this.ytPendingFade.level=this.musicTargetLevel;if(this.musicFadeOptions)this.musicFadeOptions.volume=this.musicTargetLevel;if(this.music)this.ramp(this.music,this.musicTargetLevel,seconds);if(this.ytReady&&!this.ytPendingFade&&this.musicAsset?.provider==='youtube')this.ytEnvelope.fade(this.musicTargetLevel,seconds,()=>!!this.musicAsset);this.emit();},
   fadeMix(group,to,seconds=2){
@@ -81,9 +91,11 @@ export const musicMethods={
       const remaining=this.music.audio.duration-this.music.audio.currentTime;
       if(Number.isFinite(remaining)&&remaining>0&&remaining<=Math.max(opts.fadeIn,opts.fadeOut)&&this.musicAdvancePending!==this.music){this.musicAdvancePending=this.music;this.nextMusic();}
     }
-    if(this.ytReady&&this.ytPlaying&&this.musicAsset?.provider==='youtube'){
-      const remaining=(this.yt.getDuration?.()||0)-(this.yt.getCurrentTime?.()||0),id=this.yt.getVideoData?.()?.video_id;
-      if(id&&remaining>0&&remaining<=opts.fadeOut&&this.ytEndFadeKey!==id){this.ytEndFadeKey=id;this.ytRampInfo=null;this.ytEnvelope.fade(0,remaining,()=>this.ytPlaying&&this.yt.getVideoData?.()?.video_id===id);}
+    if(this.ytReady&&this.ytPlaying&&this.musicAsset?.provider==='youtube'&&!this.ytPendingFade&&this.ytTransitionEpoch!==this.musicEpoch){
+      const position=this.yt.getCurrentTime?.()||0,remaining=(this.yt.getDuration?.()||0)-position,id=this.yt.getVideoData?.()?.video_id,prior=this.ytLastPosition;
+      if(this.ytEndFadeKey&&(this.ytEndFadeKey!==id||remaining>opts.fadeOut+.25||prior?.id===id&&position<prior.time-.5))this.recoverYouTubeEndFade();
+      this.ytLastPosition={id,time:position};
+      if(id&&remaining>0&&remaining<=opts.fadeOut&&this.ytEndFadeKey!==id){const generation=this.musicEpoch;this.ytEndFadeKey=id;this.ytRampInfo=null;this.ytEnvelope.fade(0,remaining,()=>generation===this.musicEpoch&&this.ytPlaying&&this.ytEndFadeKey===id&&this.yt.getVideoData?.()?.video_id===id);}
     }
   },
   async ensureYouTube(isCurrent=()=>true){
@@ -128,7 +140,7 @@ export const musicMethods={
   },
   handleYouTubeState(code){
     if(code===1&&this.youtubeHardStopped){if(this.ytReady)this.yt.stopVideo();this.ytPlaying=false;this.emit();return;}
-    this.ytPlaying=code===1;
+    const wasPlaying=this.ytPlaying;this.ytPlaying=code===1;
     if([2,3].includes(code)&&this.ytRampInfo&&this.ytEnvelope.pending){
       const ramp=this.ytRampInfo;this.ytEnvelope.cancel();this.ytPendingFade={duration:Math.max(.1,ramp.duration-(performance.now()-ramp.startedAt)/1000),level:ramp.level,generation:this.musicEpoch};this.ytRampInfo=null;
     }
@@ -142,14 +154,24 @@ export const musicMethods={
       }
       if(this.youtubePreviewOnly&&this.youtubeAsset){this.youtubePreviewOnly=false;this.musicEpoch++;this.musicAsset=this.youtubeAsset;this.playlist=null;this.musicTargetLevel=1;this.musicFadeOptions=this.musicOptions();this.ytPendingFade={duration:this.musicFadeOptions.fadeIn,fadeOut:this.musicFadeOptions.fadeOut,level:1,generation:this.musicEpoch,retireMusic:this.music};}
       const data=this.yt.getVideoData?.()||{},id=data.video_id;if(data.title)this.currentYouTubeTitle=data.title;
+      const remaining=(this.yt.getDuration?.()||0)-(this.yt.getCurrentTime?.()||0);
+      if(this.ytEnded||this.ytEndFadeKey&&(id!==this.ytEndFadeKey||remaining>(this.musicFadeOptions?.fadeOut??0)+.25))this.recoverYouTubeEndFade();
       if(id&&id!==this.ytLastVideoId&&!this.ytPendingFade){this.ytEnvelope.cancel();this.ytLevel=0;this.applyYTVolume();this.ytPendingFade={duration:this.musicFadeOptions?.fadeIn??this.getState().settings.musicFadeIn,level:this.musicTargetLevel,generation:this.musicEpoch};}
       if(id)this.ytLastVideoId=id;
       const pending=this.ytPendingFade;
-      if(pending&&pending.generation===this.musicEpoch){this.ytPendingFade=null;this.ytEndFadeKey=null;if(pending.retireMusic){this.retire(pending.retireMusic,pending.fadeOut);if(this.music===pending.retireMusic)this.music=null;}const ramp={level:pending.level,duration:pending.duration||0,startedAt:performance.now()};this.ytRampInfo=ramp;this.ytEnvelope.fade(pending.level,pending.duration,()=>pending.generation===this.musicEpoch&&!!this.musicAsset).then(done=>{if(done&&this.ytRampInfo===ramp)this.ytRampInfo=null;});}
+      if(pending&&pending.generation===this.musicEpoch){this.ytPendingFade=null;this.ytEndFadeKey=null;this.ytEnded=false;if(pending.retireMusic){this.retire(pending.retireMusic,pending.fadeOut);if(this.music===pending.retireMusic)this.music=null;}this.startYouTubeFade(pending.level,pending.duration,pending.generation);}
       this.readYouTubeQueue();this.emit('youtubetrack',{assetId:this.youtubeAsset?.id,videoId:id,title:data.title||'',index:this.yt.getPlaylistIndex?.()??0});
     }
     if(code===5){this.queueRevision=(this.queueRevision||0)+1;this.syncYouTubeShuffle();this.readYouTubeQueue();}
-    if(code===0&&this.musicAsset?.provider==='youtube'&&!this.musicAsset.playlistId&&this.playlist)this.nextMusic();
+    if(code===0&&this.musicAsset?.provider==='youtube'&&!this.youtubeHardStopped&&this.ytTransitionEpoch!==this.musicEpoch&&!this.ytPendingFade){
+      this.ytEnded=true;this.ytRampInfo=null;this.ytEnvelope.cancel();
+      if(!this.musicAsset.playlistId){
+        if(this.playlist)this.nextMusic();
+        else if(wasPlaying&&this.musicFadeOptions?.loop!==false&&!this.ytRestartPending){
+          const pending=this.playMusic(this.musicAsset,{...this.musicFadeOptions}).catch(error=>this.error(error.message)).finally(()=>{if(this.ytRestartPending===pending)this.ytRestartPending=null;});this.ytRestartPending=pending;
+        }
+      }
+    }
     this.emit();
   },
   readYouTubeQueue(){

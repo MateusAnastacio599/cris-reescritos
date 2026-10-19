@@ -50,6 +50,7 @@ export function validateState(s) {
   if (!s || s.schemaVersion !== 3 || !Array.isArray(s.campaigns) || !s.campaigns.length || !Array.isArray(s.audioAssets) || !Array.isArray(s.playlists)) throw new Error('Este arquivo não é um backup CRIS Director V3.');
   const ids = new Set();
   const fades=value=>{if(['fadeIn','fadeOut'].some(key=>value[key]!==undefined&&(!Number.isFinite(value[key])||value[key]<0||value[key]>30)))throw new Error('Fade de áudio inválido: use de 0 a 30 segundos.');};
+  const musicLoop=value=>{if(value?.loop!==undefined&&typeof value.loop!=='boolean')throw new Error('Repetição da música inválida.');};
   const identity = o => {if (!o || typeof o.id !== 'string' || !o.id || ids.has(o.id)) throw new Error('O backup contém identificadores inválidos ou duplicados.'); ids.add(o.id);};
   for (const c of s.campaigns) {
     identity(c); if(typeof c.title !== 'string'||!Array.isArray(c.pages)||!c.pages.length) throw new Error('Campanha inválida no backup.');
@@ -61,6 +62,7 @@ export function validateState(s) {
         if(typeof x.id!=='string'||sceneIds.has(x.id)||typeof x.title!=='string'||typeof x.markdown!=='string'||!Array.isArray(x.layers)||!Array.isArray(x.triggers)||!Array.isArray(x.timeline)) throw new Error('Cena inválida no backup.');
         sceneIds.add(x.id);
         x.layers.forEach(fades);x.triggers.forEach(fades);x.timeline.forEach(fades);
+        musicLoop(x.music);
         for(const l of x.layers) if(typeof l.id!=='string'||typeof l.name!=='string'||!Number.isFinite(l.volume)||l.volume<0||l.volume>1) throw new Error('Camada de áudio inválida.');
         for(const t of x.timeline) if(!Number.isFinite(t.at)||t.at<0||!['oneshot','fade','cue'].includes(t.action)) throw new Error('Evento de timeline inválido.');
         if(x.cues!==undefined&&!Array.isArray(x.cues)) throw new Error('Lista de cues inválida.');
@@ -69,6 +71,7 @@ export function validateState(s) {
           if(typeof cue.id!=='string'||typeof cue.name!=='string'||!Array.isArray(cue.actions)) throw new Error('Cue inválida.');
           for(const a of cue.actions) if(!CUE_ACTIONS.includes(a.type)||!Number.isFinite(a.delay)||a.delay<0) throw new Error('Ação de cue inválida.');
           cue.actions.forEach(fades);
+          cue.actions.forEach(musicLoop);
         }
       }
     }
@@ -88,6 +91,7 @@ export function validateState(s) {
   if(!Array.isArray(s.ambiences))throw new Error('Lista de ambientes inválida.');
   for(const a of s.ambiences){
     fades(a);
+    musicLoop(a.music);
     identity(a);if(typeof a.name!=='string'||!Array.isArray(a.layers)||!Array.isArray(a.pads))throw new Error('Ambiente inválido.');
     const layerIds=new Set();for(const l of a.layers){
       fades(l);
