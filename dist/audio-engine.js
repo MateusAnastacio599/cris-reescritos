@@ -2,6 +2,7 @@ import { resolveAsset, clone } from './storage.js';
 import { VolumeEnvelope } from './volume-envelope.js';
 import { AmbienceBus } from './ambience-engine.js';
 import { musicMethods } from './music-methods.js';
+import { removeSceneAudio } from './audio-assets.js';
 
 const clamp = (n,min=0,max=1) => Math.max(min,Math.min(max,Number(n)||0));
 export const formatTime = seconds => {const s=Math.max(0,Math.floor(seconds||0));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;};
@@ -10,7 +11,7 @@ export const formatTime = seconds => {const s=Math.max(0,Math.floor(seconds||0))
 export class AudioEngine extends EventTarget {
   constructor(getState) {
     super();this.getState=getState;this.tracks=new Map();this.retiring=new Set();this.effects=new Set();
-    this.delays=new Set();this.epoch=0;this.musicEpoch=0;this.active=null;this.running=false;this.elapsed=0;this.fired=new Set();
+    this.delays=new Set();this.removedAssets=new Set();this.epoch=0;this.musicEpoch=0;this.active=null;this.running=false;this.elapsed=0;this.fired=new Set();
     this.music=null;this.musicAsset=null;this.playlist=null;this.yt=null;this.ytReady=false;this.ytPlaying=false;this.ytLevel=1;this.pendingCue=null;
     this.Envelope=VolumeEnvelope;this.ambiences=new AmbienceBus(this);this.musicTargetLevel=1;this.ytPendingFade=null;this.youtubeAsset=null;this.youtubeQueue=[];this.inspectEpoch=0;this.youtubeHardStopped=true;
     this.ytEnvelope=new VolumeEnvelope(()=>this.ytLevel,value=>{this.ytLevel=value;this.applyYTVolume();});
@@ -54,7 +55,8 @@ export class AudioEngine extends EventTarget {
     clearTimeout(track.retireTimer);track.retireTimer=setTimeout(()=>this.dispose(track),(seconds+.04)*1000);
   }
   async createTrack(asset,{loop=false,volume=1,group='sfx',fade=0,epoch=this.epoch,startSeconds=0}={}) {
-    const resolved=await resolveAsset(asset);if(epoch!==this.epoch)return null;
+    if(this.removedAssets.has(asset.id))return null;
+    const resolved=await resolveAsset(asset);if(epoch!==this.epoch||this.removedAssets.has(asset.id))return null;
     const cached=group==='music'&&this.preloadedMusic?.assetId===asset.id?this.preloadedMusic.audio:null;
     const audio=cached||new Audio(resolved.url||resolved.src);if(cached)this.preloadedMusic=null;audio.preload='auto';audio.loop=loop;
     if(startSeconds>0){try{audio.currentTime=startSeconds;}catch{}}
@@ -63,7 +65,7 @@ export class AudioEngine extends EventTarget {
     const track={audio,source,gain,assetId:asset.id,name:asset.name,volume:clamp(volume),group,loop,disposed:false};
     audio.onerror=()=>{if(!track.disposed){this.error(`Não foi possível reproduzir “${asset.name}”.`);this.dispose(track);this.emit();}};
     try{await audio.play();}catch(error){this.dispose(track);throw new Error(error.name==='NotAllowedError'?'Toque novamente em reproduzir para liberar o áudio no navegador.':`Não foi possível reproduzir “${asset.name}”.`);}
-    if(epoch!==this.epoch){this.dispose(track);return null;}
+    if(epoch!==this.epoch||this.removedAssets.has(asset.id)){this.dispose(track);return null;}
     if(fade)this.ramp(track,volume,fade);return track;
   }
   async startScene(scene,location) {
@@ -114,10 +116,11 @@ export class AudioEngine extends EventTarget {
   fireCue(cue) {
     if(!cue)return;this.pendingCue=cue.name;
     for(const action of cue.actions){const execute=()=>{
+      if(action.assetId&&this.removedAssets.has(action.assetId)&&!action.playlistId)return;
       if(action.type==='play')this.oneShot(this.asset(action.assetId),action.volume??.8).catch(e=>this.error(e.message));
       if(action.type==='fade')this.ramp(this.tracks.get(action.layerId),action.to,action.duration??1);
       if(action.type==='stop'){const track=this.tracks.get(action.layerId);if(track){this.dispose(track);this.tracks.delete(action.layerId);}}
-      if(action.type==='music-play'){const options={fadeIn:action.fadeIn,fadeOut:action.fadeOut,volume:action.volume??1,startSeconds:action.startSeconds||0,youtubeIndex:action.youtubeIndex||0};const playlist=this.getState().playlists.find(p=>p.id===action.playlistId);(playlist?this.playPlaylist(playlist,action.index||0,options):this.playMusic(this.asset(action.assetId),options)).catch(e=>this.error(e.message));}
+      if(action.type==='music-play'){const asset=this.asset(action.assetId),options={fadeIn:action.fadeIn,fadeOut:action.fadeOut,volume:action.volume??1,startSeconds:action.startSeconds||0,youtubeIndex:asset?.shuffle?undefined:action.youtubeIndex||0};const playlist=this.getState().playlists.find(p=>p.id===action.playlistId);(playlist?this.playPlaylist(playlist,playlist.shuffle?null:action.index||0,options):this.playMusic(asset,options)).catch(e=>this.error(e.message));}
       if(action.type==='music-stop')this.stopMusic(action.duration??2).catch(e=>this.error(e.message));
       if(action.type==='music-volume')this.fadeMusicTo(action.to,action.duration??2);
       if(action.type==='ambience'){const preset=this.getState().ambiences?.find(a=>a.id===action.ambienceId);this.ambiences.apply(preset,{fade:action.duration??2}).catch(e=>this.error(e.message));}
@@ -152,12 +155,26 @@ export class AudioEngine extends EventTarget {
   }
   stop() {
     this.youtubePreviewOnly=false;this.ytRampInfo=null;this.youtubeHardStopped=true;this.ytEnvelope.cancel();for(const env of Object.values(this.mixEnvelopes||{}))env.cancel();this.ytPendingFade=null;this.inspectEpoch++;this.ambiences.stop(0);this.clearPreload();
-    this.epoch++;this.musicEpoch++;this.clearDelays();this.active=null;this.running=false;this.paused=false;this.elapsed=0;this.fired.clear();this.pendingCue=null;
+    this.epoch++;this.musicEpoch++;this.clearDelays();this.removedAssets.clear();this.active=null;this.running=false;this.paused=false;this.elapsed=0;this.fired.clear();this.pendingCue=null;
     for(const t of [...this.tracks.values(),...this.effects,...this.retiring])this.dispose(t);this.tracks.clear();this.effects.clear();this.retiring.clear();
-    if(this.music)this.dispose(this.music);this.music=null;this.musicAsset=null;this.playlist=null;
+    if(this.music)this.dispose(this.music);this.music=null;this.musicAsset=null;this.playlist=null;this.musicOrder=null;
     if(this.ytReady)this.yt.stopVideo();this.ytPlaying=false;this.ytLastVideoId=null;this.ytEndFadeKey=null;this.musicAdvancePending=null;this.emit('silence');this.emit();
   }
   silence(){this.stop();}
+  async removeAsset(assetId){
+    this.removedAssets.add(assetId);
+    if(this.musicAsset?.id===assetId)await this.stopMusic(0);
+    if(this.youtubeAsset?.id===assetId){this.closeYouTube();this.youtubeAsset=null;this.youtubeQueue=[];}
+    for(const [id,track] of this.tracks)if(track.assetId===assetId){this.dispose(track);this.tracks.delete(id);}
+    for(const track of [...this.effects,...this.retiring])if(track.assetId===assetId)this.dispose(track);
+    const bus=this.ambiences;
+    for(const [id,track] of bus.tracks)if(track.assetId===assetId){this.dispose(track);bus.tracks.delete(id);}
+    for(const [id,job] of bus.jobs)if(job.layer.assetId===assetId){clearTimeout(job.timer);bus.jobs.delete(id);}
+    if(bus.active){bus.active.layers=bus.active.layers.filter(l=>l.assetId!==assetId);bus.active.pads=bus.active.pads.filter(id=>id!==assetId);}
+    if(this.active){const scene=this.active.scene,fired=new Set(scene.timeline.filter((_,i)=>this.fired.has(i)));removeSceneAudio(scene,assetId);this.fired=new Set(scene.timeline.flatMap((event,i)=>fired.has(event)?[i]:[]));}
+    if(this.preloadedMusic?.assetId===assetId)this.clearPreload();
+    this.emit();
+  }
   setLayerVolume(id,volume){const t=this.tracks.get(id);if(t)this.ramp(t,volume,.08);this.emit();}
   async toggleLibraryLayer(asset) {
     const key=`library:${asset.id}`;const active=this.tracks.get(key);

@@ -8,6 +8,7 @@ const paths={
   headphones:'M3 14v-3a9 9 0 0 1 18 0v3M3 13h4v8H4a1 1 0 0 1-1-1Zm18 0h-4v8h3a1 1 0 0 0 1-1Z',
   sliders:'M4 21v-7m0-4V3m8 18V11m0-4V3m8 18v-4m0-4V3M1 14h6m2-7h6m2 10h6',
   play:'m8 4 12 8-12 8Z',pause:'M8 5v14M16 5v14',stop:'M6 6h12v12H6Z',
+  shuffle:'M18 3h3v3M3 18l6-6M3 6l4 4m6-4 8-3M10 13l4 5h7m-3-3 3 3-3 3M9 12l5-6h7',
   skip:'m5 4 10 8-10 8ZM19 4v16',previous:'m19 4-10 8 10 8ZM5 4v16',
   volume:'m11 4-6 5H2v6h3l6 5ZM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14',
   edit:'m16 3 5 5L8 21H3v-5ZM14 5l5 5',link:'M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2',

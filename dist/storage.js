@@ -74,8 +74,9 @@ export function validateState(s) {
     if(a.provider==='local'&&!/^assets\/audio\/[a-zA-Z0-9_.-]+$/.test(a.src||'')) throw new Error('Caminho de áudio inválido.');
     if(a.youtubeTracks!==undefined&&(!Array.isArray(a.youtubeTracks)||a.youtubeTracks.some(t=>!t||!/^[\w-]{11}$/.test(t.videoId||'')||typeof t.title!=='string'||t.alias!==undefined&&typeof t.alias!=='string')))throw new Error('Lista de vídeos inválida.');
     if(a.provider==='youtube'&&!/^[\w-]{11}$/.test(a.videoId||'')&&!/^[\w-]{10,}$/.test(a.playlistId||'')) throw new Error('Link do YouTube inválido.');
+    if(a.shuffle!==undefined&&typeof a.shuffle!=='boolean')throw new Error('Modo de reprodução inválido.');
   }
-  for(const p of s.playlists) {identity(p);if(typeof p.name!=='string'||!Array.isArray(p.assetIds)) throw new Error('Playlist inválida.');}
+  for(const p of s.playlists) {identity(p);if(typeof p.name!=='string'||!Array.isArray(p.assetIds)||p.assetIds.some(id=>typeof id!=='string')||p.shuffle!==undefined&&typeof p.shuffle!=='boolean') throw new Error('Playlist inválida.');}
   if(s.ambiences===undefined)s.ambiences=defaultAmbiences();
   if(!Array.isArray(s.ambiences))throw new Error('Lista de ambientes inválida.');
   for(const a of s.ambiences){identity(a);if(typeof a.name!=='string'||!Array.isArray(a.layers)||!Array.isArray(a.pads))throw new Error('Ambiente inválido.');const layerIds=new Set();for(const l of a.layers){if(typeof l.id!=='string'||layerIds.has(l.id)||typeof l.assetId!=='string'||!['loop','random'].includes(l.mode)||!Number.isFinite(l.volume)||l.volume<0||l.volume>1)throw new Error('Camada de ambiente inválida.');layerIds.add(l.id);if(l.mode==='random'&&(!Number.isFinite(l.minInterval)||!Number.isFinite(l.maxInterval)||l.minInterval<.1||l.maxInterval<l.minInterval))throw new Error('Intervalo de ambiente inválido.');}}

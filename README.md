@@ -9,7 +9,7 @@ Abra o site publicado em um navegador moderno, no computador ou no celular. As t
 - **Editar página:** editor visual com blocos de texto, títulos, citações, listas, tarefas, notas e cues. Digite `/` em um bloco vazio. Os blocos podem ser reordenados pelas opções da alça ou arrastados no desktop.
 - **Links internos:** use o botão de link no editor ou `[[Nome da página]]` no Markdown. As referências criam backlinks nas páginas de destino.
 - **Campanhas, páginas e cenas:** adicione pela navegação; renomeie, organize e exclua nas respectivas opções. As cenas podem ser duplicadas com sua configuração sonora.
-- **Biblioteca:** upload de áudio para IndexedDB; nomes, categorias e tags; URLs e playlists do YouTube; playlists locais ordenadas.
+- **Biblioteca:** upload de áudio para IndexedDB; nomes, categorias e tags; URLs e playlists do YouTube; playlists com ordem definida ou aleatória.
 - **Direção:** camadas em loop, gatilhos, cues compostas e timeline. Configure usando os botões `+` ou o ícone ao lado de Direção da cena.
 - **Player persistente:** navegação troca somente o workspace. A transição sonora acontece ao iniciar outra cena, com crossfade dos arquivos locais.
 - **Celular:** alterne entre Roteiro e Direção da cena; o player fica no rodapé. O primeiro áudio exige um gesto de reprodução.
@@ -54,6 +54,15 @@ O YouTube usa um único player oficial visível, com tamanho compacto de 248 × 
 As mudanças são aditivas, preservam a chave de armazenamento e a versão 3 do formato de backup. A migração adiciona `ambiences` e os novos padrões de música quando ausentes, sem substituir textos, cenas ou áudio enviado.
 
 Novos módulos: `music-methods.js` (direção musical e YouTube), `volume-envelope.js` (fades canceláveis), `music-ui.js` (configuração), `youtube-library.js` (lista de faixas), `ambience-engine.js` / `ambience-ui.js` (SoundPad), `cue-editor.js` (ações compostas) e `audio-tools.css` (layout responsivo).
+
+## Atualização 3.2 — exclusão e surpresa nas playlists
+
+- Lixeira permanente em cada áudio/música adicionado, no desktop e no celular, com confirmação. A exclusão remove o arquivo enviado e suas referências em playlists, camadas, gatilhos, cues, timeline e ambientes; preserva os textos. Somente o áudio excluído é interrompido, sem parar os outros canais. Os seis sons originais continuam protegidos.
+- Botão **Aleatório** no cabeçalho das playlists do CRIS. A escolha fica salva; novas playlists começam com o modo ativo. Cada rodada toca todas as faixas uma vez, evita repetir a última na virada e mantém histórico para Anterior/Próxima. O pré-carregamento consulta a mesma próxima faixa e os fades continuam ativos.
+- Playlists nativas do YouTube têm **Aleatório** na lista de capas e na edição do áudio. O player oficial executa `setShuffle` e `setLoop`; a seleção de capas identifica o vídeo por ID para funcionar mesmo após reordenar. Novos links de playlists usam aleatório por padrão. A garantia da rodada sem repetição do CRIS se aplica às playlists criadas/importadas na biblioteca; a ordem da playlist nativa é gerida pelo YouTube.
+- Cenas e cues que iniciam uma playlist com aleatório ativo sorteiam a faixa inicial. A primeira faixa configurada é usada no modo sequencial. Tocar diretamente uma faixa da lista continua permitindo escolhê-la antes do restante da rodada.
+
+Novos módulos: `playlist-order.js` (fila, rodadas e histórico) e `audio-assets.js` (remoção das referências). O formato de backup permanece V3; `shuffle` é opcional em arquivos antigos.
 
 ## Verificação
 

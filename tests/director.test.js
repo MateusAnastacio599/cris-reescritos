@@ -8,6 +8,8 @@ import {initialState,loadState,saveState,validateState,exportWorkspace,makePage,
 import {parseBlocks,blocksToMarkdown,inlineHTML,parseYouTube,renderReadBlocks} from '../dist/markdown.js';
 import {AudioEngine} from '../dist/audio-engine.js';
 import {VolumeEnvelope} from '../dist/volume-envelope.js';
+import {PlaylistOrder} from '../dist/playlist-order.js';
+import {removeAudioAsset} from '../dist/audio-assets.js';
 
 const memory=new Map();
 globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)};
@@ -129,7 +131,7 @@ function fakeYouTube(engine){
   engine.youtubeAPI=async()=>{};engine.ytReady=true;
   engine.yt={setVolume:v=>calls.push(['volume',v]),stopVideo:()=>calls.push(['stop']),getVideoData:()=>data,getPlaylist:()=>ids,getPlaylistIndex:()=>0,getDuration:()=>100,getCurrentTime:()=>20,
     loadVideoById:value=>{calls.push(['loadVideo',value]);data={video_id:value.videoId,title:'Nova faixa'};},loadPlaylist:value=>{calls.push(['loadPlaylist',value]);},playVideoAt:i=>calls.push(['playAt',i]),
-    cuePlaylist:value=>{calls.push(['cuePlaylist',value]);engine.handleYouTubeState(5);},pauseVideo(){},playVideo(){},seekTo(){}};
+    cuePlaylist:value=>{calls.push(['cuePlaylist',value]);engine.handleYouTubeState(5);},setShuffle:value=>{calls.push(['shuffle',value]);},setLoop:value=>calls.push(['loop',value]),pauseVideo(){},playVideo(){},seekTo(){}};
   return {calls,setData:value=>{data=value;},setIDs:value=>{ids=value;}};
 }
 test('YouTube sai em fade, carrega mudo e só faz fade in quando realmente toca',async()=>{
@@ -172,4 +174,101 @@ test('play manual no player de uma playlist inspecionada ativa a direção music
 });
 test('transicionar de uma cena pausada retoma música e ambiente configurados para continuar',async()=>{
   const {state,engine,scene,location}=fixture();await engine.ambiences.apply(state.ambiences[0],{fade:0});await engine.playMusic(engine.asset('asset-bell'));await engine.startScene(scene,location);engine.pause();const next=state.campaigns[0].pages[0].scenes[1];await engine.startScene(next,{...location,key:'reescritos/sao-martinho/corredor',sceneId:'corredor'});assert.equal(engine.music.audio.paused,false);assert.equal(engine.ambiences.paused,false);assert.equal(engine.ambiences.tracks.get('amb-rain').audio.paused,false);
+});
+
+test('aleatório toca cada faixa uma vez por rodada e evita repetição na virada',()=>{
+  const ids=['a','b','c','d','e'],order=new PlaylistOrder(ids,{shuffle:true,random:()=>.42});
+  const rounds=Array.from({length:8},()=>Array.from({length:ids.length},()=>order.next()));
+  for(const round of rounds)assert.deepEqual([...round].sort(),ids);
+  for(let i=1;i<rounds.length;i++)assert.notEqual(rounds[i-1].at(-1),rounds[i][0]);
+});
+test('prévia não consome sorteio e Anterior/Próxima percorrem o histórico',()=>{
+  const order=new PlaylistOrder(['a','b','c','d'],{shuffle:true,random:()=>.8});
+  const first=order.next(),next=order.peek();for(let i=0;i<10;i++)assert.equal(order.peek(),next);
+  assert.equal(order.next(),next);const upcoming=order.peek();assert.equal(order.previous(),first);assert.equal(order.next(),next);assert.equal(order.next(),upcoming);
+});
+test('seleção manual entra primeiro e sai do restante da rodada aleatória',async()=>{
+  const {engine,state}=fixture(),playlist={id:'shuffle-selection',name:'Investigação',shuffle:true,assetIds:['asset-bell','asset-door','asset-riser','asset-thunder']};state.playlists=[playlist];
+  await engine.playPlaylist(playlist,2,{fadeIn:0,fadeOut:0});assert.equal(engine.musicAsset.id,'asset-riser');
+  const heard=[engine.musicAsset.id];for(let i=0;i<3;i++){await engine.nextMusic();heard.push(engine.musicAsset.id);}
+  assert.equal(new Set(heard).size,4);const last=heard.at(-1);await engine.nextMusic();assert.notEqual(engine.musicAsset.id,last);
+});
+test('aleatório usa o mesmo próximo áudio no pré-carregamento e no crossfade',async()=>{
+  const {engine,state}=fixture(),playlist={id:'shuffle-fade',name:'Tensão',shuffle:true,assetIds:['asset-bell','asset-door','asset-riser']};state.playlists=[playlist];
+  await engine.playPlaylist(playlist);await new Promise(r=>setImmediate(r));const next=engine.musicOrder.peek(),preloaded=engine.preloadedMusic;
+  assert.equal(preloaded.assetId,next);await engine.preloadNextMusic();assert.equal(engine.preloadedMusic.assetId,next);
+  const first=engine.music,prepared=engine.preloadedMusic.audio;first.audio.duration=100;first.audio.currentTime=99.99;engine.tickMusic();await new Promise(r=>setImmediate(r));
+  assert.equal(engine.musicAsset.id,next);assert.strictEqual(engine.music.audio,prepared);assert.ok(engine.retiring.has(first));
+});
+test('alternar aleatório preserva a faixa em execução e permite voltar à ordem definida',async()=>{
+  const {engine,state}=fixture(),playlist={id:'toggle-shuffle',name:'Trilhas',shuffle:false,assetIds:['asset-bell','asset-door','asset-riser']};state.playlists=[playlist];
+  await engine.playPlaylist(playlist,1,{fadeIn:0,fadeOut:0});const current=engine.music;playlist.shuffle=true;engine.refreshPlaylist(playlist);
+  assert.strictEqual(engine.music,current);assert.notEqual(engine.musicOrder.peek(),'asset-door');playlist.shuffle=false;engine.refreshPlaylist(playlist);await engine.nextMusic();assert.equal(engine.musicAsset.id,'asset-riser');
+});
+test('lista de uma faixa repete com segurança e lista vazia avisa sem iniciar áudio',async()=>{
+  const order=new PlaylistOrder(['a'],{shuffle:true});for(let i=0;i<5;i++)assert.equal(order.next(),'a');
+  const {engine}=fixture();await assert.rejects(engine.playPlaylist({id:'empty',shuffle:true,assetIds:['missing']}),/Adicione faixas/);
+});
+test('backup preserva aleatório e ainda aceita playlists antigas sem a opção',async()=>{
+  const state=initialState();state.playlists.push({id:'random-backup',name:'Investigação',assetIds:['asset-bell'],shuffle:true});
+  state.audioAssets.push({id:'native-shuffle',name:'YouTube',kind:'music',provider:'youtube',playlistId:'PLabcdefghijk',shuffle:true});
+  const restored=validateState(JSON.parse(await (await exportWorkspace(state)).text()).state);assert.equal(restored.playlists.at(-1).shuffle,true);assert.equal(restored.audioAssets.at(-1).shuffle,true);assert.equal(restored.playlists[0].shuffle,undefined);
+});
+test('cena e cue respeitam o modo aleatório ao escolher a primeira faixa',async()=>{
+  const {engine,state,scene,location}=fixture(),playlist={id:'scene-random',name:'Investigar',shuffle:true,assetIds:['asset-bell','asset-door','asset-riser']};state.playlists=[playlist];
+  const starts=[];engine.playPlaylist=async(p,index)=>starts.push([p.id,index]);scene.music={mode:'play',playlistId:playlist.id,index:2};await engine.startScene(scene,location);
+  engine.fireCue({id:'random-cue',name:'Nova trilha',actions:[{type:'music-play',playlistId:playlist.id,index:1,delay:0}]});assert.deepEqual(starts,[[playlist.id,null],[playlist.id,null]]);
+});
+test('excluir um áudio limpa as referências sem alterar o roteiro nem os originais',()=>{
+  const state=initialState(),scene=state.campaigns[0].pages[0].scenes[0],text=scene.markdown;
+  state.audioAssets.push({id:'custom',provider:'upload',kind:'music',name:'Música da investigação'});state.playlists[0].assetIds.push('custom');
+  scene.layers.push({id:'custom-layer',name:'Ambiente',assetId:'custom',volume:.5});scene.triggers.push({id:'custom-trigger',assetId:'custom'});scene.timeline.push({at:20,label:'Trilha',action:'oneshot',assetId:'custom'});scene.music={mode:'play',assetId:'custom'};
+  scene.cues.push({id:'custom-cue',name:'Cue',actions:[{type:'music-play',assetId:'custom',delay:0},{type:'message',message:'Continue',delay:0}]});
+  state.ambiences[0].layers.push({id:'custom-ambient',assetId:'custom',name:'Fundo',mode:'loop',volume:.3});state.ambiences[0].pads.push('custom');
+  assert.equal(removeAudioAsset(state,'custom'),true);assert.equal(JSON.stringify(state).includes('"custom"'),false);assert.equal(scene.markdown,text);assert.equal(scene.cues.at(-1).actions[0].type,'message');assert.equal(scene.music.mode,'keep');
+  assert.equal(state.audioAssets.length,6);assert.throws(()=>removeAudioAsset(state,'asset-rain'),/originais/);validateState(state);
+});
+test('excluir a música em execução mantém chuva, cena e outros efeitos tocando',async()=>{
+  const {engine,state,scene,location}=fixture(),asset={id:'custom-playing',name:'Trilha',kind:'music',provider:'local',src:'assets/audio/bell-demo.wav'};state.audioAssets.push(asset);
+  await engine.startScene(scene,location);await engine.ambiences.apply(state.ambiences[0],{fade:0});const rain=engine.tracks.get('rain'),ambientRain=engine.ambiences.tracks.get('amb-rain'),shot=await engine.oneShot(engine.asset('asset-door'));
+  await engine.playMusic(asset,{fadeIn:0});const music=engine.music;await engine.removeAsset(asset.id);removeAudioAsset(state,asset.id);
+  assert.equal(music.disposed,true);assert.equal(engine.musicAsset,null);assert.equal(rain.audio.paused,false);assert.equal(ambientRain.audio.paused,false);assert.equal(shot.disposed,false);assert.equal(engine.running,true);
+});
+test('excluir efeito cancela só suas camadas, intervalos e ações atrasadas',async()=>{
+  const {engine,state}=fixture(),asset={id:'custom-effect',name:'Porta extra',kind:'sfx',provider:'local',src:'assets/audio/door-demo.wav'};state.audioAssets.push(asset);
+  await engine.ambiences.apply({id:'custom-pad',name:'Casa',layers:[{id:'custom-loop',assetId:asset.id,name:'Loop',mode:'loop',volume:.3},{id:'custom-random',assetId:asset.id,name:'Porta',mode:'random',volume:.4,minInterval:10,maxInterval:10}],pads:[asset.id]},{fade:0});
+  const loop=engine.ambiences.tracks.get('custom-loop'),shot=await engine.oneShot(asset),other=await engine.oneShot(engine.asset('asset-bell'));let played=0;engine.oneShot=async()=>{played++;};
+  engine.fireCue({id:'delayed-custom',name:'Depois',actions:[{type:'play',assetId:asset.id,delay:.03},{type:'play',assetId:'asset-door',delay:.03}]});
+  await engine.removeAsset(asset.id);removeAudioAsset(state,asset.id);await new Promise(r=>setTimeout(r,60));
+  assert.equal(loop.disposed,true);assert.equal(shot.disposed,true);assert.equal(other.disposed,false);assert.equal(engine.ambiences.jobs.size,0);assert.equal(engine.ambiences.tracks.size,0);assert.equal(played,1);
+});
+test('exclusão em cena ativa mantém os eventos já disparados na timeline',async()=>{
+  const {engine,state,scene,location}=fixture();state.audioAssets.push({id:'remove-timeline',name:'Extra',kind:'sfx',provider:'local',src:'assets/audio/bell-demo.wav'});
+  scene.timeline=[{at:0,label:'Excluir',action:'oneshot',assetId:'remove-timeline'},{at:0,label:'Continuar',action:'oneshot',assetId:'asset-bell'},{at:50,label:'Futuro',action:'oneshot',assetId:'asset-door'}];
+  let count=0;engine.oneShot=async()=>{count++;};await engine.startScene(scene,location);engine.tick();assert.equal(count,2);await engine.removeAsset('remove-timeline');engine.tick();assert.equal(count,2);assert.equal(engine.fired.has(0),true);assert.equal(engine.fired.has(1),false);
+});
+test('exclusão de uma próxima faixa retira o áudio do sorteio e do pré-carregamento',async()=>{
+  const {engine,state}=fixture(),asset={id:'delete-next',name:'Extra',kind:'music',provider:'local',src:'assets/audio/bell-demo.wav'};state.audioAssets.push(asset);const playlist={id:'delete-from-queue',name:'Fila',shuffle:true,assetIds:['asset-door',asset.id]};state.playlists=[playlist];
+  await engine.playPlaylist(playlist,0,{fadeIn:0,fadeOut:0});await new Promise(r=>setImmediate(r));assert.equal(engine.preloadedMusic.assetId,asset.id);
+  await engine.removeAsset(asset.id);removeAudioAsset(state,asset.id);engine.refreshPlaylist(playlist);await engine.nextMusic();assert.equal(engine.musicAsset.id,'asset-door');assert.ok(!engine.musicOrder.ids.includes(asset.id));
+});
+test('YouTube aplica aleatório uma vez e conserva o modo ao trocar de faixa',async()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine),asset={id:'native-list',name:'YT investigação',kind:'music',provider:'youtube',playlistId:'PLabcdefghijk',shuffle:true};
+  await engine.playMusic(asset,{youtubeVideoId:'dQw4w9WgXcQ',fadeIn:0,fadeOut:0});engine.handleYouTubeState(1);engine.handleYouTubeState(1);
+  assert.deepEqual(fake.calls.filter(c=>c[0]==='shuffle'),[['shuffle',true]]);assert.ok(fake.calls.some(c=>c[0]==='loop'&&c[1]===true));
+  await engine.nextMusic();assert.deepEqual(fake.calls.filter(c=>c[0]==='playAt').at(-1),['playAt',1]);assert.equal(fake.calls.filter(c=>c[0]==='shuffle').length,1);
+  engine.setYouTubeShuffle(asset,false);assert.deepEqual(fake.calls.filter(c=>c[0]==='shuffle').at(-1),['shuffle',false]);
+});
+test('capa do YouTube escolhe o ID certo mesmo se a lista do player mudar de ordem',async()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine),asset={id:'native-card',name:'YT',kind:'music',provider:'youtube',playlistId:'PLabcdefghijk',shuffle:true,youtubeTracks:[{videoId:'dQw4w9WgXcQ',title:'A'},{videoId:'abcdefghijk',title:'B'}]};
+  engine.ytLoadedPlaylist=asset.playlistId;fake.setIDs(['abcdefghijk','dQw4w9WgXcQ']);await engine.playMusic(asset,{youtubeIndex:0,youtubeVideoId:'dQw4w9WgXcQ',fadeOut:0});assert.deepEqual(fake.calls.filter(c=>c[0]==='playAt').at(-1),['playAt',1]);
+});
+test('playlist YouTube recém-carregada resolve seleção por ID antes do fade',async()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine),asset={id:'native-new',name:'YT',kind:'music',provider:'youtube',playlistId:'PLabcdefghijk',shuffle:true};
+  await engine.playMusic(asset,{youtubeVideoId:'abcdefghijk',fadeIn:0,fadeOut:0});engine.handleYouTubeState(1);assert.deepEqual(fake.calls.filter(c=>c[0]==='playAt').at(-1),['playAt',1]);assert.equal(engine.ytLevel,0);assert.ok(engine.ytPendingFade);
+  fake.setData({video_id:'abcdefghijk',title:'Escolhida'});engine.handleYouTubeState(1);assert.equal(engine.ytLevel,1);assert.equal(engine.ytPendingFade,null);assert.ok(fake.calls.some(c=>c[0]==='shuffle'&&c[1]));
+});
+test('restaurar um áudio excluído funciona após interromper a sessão para importar backup',async()=>{
+  const {engine,state}=fixture(),asset={id:'restored-audio',name:'Restaurado',kind:'music',provider:'local',src:'assets/audio/bell-demo.wav'};state.audioAssets.push(asset);
+  await engine.removeAsset(asset.id);removeAudioAsset(state,asset.id);engine.stop();state.audioAssets.push(asset);await engine.playMusic(asset,{fadeIn:0});assert.equal(engine.musicAsset.id,asset.id);assert.equal(engine.music.audio.paused,false);
 });
