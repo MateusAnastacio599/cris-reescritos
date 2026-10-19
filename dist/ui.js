@@ -1,11 +1,15 @@
 import {escapeHTML} from './markdown.js';
 import {icon} from './icons.js';
+import {watchSearchSelects} from './search-select.js';
+export {configureAudioPickers} from './search-select.js';
+let stopPickerWatch;
 export {$, $$};
 export const esc=escapeHTML;
 function $(q,root=document){return root.querySelector(q);}
 function $$(q,root=document){return [...root.querySelectorAll(q)];}
 export function toast(message,error=false){const t=document.createElement('div');t.className='toast'+(error?' error':'');t.innerHTML=icon(error?'info':'check')+`<span>${esc(message)}</span>`;$('#toastRegion').append(t);setTimeout(()=>t.remove(),error?6500:3500);}
 export function openForm({title,body,submit='Salvar',onSubmit,onReady,wide=false,footer=''}) {
+  stopPickerWatch?.();
   const modal=$('#appDialog');if(modal.open)modal.close();modal.classList.toggle('wide',wide);
   $('#dialogTitle').textContent=title;$('#dialogBody').innerHTML=body;$('#dialogError').hidden=true;
   $('#dialogFooter').innerHTML=footer||`<button type="button" class="btn subtle" data-modal-cancel>${onSubmit?'Cancelar':'Fechar'}</button>${onSubmit?`<button type="submit" class="btn primary" id="modalSubmit">${esc(submit)}</button>`:''}`;
@@ -17,7 +21,7 @@ export function openForm({title,body,submit='Salvar',onSubmit,onReady,wide=false
     catch(error){$('#dialogError').textContent=error.message;$('#dialogError').hidden=false;}
     finally{if(button)button.disabled=false;}
   };
-  modal.showModal();onReady?.($('#dialogBody'));
+  modal.showModal();onReady?.($('#dialogBody'));stopPickerWatch=watchSearchSelects($('#dialogBody'));modal.onclose=()=>{if(!modal.open)stopPickerWatch?.();};
 }
 export function confirmAction(title,message,action,submit='Excluir') {openForm({title,body:`<p class="dialog-description">${esc(message)}</p>`,submit,onSubmit:action});}
 export function field(label,name,value='',attrs=''){return `<label class="field"><span>${esc(label)}</span><input name="${esc(name)}" value="${esc(value)}" ${attrs}></label>`;}

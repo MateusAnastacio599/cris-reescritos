@@ -4,6 +4,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import vm from 'node:vm';
 import {originalCampaign} from '../dist/campaign-data.js';
+import {updatedScenes,applySceneTextUpdate,SCENE_TEXT_REVISION} from '../dist/scene-updates.js';
 import {initialState,loadState,saveState,validateState,exportWorkspace,makePage,STORAGE_KEY} from '../dist/storage.js';
 import {parseBlocks,blocksToMarkdown,inlineHTML,parseYouTube,renderReadBlocks} from '../dist/markdown.js';
 import {AudioEngine} from '../dist/audio-engine.js';
@@ -17,8 +18,8 @@ globalThis.window={};
 const fakePanels=new Map();globalThis.document={getElementById:id=>{if(!fakePanels.has(id))fakePanels.set(id,{hidden:true});return fakePanels.get(id);}};
 globalThis.CustomEvent=class extends Event{constructor(type,opts){super(type);this.detail=opts?.detail;}};
 class Param{constructor(){this.value=0;this.transitions=[];}setTargetAtTime(v){this.value=v;}cancelAndHoldAtTime(){}cancelScheduledValues(){}setValueAtTime(v){this.value=v;}linearRampToValueAtTime(v,t){this.value=v;this.transitions.push({value:v,time:t});}}
-class Node{constructor(){this.gain=new Param();}connect(){}disconnect(){}}
-class Context{constructor(){this.currentTime=0;this.state='running';this.destination={};}createGain(){return new Node();}createMediaElementSource(){return new Node();}async resume(){this.state='running';}}
+class Node{constructor(){this.gain=new Param();this.outputs=[];}connect(target){this.outputs.push(target);}disconnect(){this.disconnected=true;}}
+class Context{constructor(){this.currentTime=0;this.state='running';this.destination={};}createGain(){return new Node();}createMediaElementSource(){return new Node();}createDynamicsCompressor(){const node=new Node();for(const key of ['threshold','knee','ratio','attack','release'])node[key]=new Param();return node;}async resume(){this.state='running';}}
 const created=[];
 class AudioMock{
   constructor(src){this.src=src;this.paused=true;this.currentTime=0;created.push(this);}
@@ -46,7 +47,7 @@ test('todos os arquivos de áudio são idênticos aos seis originais',()=>{
 test('edições vazias e navegação sobrevivem ao salvamento',()=>{
   const state=initialState();state.campaigns[0].pages[0].scenes[0].markdown='';const p=makePage('Investigação');state.campaigns[0].pages.push(p);state.ui.pageId=p.id;saveState(state);const loaded=loadState();assert.equal(loaded.campaigns[0].pages[0].scenes[0].markdown,'');assert.equal(loaded.ui.pageId,p.id);assert.equal(loaded.campaigns[0].pages.length,2);
 });
-test('migra edição antiga, incluindo texto apagado',()=>{localStorage.setItem('cris-director:sao-martinho:quarto:markdown','');assert.equal(initialState().campaigns[0].pages[0].scenes[0].markdown,'');});
+test('atualização guarda também uma versão legada com texto apagado',()=>{localStorage.setItem('cris-director:sao-martinho:quarto:markdown','');const scene=initialState().campaigns[0].pages[0].scenes[0];assert.equal(scene.markdown,updatedScenes.quarto);assert.equal(scene.textHistory.at(-1).markdown,'');});
 test('backup preserva as três cenas, as cues e as playlists',async()=>{const state=initialState();const exported=JSON.parse(await (await exportWorkspace(state)).text());assert.equal(exported.application,'CRIS Campaign Director');assert.deepEqual(validateState(exported.state),state);assert.equal(exported.state.campaigns[0].pages[0].scenes[2].cues[0].actions.length,4);});
 test('backups inválidos são rejeitados antes de alterar o armazenamento',()=>{
   const state=initialState();saveState(state);const before=localStorage.getItem(STORAGE_KEY);state.campaigns[0].pages[0].scenes=[];assert.throws(()=>validateState(state),/Página inválida/);assert.equal(localStorage.getItem(STORAGE_KEY),before);
@@ -219,14 +220,14 @@ test('cena e cue respeitam o modo aleatório ao escolher a primeira faixa',async
   const starts=[];engine.playPlaylist=async(p,index)=>starts.push([p.id,index]);scene.music={mode:'play',playlistId:playlist.id,index:2};await engine.startScene(scene,location);
   engine.fireCue({id:'random-cue',name:'Nova trilha',actions:[{type:'music-play',playlistId:playlist.id,index:1,delay:0}]});assert.deepEqual(starts,[[playlist.id,null],[playlist.id,null]]);
 });
-test('excluir um áudio limpa as referências sem alterar o roteiro nem os originais',()=>{
+test('excluir um áudio limpa as referências e permite retirar demonstrações sem alterar o roteiro',()=>{
   const state=initialState(),scene=state.campaigns[0].pages[0].scenes[0],text=scene.markdown;
   state.audioAssets.push({id:'custom',provider:'upload',kind:'music',name:'Música da investigação'});state.playlists[0].assetIds.push('custom');
   scene.layers.push({id:'custom-layer',name:'Ambiente',assetId:'custom',volume:.5});scene.triggers.push({id:'custom-trigger',assetId:'custom'});scene.timeline.push({at:20,label:'Trilha',action:'oneshot',assetId:'custom'});scene.music={mode:'play',assetId:'custom'};
   scene.cues.push({id:'custom-cue',name:'Cue',actions:[{type:'music-play',assetId:'custom',delay:0},{type:'message',message:'Continue',delay:0}]});
   state.ambiences[0].layers.push({id:'custom-ambient',assetId:'custom',name:'Fundo',mode:'loop',volume:.3});state.ambiences[0].pads.push('custom');
   assert.equal(removeAudioAsset(state,'custom'),true);assert.equal(JSON.stringify(state).includes('"custom"'),false);assert.equal(scene.markdown,text);assert.equal(scene.cues.at(-1).actions[0].type,'message');assert.equal(scene.music.mode,'keep');
-  assert.equal(state.audioAssets.length,6);assert.throws(()=>removeAudioAsset(state,'asset-rain'),/originais/);validateState(state);
+  assert.equal(state.audioAssets.length,6);assert.equal(removeAudioAsset(state,'asset-rain'),true);assert.equal(state.audioAssets.length,5);assert.ok(!scene.layers.some(l=>l.assetId==='asset-rain'));validateState(state);
 });
 test('excluir a música em execução mantém chuva, cena e outros efeitos tocando',async()=>{
   const {engine,state,scene,location}=fixture(),asset={id:'custom-playing',name:'Trilha',kind:'music',provider:'local',src:'assets/audio/bell-demo.wav'};state.audioAssets.push(asset);
@@ -358,4 +359,34 @@ test('editar camadas após escolher música manual preserva a escolha do mestre'
 test('excluir playlist remove seus vínculos e encerra só a fila correspondente',async()=>{
   const {engine,state,preset,playlist}=ambiencePlaylistFixture();state.ambiences.push(preset);preset.layers.push({id:'rain-stays',assetId:'asset-rain',name:'Chuva',mode:'loop',volume:.2});await engine.ambiences.apply(preset,{fade:0});const bus=engine.ambiences,sequence=bus.sequences.get('voices'),rain=bus.tracks.get('rain-stays');
   removePlaylist(state,playlist.id);bus.removePlaylist(playlist.id);assert.equal(sequence.closed,true);assert.equal(bus.sequences.size,0);assert.strictEqual(bus.tracks.get('rain-stays'),rain);assert.equal(rain.audio.paused,false);assert.ok(!preset.layers.some(l=>l.playlistId===playlist.id));assert.equal(state.audioAssets.length,6);validateState(state);
+});
+
+test('amplificação usa ganho próprio e não altera o volume, o fade ou o arquivo',async()=>{
+  const {engine,state}=fixture(),asset=state.audioAssets.find(a=>a.id==='asset-bell'),src=asset.src;asset.boost=3;await engine.playMusic(asset,{volume:.4,fadeIn:.3});const track=engine.music;
+  assert.equal(track.boostGain.gain.value,3);assert.equal(track.volume,.4);assert.strictEqual(track.source.outputs[0],track.boostGain);assert.strictEqual(track.boostGain.outputs[0],track.gain);assert.equal(track.gain.gain.transitions.at(-1).value,.4);assert.equal(asset.src,src);
+  engine.ramp(track,.1,2);assert.equal(track.boostGain.gain.value,3);assert.equal(track.volume,.1);assert.equal(engine.master.gain.value,state.settings.master);assert.ok(engine.peakControl);assert.equal(engine.peakControl.ratio.value,20);assert.strictEqual(engine.master.outputs[0],engine.peakControl);
+});
+test('alterar amplificação aplica a todas as instâncias do arquivo sem reiniciar sons',async()=>{
+  const {engine,state}=fixture(),asset=engine.asset('asset-bell');await engine.playMusic(asset,{fadeIn:0});const music=engine.music,first=await engine.oneShot(asset),second=await engine.oneShot(asset),other=await engine.oneShot(engine.asset('asset-door'));engine.retire(first,2);
+  engine.setAssetBoost(asset.id,2.5);assert.equal(state.audioAssets.find(a=>a.id===asset.id).boost,2.5);for(const track of [music,first,second]){assert.equal(track.boostGain.gain.value,2.5);assert.equal(track.audio.paused,false);}assert.equal(other.boostGain.gain.value,1);assert.strictEqual(engine.music,music);assert.equal(engine.setAssetBoost(asset.id,99),4);assert.equal(engine.setAssetBoost(asset.id,-2),1);
+});
+test('playlists de ambiente recebem a amplificação sem perder a fila',async()=>{
+  const {engine,preset}=ambiencePlaylistFixture();await engine.ambiences.apply(preset,{fade:0});const sequence=engine.ambiences.sequences.get('voices'),track=sequence.track,order=sequence.order;engine.setAssetBoost(track.assetId,4);assert.equal(track.boostGain.gain.value,4);assert.strictEqual(sequence.track,track);assert.strictEqual(sequence.order,order);
+});
+test('YouTube permanece no controle oficial sem receber ganho Web Audio',async()=>{
+  const {engine,state}=fixture(),fake=fakeYouTube(engine),asset={id:'youtube-gain',name:'YT',kind:'music',provider:'youtube',videoId:'dQw4w9WgXcQ'};state.audioAssets.push(asset);await engine.playMusic(asset,{fadeIn:0});assert.equal(engine.setAssetBoost(asset.id,4),1);assert.equal(asset.boost,undefined);engine.ytLevel=1;engine.applyYTVolume();assert.ok(fake.calls.filter(c=>c[0]==='volume').every(c=>c[1]<=100));
+});
+test('backup e carregamento mantêm amplificação e rejeitam valores fora da faixa',async()=>{
+  const state=initialState();state.audioAssets[0].boost=3.5;saveState(state);assert.equal(loadState().audioAssets[0].boost,3.5);const data=JSON.parse(await (await exportWorkspace(state)).text());assert.equal(validateState(data.state).audioAssets[0].boost,3.5);data.state.audioAssets[0].boost=4.1;assert.throws(()=>validateState(data.state),/Amplificação/);
+});
+test('atualização aplica os três textos uma vez preservando toda a biblioteca e direção',()=>{
+  const state=initialState();delete state.sceneTextRevision;for(const scene of state.campaigns[0].pages[0].scenes){scene.markdown='Minha versão '+scene.id;delete scene.textHistory;scene.music={mode:'play',playlistId:'user-list'};}
+  state.audioAssets.push({id:'user-upload',name:'Chuva enviada',kind:'ambience',provider:'upload',filename:'chuva.mp3',boost:2});state.playlists.push({id:'user-list',name:'Minhas conversas',assetIds:['user-upload'],shuffle:true});state.ambiences.push({id:'user-ambience',name:'Café',layers:[{id:'user-layer',name:'Conversas',playlistId:'user-list',mode:'loop',volume:.3}],pads:[]});
+  const assets=structuredClone(state.audioAssets),playlists=structuredClone(state.playlists),ambiences=structuredClone(state.ambiences),sounds=state.campaigns[0].pages[0].scenes.map(s=>({layers:s.layers,triggers:s.triggers,timeline:s.timeline,cues:s.cues,music:s.music}));saveState(state);const before=localStorage.getItem(STORAGE_KEY),loaded=loadState();
+  assert.deepEqual(loaded.audioAssets,assets);assert.deepEqual(loaded.playlists,playlists);assert.deepEqual(loaded.ambiences,ambiences);assert.equal(localStorage.getItem(STORAGE_KEY+':before-scene-update'),before);
+  loaded.campaigns[0].pages[0].scenes.forEach((scene,i)=>{assert.equal(scene.markdown,updatedScenes[scene.id]);assert.equal(scene.textHistory[0].markdown,'Minha versão '+scene.id);assert.deepEqual({layers:scene.layers,triggers:scene.triggers,timeline:scene.timeline,cues:scene.cues,music:scene.music},sounds[i]);});loaded.campaigns[0].pages[0].scenes[0].markdown='Editei depois da atualização';saveState(loaded);assert.equal(loadState().campaigns[0].pages[0].scenes[0].markdown,'Editei depois da atualização');
+});
+test('limpar demonstrações remove referências antigas por src e mantém áudios enviados',()=>{
+  const state=initialState(),scene=state.campaigns[0].pages[0].scenes[0],text=scene.markdown;state.audioAssets.push({id:'meu-upload',name:'Minha chuva',kind:'ambience',provider:'upload',filename:'chuva.wav'});scene.layers.push({id:'minha-chuva',assetId:'meu-upload',volume:.5,name:'Minha chuva'});state.playlists.push({id:'minha-playlist',name:'Minha lista',assetIds:['meu-upload'],shuffle:true});
+  for(const asset of [...state.audioAssets].filter(a=>a.builtin))removeAudioAsset(state,asset.id);assert.deepEqual(state.audioAssets.map(a=>a.id),['meu-upload']);assert.equal(scene.markdown,text);assert.ok(scene.layers.some(l=>l.assetId==='meu-upload'));assert.ok(!scene.triggers.some(t=>t.src?.endsWith('bell-demo.wav')));assert.deepEqual(state.playlists.at(-1).assetIds,['meu-upload']);validateState(state);
 });

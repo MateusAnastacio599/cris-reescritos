@@ -23,7 +23,8 @@ export class AudioEngine extends EventTarget {
     if(!this.context) {
       const Context=window.AudioContext||window.webkitAudioContext;
       if(!Context)throw new Error('Este navegador não oferece o motor de áudio necessário.');
-      this.context=new Context();this.master=this.context.createGain();this.master.connect(this.context.destination);
+      this.context=new Context();this.master=this.context.createGain();
+      if(this.context.createDynamicsCompressor){this.peakControl=this.context.createDynamicsCompressor();for(const [key,value] of Object.entries({threshold:-1,knee:1,ratio:20,attack:.003,release:.15}))this.peakControl[key].value=value;this.master.connect(this.peakControl);this.peakControl.connect(this.context.destination);}else this.master.connect(this.context.destination);
       this.groups={};for(const key of ['ambience','sfx','music']){const gain=this.context.createGain();gain.connect(this.master);this.groups[key]=gain;}
       this.applyMixer();
     }
@@ -35,6 +36,12 @@ export class AudioEngine extends EventTarget {
     this.applyYTVolume();this.emit();
   }
   setMix(key,value){if(!['master','music','ambience','sfx'].includes(key))return;this.getState().settings[key]=clamp(value);this.applyMixer();}
+  setAssetBoost(assetId,value){
+    const asset=this.asset(assetId);if(!asset||asset.provider==='youtube')return 1;
+    asset.boost=clamp(value,1,4);const tracks=new Set([...this.tracks.values(),...this.effects,...this.retiring,...this.ambiences.tracks.values(),...(this.music?[this.music]:[])]);
+    for(const track of tracks)if(track.assetId===assetId&&!track.disposed&&track.boostGain){track.boost=asset.boost;track.boostGain.gain.setTargetAtTime(asset.boost,this.context.currentTime,.025);}
+    this.emit();return asset.boost;
+  }
   asset(id,src) {const found=this.getState().audioAssets.find(a=>a.id===id||Boolean(src)&&a.src===src);return found || (src?{id:src,name:'Efeito',provider:'local',src,kind:'sfx'}:null);}
   later(callback,seconds,epoch=this.epoch){const timer=setTimeout(()=>{this.delays.delete(timer);if(this.epoch===epoch)callback();},Math.max(0,seconds)*1000);this.delays.add(timer);return timer;}
   clearDelays(){for(const timer of this.delays)clearTimeout(timer);this.delays.clear();}
@@ -47,7 +54,7 @@ export class AudioEngine extends EventTarget {
   dispose(track) {
     if(!track||track.disposed)return;track.disposed=true;track.audio.pause();track.audio.removeAttribute('src');track.audio.load();
     clearTimeout(track.retireTimer);
-    try{track.source.disconnect();track.gain.disconnect();}catch{}
+    try{track.source.disconnect();track.boostGain?.disconnect();track.gain.disconnect();}catch{}
     this.effects.delete(track);this.retiring.delete(track);
   }
   retire(track,seconds=this.getState().settings.crossfade) {
@@ -60,9 +67,9 @@ export class AudioEngine extends EventTarget {
     const cached=preparedAudio||(group==='music'&&this.preloadedMusic?.assetId===asset.id?this.preloadedMusic.audio:null);
     const audio=cached||new Audio(resolved.url||resolved.src);if(cached&&cached===this.preloadedMusic?.audio)this.preloadedMusic=null;audio.preload='auto';audio.loop=loop;
     if(startSeconds>0){try{audio.currentTime=startSeconds;}catch{}}
-    const source=this.context.createMediaElementSource(audio),gain=this.context.createGain();gain.gain.value=fade?0:clamp(volume);
-    source.connect(gain);gain.connect(this.groups[group]||this.groups.sfx);
-    const track={audio,source,gain,assetId:asset.id,name:asset.name,volume:clamp(volume),group,loop,disposed:false};
+    const source=this.context.createMediaElementSource(audio),gain=this.context.createGain(),boostGain=this.context.createGain(),boost=clamp(asset.boost??1,1,4);gain.gain.value=fade?0:clamp(volume);boostGain.gain.value=boost;
+    source.connect(boostGain);boostGain.connect(gain);gain.connect(this.groups[group]||this.groups.sfx);
+    const track={audio,source,gain,boostGain,boost,assetId:asset.id,name:asset.name,volume:clamp(volume),group,loop,disposed:false};
     audio.onerror=()=>{if(!track.disposed){this.error(`Não foi possível reproduzir “${asset.name}”.`);this.dispose(track);this.emit();}};
     try{await audio.play();}catch(error){this.dispose(track);throw new Error(error.name==='NotAllowedError'?'Toque novamente em reproduzir para liberar o áudio no navegador.':`Não foi possível reproduzir “${asset.name}”.`);}
     if(epoch!==this.epoch||this.removedAssets.has(asset.id)){this.dispose(track);return null;}
@@ -173,7 +180,7 @@ export class AudioEngine extends EventTarget {
     for(const [id,job] of bus.jobs)if(job.layer.assetId===assetId){clearTimeout(job.timer);bus.jobs.delete(id);}
     if(bus.active){bus.active.layers=bus.active.layers.filter(l=>l.assetId!==assetId);bus.active.pads=bus.active.pads.filter(id=>id!==assetId);if(bus.active.music?.assetId===assetId)delete bus.active.music;}
     bus.refreshSources();
-    if(this.active){const scene=this.active.scene,fired=new Set(scene.timeline.filter((_,i)=>this.fired.has(i)));removeSceneAudio(scene,assetId);this.fired=new Set(scene.timeline.flatMap((event,i)=>fired.has(event)?[i]:[]));}
+    if(this.active){const scene=this.active.scene,fired=new Set(scene.timeline.filter((_,i)=>this.fired.has(i)));removeSceneAudio(scene,assetId,this.asset(assetId)?.src);this.fired=new Set(scene.timeline.flatMap((event,i)=>fired.has(event)?[i]:[]));}
     if(this.preloadedMusic?.assetId===assetId)this.clearPreload();
     this.emit();
   }

@@ -79,11 +79,21 @@ Exemplo de uso: criar na biblioteca a playlist “Conversas do café” com quat
 
 O módulo `ambient-playlist.js` mantém a reprodução por camada separada do motor musical. O formato continua `schemaVersion: 3`: a camada passa a aceitar `playlistId` em lugar de `assetId`, com `shuffle` e `crossfade` opcionais; o ambiente pode conter `music`. Backups anteriores continuam válidos. A exclusão de áudio ou playlist também limpa os vínculos nos ambientes e cancela as filas correspondentes.
 
+## Atualização 3.4 — roteiros, editor e biblioteca
+
+- Os textos de **Quarto**, **Corredor** e **Escritório** passam a ser os enviados em 19/10/2026. A atualização automática é única, identifica a campanha/página/cenas pelos IDs e altera somente `markdown`. Cada texto anterior fica em `scene.textHistory`, acessível em **Página e cena → Versões anteriores do roteiro**. Uma cópia do estado anterior também é guardada no navegador antes da migração. Arquivos enviados, playlists, ambientes, cues, camadas e timeline são mantidos.
+- Editor de blocos com tipografia consistente entre edição e leitura, tabelas editáveis, listas numeradas, menu `/` pesquisável, barra de formatação da seleção e desfazer/refazer. Enter divide o texto no cursor; Backspace junta parágrafos e sai de blocos de lista/título. Shift+Enter preserva quebras dentro do bloco. Tabelas têm controles de linha/coluna; Tab navega pelas células e expande a última linha. Colagem HTML, Markdown e de planilhas passa por conversão de estrutura e formatação; scripts e outros elementos ativos não são inseridos. As cenas continuam nas abas próprias.
+- **Editar/criar playlist:** busca por nome, arquivo e tags, filtros por tipo, seleção de múltiplas faixas com checkboxes, adição dos resultados e ordenação separada da seleção. Os seletores de fontes em cenas, cues e ambientes também têm busca, mantendo seus valores/formulários originais.
+- Os demos passam a ser excluíveis individualmente ou por **Biblioteca → Remover demos**, com confirmação. A limpeza remove referências antigas por ID e, quando não há ID, pelo caminho de áudio. Textos e arquivos enviados são preservados; os WAVs do protótipo seguem disponíveis no código de referência.
+- **Biblioteca → Editar áudio → Amplificação:** de 100% a 400% por arquivo. O ganho é separado do volume/fade da instância, fica salvo em `audioAsset.boost` e pode ser aplicado durante a reprodução sem reiniciar a faixa. Há controle de picos na saída Web Audio; amplificações altas ainda podem distorcer. O arquivo não é regravado. YouTube permanece no player oficial, cujo volume é de 0 a 100; o ganho extra atende arquivos locais/enviados.
+
+Novos módulos: `scene-updates.js` (textos e migração), `editor-model.js` (operações/histórico), `editor-clipboard.js` (colagem), `audio-search.js` / `search-select.js` (seleção com busca) e `editor-tools.css` (edição, tabelas e novos controles). O formato de backup permanece V3.
+
 ## Verificação
 
 ```sh
 node scripts/check.mjs
-node --test tests/director.test.js
+node --test tests/*.test.js
 ```
 
 Os testes verificam preservação integral das cenas e hashes dos WAVs, persistência, backup, renderização/links, URLs do YouTube, independência da navegação, crossfade, timeline/pausa, mixer e cancelamento de eventos. O AudioEngine é exercitado com uma interface de mídia simulada; isso não confirma saída sonora real, codecs ou autoplay em um aparelho físico.

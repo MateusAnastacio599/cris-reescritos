@@ -1,4 +1,5 @@
 import { originalCampaign } from './campaign-data.js';
+import {applySceneTextUpdate} from './scene-updates.js';
 
 export const STORAGE_KEY = 'cris-campaign-director:v3';
 export const uid = (prefix = 'id') => `${prefix}-${crypto.randomUUID()}`;
@@ -37,13 +38,13 @@ export function initialState() {
       {type:'fade',layerId:'room',to:.035,duration:2,delay:0}
     ]}] : [];
   }
-  return {
+  const state={
     schemaVersion:3,campaigns:[campaign],
     audioAssets:seedFiles.map(([id,name,kind,tags,file])=>({id:`asset-${id}`,name,kind,tags,provider:'local',src:`assets/audio/${file}`,builtin:true})),
     playlists:[{id:'playlist-sao-martinho',name:'Casa São Martinho',assetIds:['asset-rain','asset-room','asset-bell','asset-thunder','asset-door','asset-riser']}],
     ambiences:defaultAmbiences(),settings:initialDefaults(),
     ui:{campaignId:campaign.id,pageId:campaign.pages[0].id,sceneId:'quarto',view:'document',sessionMode:false}
-  };
+  };applySceneTextUpdate(state);return state;
 }
 export function validateState(s) {
   if (!s || s.schemaVersion !== 3 || !Array.isArray(s.campaigns) || !s.campaigns.length || !Array.isArray(s.audioAssets) || !Array.isArray(s.playlists)) throw new Error('Este arquivo não é um backup CRIS Director V3.');
@@ -61,6 +62,7 @@ export function validateState(s) {
         for(const l of x.layers) if(typeof l.id!=='string'||typeof l.name!=='string'||!Number.isFinite(l.volume)||l.volume<0||l.volume>1) throw new Error('Camada de áudio inválida.');
         for(const t of x.timeline) if(!Number.isFinite(t.at)||t.at<0||!['oneshot','fade','cue'].includes(t.action)) throw new Error('Evento de timeline inválido.');
         if(x.cues!==undefined&&!Array.isArray(x.cues)) throw new Error('Lista de cues inválida.');
+        if(x.textHistory!==undefined&&(!Array.isArray(x.textHistory)||x.textHistory.some(v=>!v||typeof v.markdown!=='string'||typeof v.at!=='string'||typeof v.title!=='string')))throw new Error('Histórico do roteiro inválido.');
         for(const cue of x.cues||[]) {
           if(typeof cue.id!=='string'||typeof cue.name!=='string'||!Array.isArray(cue.actions)) throw new Error('Cue inválida.');
           for(const a of cue.actions) if(!CUE_ACTIONS.includes(a.type)||!Number.isFinite(a.delay)||a.delay<0) throw new Error('Ação de cue inválida.');
@@ -75,6 +77,7 @@ export function validateState(s) {
     if(a.youtubeTracks!==undefined&&(!Array.isArray(a.youtubeTracks)||a.youtubeTracks.some(t=>!t||!/^[\w-]{11}$/.test(t.videoId||'')||typeof t.title!=='string'||t.alias!==undefined&&typeof t.alias!=='string')))throw new Error('Lista de vídeos inválida.');
     if(a.provider==='youtube'&&!/^[\w-]{11}$/.test(a.videoId||'')&&!/^[\w-]{10,}$/.test(a.playlistId||'')) throw new Error('Link do YouTube inválido.');
     if(a.shuffle!==undefined&&typeof a.shuffle!=='boolean')throw new Error('Modo de reprodução inválido.');
+    if(a.boost!==undefined&&(!Number.isFinite(a.boost)||a.boost<1||a.boost>4))throw new Error('Amplificação de áudio inválida.');
   }
   for(const p of s.playlists) {identity(p);if(typeof p.name!=='string'||!Array.isArray(p.assetIds)||p.assetIds.some(id=>typeof id!=='string')||p.shuffle!==undefined&&typeof p.shuffle!=='boolean') throw new Error('Playlist inválida.');}
   if(s.ambiences===undefined)s.ambiences=defaultAmbiences();
@@ -98,7 +101,7 @@ export function validateState(s) {
 }
 function initialDefaults(){return {master:.8,music:.7,ambience:.85,sfx:.85,crossfade:1.8,musicFadeIn:2.5,musicFadeOut:2.5,autoAdvance:true,youtubeCompact:true};}
 export function loadState() {
-  try {const raw=localStorage.getItem(STORAGE_KEY);if(raw)return validateState(JSON.parse(raw));} catch(error){console.warn('CRIS: dados salvos precisam de recuperação.',error);throw error;}
+  try {const raw=localStorage.getItem(STORAGE_KEY);if(raw){const state=validateState(JSON.parse(raw));if(applySceneTextUpdate(state)){localStorage.setItem(STORAGE_KEY+':before-scene-update',raw);saveState(state);}return state;}} catch(error){console.warn('CRIS: dados salvos precisam de recuperação.',error);throw error;}
   return initialState();
 }
 export function saveState(state) {localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
