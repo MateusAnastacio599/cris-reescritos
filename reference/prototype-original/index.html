@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#09070f" />
+  <title>C.R.I.S. // Diretor de Campanha</title>
+  <link rel="stylesheet" href="director.css" />
+</head>
+<body>
+  <div class="crt-noise" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      <div><strong>C.R.I.S.</strong><small>DIRETOR DE CAMPANHA // PROTÓTIPO</small></div>
+    </div>
+    <div class="top-actions">
+      <span class="system-ok"><i></i> ÁUDIO PRONTO</span>
+      <button id="sessionModeBtn" class="ghost-btn">MODO SESSÃO</button>
+      <button id="editBtn" class="primary-btn">EDITAR PÁGINA</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="campaign-sidebar">
+      <div class="sidebar-title"><span>REESCRITOS</span><b>CAMPANHA</b></div>
+      <nav class="campaign-tree">
+        <button class="tree-group open"><span>▾</span> SESSÃO 01</button>
+        <div class="tree-children">
+          <button class="tree-page active" data-page="sao-martinho"><span>01</span> Casa São Martinho</button>
+          <button class="tree-page disabled"><span>02</span> Despertar em Paris</button>
+          <button class="tree-page disabled"><span>03</span> Mansão Noir</button>
+          <button class="tree-page disabled"><span>04</span> O Primeiro Ato</button>
+        </div>
+        <button class="tree-group"><span>›</span> PERSONAGENS</button>
+        <button class="tree-group"><span>›</span> INVESTIGAÇÃO</button>
+        <button class="tree-group"><span>›</span> LOCAIS</button>
+        <button class="tree-group"><span>›</span> BANCO DO MESTRE</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <span>ARMAZENAMENTO</span>
+        <strong>LOCAL // AUTOSAVE</strong>
+        <small>Protótipo seguro: não altera seu CRIS principal.</small>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <div class="page-head">
+        <div>
+          <div class="crumb">SESSÃO 01 / MEMÓRIA DE ÍRIS</div>
+          <h1>CASA SÃO MARTINHO</h1>
+          <div class="tags"><span>CANON</span><span>PRÓLOGO</span><span>MASTER ONLY</span></div>
+        </div>
+        <div class="page-meta"><span>CENA <b id="sceneCounter">01 / 03</b></span><span>STATUS <b id="sceneStatus">PARADA</b></span></div>
+      </div>
+
+      <div id="sceneTabs" class="scene-tabs"></div>
+
+      <div class="stage-grid">
+        <article class="document-panel">
+          <div class="doc-toolbar">
+            <div><span class="eyebrow">ROTEIRO DO MESTRE</span><strong id="sceneTitle">O QUARTO</strong></div>
+            <div class="doc-actions"><button id="prevScene">←</button><button id="nextScene">→</button></div>
+          </div>
+          <div id="markdownView" class="markdown-view"></div>
+        </article>
+
+        <aside class="director-panel">
+          <div class="director-head"><span>SCENE DIRECTOR</span><b id="sceneTimer">00:00</b></div>
+          <button id="startScene" class="launch-btn"><span>▶</span><b>INICIAR CENA</b><small>SPACE</small></button>
+
+          <section class="director-section">
+            <div class="section-label"><span>CAMADAS ATIVAS</span><button id="stopAllMini">PARAR</button></div>
+            <div id="layerList" class="layer-list"></div>
+          </section>
+
+          <section class="director-section">
+            <div class="section-label"><span>PRÓXIMOS EVENTOS</span><small id="timelineState">AGUARDANDO</small></div>
+            <div id="timelineList" class="timeline-list"></div>
+          </section>
+
+          <section class="director-section">
+            <div class="section-label"><span>TRIGGERS MANUAIS</span><small>HOTKEYS</small></div>
+            <div id="triggerGrid" class="trigger-grid"></div>
+          </section>
+
+          <button id="silenceBtn" class="silence-btn">SILÊNCIO TOTAL <kbd>S</kbd></button>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="audio-dock">
+    <div class="dock-now">
+      <span class="pulse"></span>
+      <div><small>CENA ATUAL</small><strong id="dockScene">Casa São Martinho // O Quarto</strong></div>
+    </div>
+    <div class="dock-meters" id="dockMeters"></div>
+    <div class="dock-controls">
+      <button id="dockPlay">▶</button>
+      <button id="dockBell">🔔</button>
+      <button id="dockSilence">SILÊNCIO</button>
+    </div>
+  </footer>
+
+  <dialog id="editorModal" class="editor-modal">
+    <form method="dialog" class="editor-card">
+      <div class="editor-head"><div><span>EDITOR DA PÁGINA</span><strong id="editorSceneName">O QUARTO</strong></div><button value="cancel" class="close-btn">×</button></div>
+      <div class="editor-grid">
+        <div>
+          <label for="markdownEditor">MARKDOWN</label>
+          <textarea id="markdownEditor" spellcheck="false"></textarea>
+        </div>
+        <div>
+          <label>CONFIGURAÇÃO DA CENA</label>
+          <div class="config-card">
+            <p><b>Música:</b> preparada por URL/timestamp na arquitetura.</p>
+            <p><b>Ambiências:</b> loops locais independentes.</p>
+            <p><b>Cues:</b> timeline automática + triggers manuais.</p>
+            <p><b>Persistência:</b> alterações de texto ficam no localStorage.</p>
+          </div>
+          <label for="youtubeUrl">YOUTUBE // MÚSICA (OPCIONAL)</label>
+          <input id="youtubeUrl" placeholder="https://youtube.com/watch?v=..." />
+          <div class="inline-fields"><div><label for="youtubeStart">INÍCIO (s)</label><input id="youtubeStart" type="number" min="0" value="0" /></div><div><label for="youtubeVolume">VOLUME %</label><input id="youtubeVolume" type="number" min="0" max="100" value="30" /></div></div>
+          <div id="youtubeHost" class="youtube-host"><span>PLAYER YOUTUBE SERÁ CARREGADO AQUI</span></div>
+        </div>
+      </div>
+      <div class="editor-footer"><button value="cancel" class="ghost-btn">CANCELAR</button><button id="saveEdit" value="default" class="primary-btn">SALVAR</button></div>
+    </form>
+  </dialog>
+
+  <script src="director.js"></script>
+</body>
+</html>
