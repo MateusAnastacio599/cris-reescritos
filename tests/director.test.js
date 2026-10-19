@@ -7,10 +7,12 @@ import {originalCampaign} from '../dist/campaign-data.js';
 import {initialState,loadState,saveState,validateState,exportWorkspace,makePage,STORAGE_KEY} from '../dist/storage.js';
 import {parseBlocks,blocksToMarkdown,inlineHTML,parseYouTube,renderReadBlocks} from '../dist/markdown.js';
 import {AudioEngine} from '../dist/audio-engine.js';
+import {VolumeEnvelope} from '../dist/volume-envelope.js';
 
 const memory=new Map();
 globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)};
 globalThis.window={};
+const fakePanels=new Map();globalThis.document={getElementById:id=>{if(!fakePanels.has(id))fakePanels.set(id,{hidden:true});return fakePanels.get(id);}};
 globalThis.CustomEvent=class extends Event{constructor(type,opts){super(type);this.detail=opts?.detail;}};
 class Param{constructor(){this.value=0;this.transitions=[];}setTargetAtTime(v){this.value=v;}cancelAndHoldAtTime(){}cancelScheduledValues(){}setValueAtTime(v){this.value=v;}linearRampToValueAtTime(v,t){this.value=v;this.transitions.push({value:v,time:t});}}
 class Node{constructor(){this.gain=new Param();}connect(){}disconnect(){}}
@@ -25,7 +27,7 @@ class AudioMock{
 }
 window.AudioContext=Context;globalThis.Audio=AudioMock;
 const engines=[];
-function fixture(){const state=initialState();state.settings.crossfade=.02;const engine=new AudioEngine(()=>state);engines.push(engine);return {state,engine,scene:state.campaigns[0].pages[0].scenes[0],location:{key:'reescritos/sao-martinho/quarto',campaignId:'reescritos',pageId:'sao-martinho',sceneId:'quarto',campaignTitle:'Reescritos',pageTitle:'Casa São Martinho'}};}
+function fixture(){const state=initialState();state.settings.crossfade=.02;state.settings.musicFadeIn=.02;state.settings.musicFadeOut=.02;const engine=new AudioEngine(()=>state);engines.push(engine);return {state,engine,scene:state.campaigns[0].pages[0].scenes[0],location:{key:'reescritos/sao-martinho/quarto',campaignId:'reescritos',pageId:'sao-martinho',sceneId:'quarto',campaignTitle:'Reescritos',pageTitle:'Casa São Martinho'}};}
 afterEach(()=>{for(const e of engines){e.stop();clearInterval(e.timer);}engines.length=0;created.length=0;memory.clear();});
 
 test('o conteúdo original das três cenas foi preservado integralmente',()=>{
@@ -83,4 +85,91 @@ test('resposta tardia do YouTube não reinicia o áudio depois de Silêncio tota
 });
 test('playlist avança e faz crossfade entre arquivos locais',async()=>{
   const {engine,state}=fixture();state.playlists=[{id:'p',name:'Teste',assetIds:['asset-bell','asset-door']}];await engine.playPlaylist(state.playlists[0]);const first=engine.music;assert.equal(engine.musicAsset.id,'asset-bell');await engine.playPlaylist(state.playlists[0],1);assert.notStrictEqual(engine.music,first);assert.equal(engine.musicAsset.id,'asset-door');assert.ok(engine.retiring.has(first));assert.equal(engine.music.group,'music');
+});
+
+test('migração da V3 adiciona ambientes sem sobrescrever roteiros existentes',()=>{
+  const old=initialState();delete old.ambiences;delete old.settings.musicFadeIn;delete old.settings.musicFadeOut;
+  old.campaigns[0].pages[0].scenes[0].markdown='Minha versão personalizada';
+  const migrated=validateState(old);assert.equal(migrated.ambiences.length,1);assert.equal(migrated.settings.musicFadeIn,2.5);assert.equal(migrated.campaigns[0].pages[0].scenes[0].markdown,'Minha versão personalizada');
+});
+test('resolver por ID não confunde uploads e YouTube sem src',()=>{
+  const {state,engine}=fixture();state.audioAssets.push({id:'yt-first',provider:'youtube',name:'YouTube'},{id:'upload-second',provider:'upload',name:'Arquivo'});
+  assert.equal(engine.asset('upload-second').id,'upload-second');assert.equal(engine.asset('missing'),null);
+});
+test('envelope cancelado resolve sem modificar o volume mais tarde',async()=>{
+  let level=0;const envelope=new VolumeEnvelope(()=>level,v=>{level=v;});const fade=envelope.fade(1,.1);envelope.cancel();assert.equal(await fade,false);const stopped=level;await new Promise(r=>setTimeout(r,45));assert.equal(level,stopped);await envelope.fade(.7,0);assert.equal(level,.7);
+});
+test('cena escolhe música, volume, timestamp e fade próprios',async()=>{
+  const {engine,scene,location}=fixture();scene.music={mode:'play',assetId:'asset-bell',volume:.31,fadeIn:.12,fadeOut:.23,startSeconds:8};await engine.startScene(scene,location);
+  assert.equal(engine.musicAsset.id,'asset-bell');assert.equal(engine.music.volume,.31);assert.equal(engine.music.audio.currentTime,8);assert.equal(engine.musicFadeOptions.fadeIn,.12);assert.equal(engine.musicFadeOptions.fadeOut,.23);
+});
+test('cena que mantém a música preserva a mesma faixa em execução',async()=>{
+  const {engine,scene,location}=fixture();await engine.playMusic(engine.asset('asset-bell'));const music=engine.music;
+  scene.music={mode:'keep'};await engine.startScene(scene,location);assert.strictEqual(engine.music,music);assert.equal(music.audio.paused,false);
+});
+test('cena pode iniciar a partir da segunda faixa de uma playlist',async()=>{
+  const {state,engine,scene,location}=fixture();state.playlists.push({id:'scene-list',name:'Músicas da cena',assetIds:['asset-bell','asset-door']});scene.music={mode:'play',playlistId:'scene-list',index:1,fadeIn:0};await engine.startScene(scene,location);assert.equal(engine.musicAsset.id,'asset-door');assert.equal(engine.playlist.index,1);
+});
+test('encerrar música pela cena preserva um ambiente independente',async()=>{
+  const {state,engine,scene,location}=fixture();await engine.ambiences.apply(state.ambiences[0],{fade:0});await engine.playMusic(engine.asset('asset-bell'));scene.music={mode:'stop',fadeOut:0};await engine.startScene(scene,location);assert.equal(engine.music,null);assert.equal(engine.musicAsset,null);assert.equal(engine.ambiences.tracks.size,2);
+});
+test('ambiente em execução permanece ao iniciar outra cena',async()=>{
+  const {state,engine,scene,location}=fixture();await engine.ambiences.apply(state.ambiences[0],{fade:0});const rain=engine.ambiences.tracks.get('amb-rain');await engine.startScene(scene,location);assert.strictEqual(engine.ambiences.tracks.get('amb-rain'),rain);assert.equal(rain.audio.paused,false);
+});
+test('parar um ambiente inativo preserva os efeitos manuais',async()=>{
+  const {engine}=fixture();const shot=await engine.oneShot(engine.asset('asset-bell'));engine.ambiences.stop(0);assert.equal(shot.disposed,false);assert.ok(engine.effects.has(shot));
+});
+test('efeitos ocasionais respeitam pausa e são cancelados pelo silêncio total',async()=>{
+  const {engine}=fixture();let count=0;engine.oneShot=async()=>{count++;return {audio:{pause(){}},disposed:false};};
+  const preset={id:'random-preset',name:'Temporal',layers:[{id:'thunder',assetId:'asset-thunder',name:'Trovão',mode:'random',minInterval:.1,maxInterval:.1,volume:.4,enabled:true}],pads:[]};
+  await engine.ambiences.apply(preset,{fade:0});engine.pause();await new Promise(r=>setTimeout(r,130));assert.equal(count,0);await engine.resume();await new Promise(r=>setTimeout(r,125));assert.equal(count,1);engine.stop();assert.equal(engine.ambiences.jobs.size,0);assert.equal(engine.ambiences.active,null);
+});
+function fakeYouTube(engine){
+  let data={video_id:'dQw4w9WgXcQ',title:'Faixa atual'},ids=['dQw4w9WgXcQ','abcdefghijk'];const calls=[];
+  engine.youtubeAPI=async()=>{};engine.ytReady=true;
+  engine.yt={setVolume:v=>calls.push(['volume',v]),stopVideo:()=>calls.push(['stop']),getVideoData:()=>data,getPlaylist:()=>ids,getPlaylistIndex:()=>0,getDuration:()=>100,getCurrentTime:()=>20,
+    loadVideoById:value=>{calls.push(['loadVideo',value]);data={video_id:value.videoId,title:'Nova faixa'};},loadPlaylist:value=>{calls.push(['loadPlaylist',value]);},playVideoAt:i=>calls.push(['playAt',i]),
+    cuePlaylist:value=>{calls.push(['cuePlaylist',value]);engine.handleYouTubeState(5);},pauseVideo(){},playVideo(){},seekTo(){}};
+  return {calls,setData:value=>{data=value;},setIDs:value=>{ids=value;}};
+}
+test('YouTube sai em fade, carrega mudo e só faz fade in quando realmente toca',async()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine);engine.youtubeHardStopped=false;engine.ytPlaying=true;engine.ytLevel=.8;engine.musicAsset={id:'old',provider:'youtube',videoId:'dQw4w9WgXcQ'};
+  const asset={id:'next-yt',name:'Nova faixa',provider:'youtube',videoId:'abcdefghijk'};
+  await engine.playMusic(asset,{fadeIn:.04,fadeOut:.03});const load=fake.calls.findIndex(c=>c[0]==='loadVideo');assert.ok(load>0);assert.equal(fake.calls[load-1][0],'volume');assert.equal(fake.calls[load-1][1],0);assert.equal(engine.ytLevel,0);assert.equal(engine.ytPlaying,false);assert.ok(engine.ytPendingFade);
+  engine.handleYouTubeState(1);await new Promise(r=>setTimeout(r,100));assert.equal(engine.ytLevel,1);assert.equal(engine.ytPlaying,true);assert.equal(engine.ytPendingFade,null);
+});
+test('evento atrasado do player não quebra Silêncio total',async()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine);await engine.playMusic({id:'yt',name:'YT',provider:'youtube',videoId:'dQw4w9WgXcQ'});engine.stop();engine.handleYouTubeState(1);assert.equal(engine.ytPlaying,false);assert.equal(engine.musicAsset,null);assert.ok(fake.calls.filter(c=>c[0]==='stop').length>=2);
+});
+test('lista do YouTube preserva a ordem, os aliases e os títulos conhecidos',()=>{
+  const {engine}=fixture(),fake=fakeYouTube(engine);engine.youtubeAsset={id:'source',playlistId:'PLabcdefghijk',youtubeTracks:[{videoId:'abcdefghijk',title:'Título já conhecido',alias:'Música do combate'}]};
+  const items=engine.readYouTubeQueue();assert.equal(items.length,2);assert.equal(items[0].videoId,'dQw4w9WgXcQ');assert.equal(items[0].title,'Faixa atual');assert.equal(items[1].alias,'Música do combate');assert.equal(items[1].title,'Título já conhecido');
+});
+test('listar playlist usa cuePlaylist sem iniciar um vídeo e preserva a música local',async()=>{
+  const {engine}=fixture();await engine.playMusic(engine.asset('asset-bell'));const music=engine.music;const fake=fakeYouTube(engine);const result=await engine.inspectYouTubePlaylist({id:'yt-list',name:'Minha playlist',provider:'youtube',playlistId:'PLabcdefghijk'});assert.equal(result.length,2);assert.ok(fake.calls.some(c=>c[0]==='cuePlaylist'));assert.ok(!fake.calls.some(c=>c[0]==='loadPlaylist'||c[0]==='loadVideo'));assert.strictEqual(engine.music,music);
+});
+test('playlist local faz a próxima faixa entrar antes do final da atual',async()=>{
+  const {state,engine}=fixture();state.playlists=[{id:'auto',name:'Auto',assetIds:['asset-bell','asset-door']}];await engine.playPlaylist(state.playlists[0]);const previous=engine.music;previous.audio.duration=100;previous.audio.currentTime=99.99;engine.tickMusic();await new Promise(r=>setImmediate(r));assert.equal(engine.musicAsset.id,'asset-door');assert.ok(engine.retiring.has(previous));assert.equal(previous.disposed,false);
+});
+test('cue pode dirigir música, mixer, lembretes e navegação',async()=>{
+  const {engine}=fixture();const actions=[];engine.playMusic=async(asset,opts)=>{actions.push(['music',asset.id,opts.volume]);};engine.fadeMix=(...args)=>actions.push(['mix',...args]);engine.addEventListener('message',e=>actions.push(['message',e.detail.message]));engine.addEventListener('navigate',e=>actions.push(['navigate',e.detail.pageId]));
+  engine.fireCue({id:'cue-wide',name:'Mudança',actions:[{type:'music-play',assetId:'asset-bell',volume:.4,delay:0},{type:'mix',group:'sfx',to:.2,duration:1,delay:0},{type:'message',message:'Olhar para os jogadores',delay:0},{type:'navigate',pageId:'sao-martinho',sceneId:'quarto',delay:0}]});assert.deepEqual(actions,[['music','asset-bell',.4],['mix','sfx',.2,1],['message','Olhar para os jogadores'],['navigate','sao-martinho']]);
+});
+test('backup aceita as novas cues e mantém ambientes completos',async()=>{
+  const state=initialState();state.campaigns[0].pages[0].scenes[0].cues=[{id:'music-cue',name:'Tensão',actions:[{type:'music-play',assetId:'asset-riser',volume:.5,delay:0},{type:'message',message:'Pausa dramática',delay:2}]}];const json=JSON.parse(await (await exportWorkspace(state)).text());const validated=validateState(json.state);assert.equal(validated.ambiences[0].layers.length,2);assert.equal(validated.campaigns[0].pages[0].scenes[0].cues[0].actions[1].type,'message');
+});
+test('uma cue de volume durante o carregamento do YouTube preserva a entrada muda',async()=>{
+  const {engine}=fixture();fakeYouTube(engine);await engine.playMusic({id:'yt',name:'YT',provider:'youtube',videoId:'dQw4w9WgXcQ'},{fadeIn:.02});engine.fadeMusicTo(.3,.02);assert.equal(engine.ytLevel,0);assert.equal(engine.ytPendingFade.level,.3);engine.handleYouTubeState(1);await new Promise(r=>setTimeout(r,70));assert.equal(engine.ytLevel,.3);
+});
+test('música ausente gera aviso sem interromper as camadas válidas da cena',async()=>{
+  const {engine,scene,location}=fixture();let warning;engine.addEventListener('error',e=>warning=e.detail.message);scene.music={mode:'play',assetId:'deleted-audio'};await engine.startScene(scene,location);assert.equal(engine.running,true);assert.equal(engine.tracks.size,2);assert.ok(warning.includes('Escolha uma faixa'));
+});
+test('buffering congela a entrada em fade e retoma suavemente quando o vídeo toca',async()=>{
+  const {engine}=fixture();fakeYouTube(engine);await engine.playMusic({id:'yt-buffer',name:'YT',provider:'youtube',videoId:'dQw4w9WgXcQ'},{fadeIn:.15});engine.handleYouTubeState(1);await new Promise(r=>setTimeout(r,42));engine.handleYouTubeState(3);const frozen=engine.ytLevel;assert.ok(frozen<1);await new Promise(r=>setTimeout(r,85));assert.equal(engine.ytLevel,frozen);engine.handleYouTubeState(1);await new Promise(r=>setTimeout(r,180));assert.equal(engine.ytLevel,1);
+});
+test('play manual no player de uma playlist inspecionada ativa a direção musical',async()=>{
+  const {engine}=fixture();fakeYouTube(engine);const asset={id:'preview-list',name:'Playlist',provider:'youtube',playlistId:'PLabcdefghijk'};await engine.inspectYouTubePlaylist(asset);assert.equal(engine.musicAsset,null);engine.handleYouTubeState(1);assert.equal(engine.musicAsset.id,'preview-list');assert.equal(engine.youtubePreviewOnly,false);assert.equal(engine.ytPlaying,true);
+});
+test('transicionar de uma cena pausada retoma música e ambiente configurados para continuar',async()=>{
+  const {state,engine,scene,location}=fixture();await engine.ambiences.apply(state.ambiences[0],{fade:0});await engine.playMusic(engine.asset('asset-bell'));await engine.startScene(scene,location);engine.pause();const next=state.campaigns[0].pages[0].scenes[1];await engine.startScene(next,{...location,key:'reescritos/sao-martinho/corredor',sceneId:'corredor'});assert.equal(engine.music.audio.paused,false);assert.equal(engine.ambiences.paused,false);assert.equal(engine.ambiences.tracks.get('amb-rain').audio.paused,false);
 });

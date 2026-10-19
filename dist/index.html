@@ -9,6 +9,7 @@
   <title>CRIS · Campaign Director V3</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231c172b'/%3E%3Cpath d='M42 20a18 18 0 1 0 0 24' fill='none' stroke='%23b6a1f5' stroke-width='5'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="director.css">
+  <link rel="stylesheet" href="audio-tools.css">
 </head>
 <body>
   <div class="sidebar-scrim" id="sidebarScrim"></div>
@@ -18,6 +19,7 @@
     <div class="campaign-switch-wrap"><select id="campaignSwitch" aria-label="Selecionar campanha"></select><button class="icon-btn" id="manageCampaigns" title="Gerenciar campanhas" aria-label="Gerenciar campanhas"></button></div>
     <button class="nav-item" id="openSearch"></button>
     <button class="nav-item" id="openLibrary"></button>
+    <button class="nav-item" id="openAmbiences"></button>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">PÁGINAS DA CAMPANHA <button class="icon-btn" id="newPage" title="Nova página" aria-label="Nova página"></button></div>
     <nav class="page-tree" id="pageTree" aria-label="Páginas"></nav>
@@ -36,7 +38,7 @@
     <div class="dock-transport"><button class="icon-btn" id="dockPrevious" aria-label="Faixa anterior" title="Faixa anterior"></button><button class="transport-play" id="dockPlay" aria-label="Reproduzir cena" title="Reproduzir ou pausar"></button><button class="icon-btn" id="dockNext" aria-label="Próxima faixa" title="Próxima faixa"></button><span class="dock-time" id="dockTime">00:00</span><button class="icon-btn dock-stop" id="dockStop" aria-label="Parar todo o áudio" title="Parar todo o áudio"></button></div>
     <div class="dock-right"><span class="engine-badge"><i></i> PERSISTENTE</span><div class="master-volume"><span id="volumeIcon"></span><input type="range" id="masterVolume" min="0" max="100" value="80" aria-label="Volume geral"></div><button class="btn mixer-open" id="openMixer"></button></div>
   </footer>
-  <aside id="youtubePanel" class="youtube-panel" hidden aria-label="Player do YouTube"><header><span>YouTube <small>CANAL DE MÚSICA</small></span><button id="closeYoutube" class="icon-btn" aria-label="Parar e fechar YouTube">×</button></header><div id="youtubePlayer"></div><small class="youtube-hint">Use os controles do vídeo para liberar a reprodução.</small></aside>
+  <aside id="youtubePanel" class="youtube-panel" hidden aria-label="Player do YouTube"><header><span>YouTube <small>CANAL DE MÚSICA</small></span><div class="youtube-window-actions"><button id="moveYoutube" class="icon-btn" title="Mover player para o outro lado" aria-label="Mover player para o outro lado">↔</button><button id="sizeYoutube" class="icon-btn" title="Alternar tamanho compacto" aria-label="Alternar tamanho compacto">↗</button><button id="closeYoutube" class="icon-btn" aria-label="Parar e fechar YouTube">×</button></div></header><div id="youtubePlayer"></div><small class="youtube-hint">Use os controles do vídeo para liberar a reprodução.</small></aside>
   <dialog id="appDialog" class="app-dialog"><form id="modalForm"><header class="dialog-head"><h2 id="dialogTitle"></h2><button type="button" id="closeDialog" class="icon-btn" aria-label="Fechar">×</button></header><div class="dialog-body" id="dialogBody"></div><div id="dialogError" class="form-error" role="alert" hidden></div><footer class="dialog-footer" id="dialogFooter"></footer></form></dialog>
   <div id="toastRegion" class="toast-region" role="status" aria-live="polite"></div>
   <noscript><p class="noscript">Ative o JavaScript para usar o editor e o motor de áudio do CRIS.</p></noscript>

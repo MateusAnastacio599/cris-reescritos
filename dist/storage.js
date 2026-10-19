@@ -18,6 +18,8 @@ export function makeScene(title = 'Nova cena') {
 export function makePage(title = 'Nova página', folder = 'Sessão 01') {
   return {id:uid('page'),title,folder,tags:[],icon:'file',scenes:[makeScene('Anotações')]};
 }
+export function defaultAmbiences(){return [{id:'ambience-sao-martinho',name:'Casa São Martinho · Noite de chuva',description:'Chuva na janela e madeira antiga. Adicione trovões ocasionais ou outros arquivos para compor sua versão.',layers:[{id:'amb-rain',assetId:'asset-rain',name:'Chuva na janela',mode:'loop',volume:.42,enabled:true},{id:'amb-room',assetId:'asset-room',name:'Madeira antiga',mode:'loop',volume:.11,enabled:true}],pads:['asset-bell','asset-thunder','asset-door','asset-riser']}];}
+export const CUE_ACTIONS=['play','fade','stop','music-play','music-stop','music-volume','ambience','ambience-stop','mix','message','navigate'];
 export function initialState() {
   const campaign = clone(originalCampaign);
   campaign.title = 'Reescritos'; campaign.description = 'Paris, 2026 · Ordem Paranormal';
@@ -39,7 +41,7 @@ export function initialState() {
     schemaVersion:3,campaigns:[campaign],
     audioAssets:seedFiles.map(([id,name,kind,tags,file])=>({id:`asset-${id}`,name,kind,tags,provider:'local',src:`assets/audio/${file}`,builtin:true})),
     playlists:[{id:'playlist-sao-martinho',name:'Casa São Martinho',assetIds:['asset-rain','asset-room','asset-bell','asset-thunder','asset-door','asset-riser']}],
-    settings:{master:.8,music:.7,ambience:.85,sfx:.85,crossfade:1.8},
+    ambiences:defaultAmbiences(),settings:initialDefaults(),
     ui:{campaignId:campaign.id,pageId:campaign.pages[0].id,sceneId:'quarto',view:'document',sessionMode:false}
   };
 }
@@ -61,7 +63,7 @@ export function validateState(s) {
         if(x.cues!==undefined&&!Array.isArray(x.cues)) throw new Error('Lista de cues inválida.');
         for(const cue of x.cues||[]) {
           if(typeof cue.id!=='string'||typeof cue.name!=='string'||!Array.isArray(cue.actions)) throw new Error('Cue inválida.');
-          for(const a of cue.actions) if(!['play','fade','stop'].includes(a.type)||!Number.isFinite(a.delay)||a.delay<0) throw new Error('Ação de cue inválida.');
+          for(const a of cue.actions) if(!CUE_ACTIONS.includes(a.type)||!Number.isFinite(a.delay)||a.delay<0) throw new Error('Ação de cue inválida.');
         }
       }
     }
@@ -70,15 +72,22 @@ export function validateState(s) {
     identity(a);
     if(typeof a.name!=='string'||!['local','upload','youtube'].includes(a.provider)||!['music','ambience','sfx'].includes(a.kind)) throw new Error('Item de áudio inválido.');
     if(a.provider==='local'&&!/^assets\/audio\/[a-zA-Z0-9_.-]+$/.test(a.src||'')) throw new Error('Caminho de áudio inválido.');
+    if(a.youtubeTracks!==undefined&&(!Array.isArray(a.youtubeTracks)||a.youtubeTracks.some(t=>!t||!/^[\w-]{11}$/.test(t.videoId||'')||typeof t.title!=='string'||t.alias!==undefined&&typeof t.alias!=='string')))throw new Error('Lista de vídeos inválida.');
     if(a.provider==='youtube'&&!/^[\w-]{11}$/.test(a.videoId||'')&&!/^[\w-]{10,}$/.test(a.playlistId||'')) throw new Error('Link do YouTube inválido.');
   }
   for(const p of s.playlists) {identity(p);if(typeof p.name!=='string'||!Array.isArray(p.assetIds)) throw new Error('Playlist inválida.');}
+  if(s.ambiences===undefined)s.ambiences=defaultAmbiences();
+  if(!Array.isArray(s.ambiences))throw new Error('Lista de ambientes inválida.');
+  for(const a of s.ambiences){identity(a);if(typeof a.name!=='string'||!Array.isArray(a.layers)||!Array.isArray(a.pads))throw new Error('Ambiente inválido.');const layerIds=new Set();for(const l of a.layers){if(typeof l.id!=='string'||layerIds.has(l.id)||typeof l.assetId!=='string'||!['loop','random'].includes(l.mode)||!Number.isFinite(l.volume)||l.volume<0||l.volume>1)throw new Error('Camada de ambiente inválida.');layerIds.add(l.id);if(l.mode==='random'&&(!Number.isFinite(l.minInterval)||!Number.isFinite(l.maxInterval)||l.minInterval<.1||l.maxInterval<l.minInterval))throw new Error('Intervalo de ambiente inválido.');}}
   s.settings = {...initialDefaults(),...s.settings};
   for(const key of ['master','music','ambience','sfx']) s.settings[key] = Math.max(0,Math.min(1,Number(s.settings[key])||0));
   s.settings.crossfade = Math.max(0,Math.min(12,Number(s.settings.crossfade)||0));
+  for(const key of ['musicFadeIn','musicFadeOut'])s.settings[key]=Math.max(0,Math.min(30,Number(s.settings[key])||0));
+  s.settings.autoAdvance=s.settings.autoAdvance!==false;
+  s.settings.youtubeCompact=s.settings.youtubeCompact!==false;
   s.ui = s.ui || {}; return s;
 }
-function initialDefaults(){return {master:.8,music:.7,ambience:.85,sfx:.85,crossfade:1.8};}
+function initialDefaults(){return {master:.8,music:.7,ambience:.85,sfx:.85,crossfade:1.8,musicFadeIn:2.5,musicFadeOut:2.5,autoAdvance:true,youtubeCompact:true};}
 export function loadState() {
   try {const raw=localStorage.getItem(STORAGE_KEY);if(raw)return validateState(JSON.parse(raw));} catch(error){console.warn('CRIS: dados salvos precisam de recuperação.',error);throw error;}
   return initialState();

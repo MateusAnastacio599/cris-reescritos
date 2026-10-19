@@ -41,6 +41,20 @@ O `AudioEngine` recebe um getter para o estado e não consulta a página atualme
 
 O modelo exportado tem `schemaVersion: 3`, `campaigns`, `audioAssets`, `playlists`, `settings` e `ui`. Áudios enviados são identificados por ID; URLs `blob:` são resolvidas em tempo de execução, não gravadas como fonte permanente. Cues contêm ações `play`, `fade` e `stop`, cada uma com atraso em segundos. A Terceira Badalada foi convertida em quatro ações editáveis mantendo a sequência original.
 
+## Atualização 3.1 — direção musical e ambientes
+
+- **Biblioteca → Transições:** fades padrão de entrada/saída e crossfade automático de playlists de arquivos locais, com pré-carregamento da próxima faixa.
+- **Playlist do YouTube → ícone de lista:** mostra a sequência disponibilizada por `getPlaylist()`, com capas clicáveis, nomes de referência e opção de trazer as faixas individualmente para a biblioteca. O player fornece IDs; os títulos são completados pelo vídeo em reprodução. Não há chave da YouTube Data API configurada, portanto não é prometida uma lista com todos os títulos preenchidos de imediato. Playlists privadas ou indisponíveis podem não ser listadas.
+- **Direção da cena → Música:** manter, iniciar/trocar ou encerrar a música; faixa/playlist e primeira faixa; timestamp, volume e fades específicos; ambiente salvo opcional. A primeira faixa é 1 na interface.
+- **Ambientes:** presets com loops contínuos, efeitos ocasionais com intervalo mínimo/máximo, volumes independentes, disparos manuais e fades de entrada/saída. São persistentes e independentes das camadas da cena.
+- **Cues ampliadas:** música, ambientes, mixer, lembretes e navegação entre roteiros, além dos efeitos originais.
+
+O YouTube usa um único player oficial visível, com tamanho compacto de 248 × 200 px para o vídeo, sem cobrir os controles ou substituir a reprodução por uma capa. O fade de saída antecede a troca; o fade de entrada aguarda `PLAYING` e é suspenso em `BUFFERING`. Rede, anúncios, vídeos indisponíveis e restrições do navegador continuam podendo causar intervalos. Um ambiente local em execução permanece durante a troca. Não há extração de áudio, player oculto ou promessa de crossfade simultâneo entre vídeos do YouTube.
+
+As mudanças são aditivas, preservam a chave de armazenamento e a versão 3 do formato de backup. A migração adiciona `ambiences` e os novos padrões de música quando ausentes, sem substituir textos, cenas ou áudio enviado.
+
+Novos módulos: `music-methods.js` (direção musical e YouTube), `volume-envelope.js` (fades canceláveis), `music-ui.js` (configuração), `youtube-library.js` (lista de faixas), `ambience-engine.js` / `ambience-ui.js` (SoundPad), `cue-editor.js` (ações compostas) e `audio-tools.css` (layout responsivo).
+
 ## Verificação
 
 ```sh

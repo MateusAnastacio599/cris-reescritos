@@ -16,4 +16,10 @@ if(!html.includes('type="module" src="app.js"'))throw new Error('Entrada da apli
 if(html.includes('codex-preview'))throw new Error('Metadado temporário de preview encontrado.');
 for(const match of html.matchAll(/(?:src|href)="([^"#]+)"/g))if(!/^(https?:|data:)/.test(match[1])&&!existsSync(join(dist,match[1])))throw new Error(`Arquivo ausente: ${match[1]}`);
 for(const name of readdirSync(join(dist,'assets/audio'))){const data=readFileSync(join(dist,'assets/audio',name));if(data.length<44||data.toString('ascii',0,4)!=='RIFF')throw new Error(`Áudio inválido: ${name}`);}
-console.log('Verificação aprovada: módulos, imports, shell, manifesto e arquivos de áudio.');
+for(const name of readdirSync(dist).filter(name=>name.endsWith('.css'))){
+  const input=readFileSync(join(dist,name),'utf8').replace(/\/\*[\s\S]*?\*\//g,'').replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,'');
+  const stack=[],pairs={')':'(',']':'[','}':'{'};
+  for(const ch of input){if('({['.includes(ch))stack.push(ch);else if(')}]'.includes(ch)&&stack.pop()!==pairs[ch])throw new Error(`Delimitadores CSS inválidos: ${name}`);}
+  if(stack.length)throw new Error(`Delimitadores CSS não fechados: ${name}`);
+}
+console.log('Verificação aprovada: módulos, imports, shell, CSS, manifesto e arquivos de áudio.');
