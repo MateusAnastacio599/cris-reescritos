@@ -1,3 +1,4 @@
+import {setupYouTubeWindow} from './youtube-window.js';
 import {loadState,saveState,initialState,makePage,makeScene,uid,clone,exportWorkspace,importWorkspace,STORAGE_KEY} from './storage.js';
 import {AudioEngine,formatTime} from './audio-engine.js';
 import {parseBlocks,renderReadBlocks,blocksToMarkdown} from './markdown.js';
@@ -199,7 +200,7 @@ $('#newPage').onclick=()=>createPage();$('#newPageBottom').onclick=()=>createPag
 $('#menuToggle').onclick=()=>document.body.classList.toggle('sidebar-open');$('#sidebarScrim').onclick=()=>document.body.classList.remove('sidebar-open');
 $('#sessionMode').onclick=()=>{persist();state.ui.sessionMode=!state.ui.sessionMode;editing=false;commit(true);};
 $('#dockPlay').onclick=()=>{if(engine.active||engine.musicAsset||engine.tracks.size||engine.ambiences.active)engine.toggleTransport();else playSelected();};$('#dockPrevious').onclick=()=>engine.nextMusic(-1);$('#dockNext').onclick=()=>engine.nextMusic(1);$('#dockStop').onclick=()=>engine.stop();$('#openMixer').onclick=openMixer;$('#closeYoutube').onclick=()=>engine.closeYouTube();
-$('#youtubePanel').classList.toggle('compact',state.settings.youtubeCompact!==false);$('#moveYoutube').onclick=()=>$('#youtubePanel').classList.toggle('docked-left');$('#sizeYoutube').onclick=()=>{state.settings.youtubeCompact=$('#youtubePanel').classList.toggle('compact');autosave();};
+setupYouTubeWindow({panel:$('#youtubePanel'),dock:$('#audioDock'),moveButton:$('#moveYoutube'),sizeButton:$('#sizeYoutube'),getCompact:()=>state.settings.youtubeCompact!==false,setCompact:value=>{state.settings.youtubeCompact=value;autosave();}});
 $('#masterVolume').oninput=e=>{engine.setMix('master',Number(e.target.value)/100);autosave();};
 engine.addEventListener('change',()=>{updateAudioUI();if(state.ui.view==='library')library.renderRows();});engine.addEventListener('tick',updateTick);engine.addEventListener('error',e=>toast(e.detail.message,true));
 engine.addEventListener('message',e=>toast(e.detail.message));
