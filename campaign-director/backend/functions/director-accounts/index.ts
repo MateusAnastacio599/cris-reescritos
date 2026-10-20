@@ -1,14 +1,15 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.118.0';
 import {handleAccount} from './core.js';
-const origin='https://cris-campaign-director-v3.mateusfernando599.chatgpt.site';
+const origins=new Set(['https://cris-campaign-director-v3.mateusfernando599.chatgpt.site','https://mateusanastacio599.github.io']);
 const url=Deno.env.get('SUPABASE_URL')!;
 const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const anon=Deno.env.get('SUPABASE_ANON_KEY')!;
 const digest=async(text:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(b=>b.toString(16).padStart(2,'0')).join('');
 Deno.serve(async(req:Request)=>{
+  const origin=req.headers.get('origin')||'https://cris-campaign-director-v3.mateusfernando599.chatgpt.site';
   const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS','Vary':'Origin','Cache-Control':'no-store'};
   const respond=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers});
-  if(req.headers.has('origin')&&req.headers.get('origin')!==origin)return respond(403,{code:'forbidden_origin'});
+  if(!origins.has(origin))return respond(403,{code:'forbidden_origin'});
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
   if(req.method!=='POST')return respond(405,{code:'method_not_allowed'});
   try{

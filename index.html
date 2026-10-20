@@ -21,9 +21,9 @@
       <div class="login-kicker">CENTRAL DE RECONHECIMENTO DE IRREGULARIDADES SOBRENATURAIS</div>
       <div class="login-line"></div>
       <div class="login-status"><span class="status-dot"></span> CANAL SEGURO // AUTENTICAÇÃO NECESSÁRIA</div>
-      <label for="password">CREDENCIAL DE AGENTE</label>
+      <label for="username">USUÁRIO DE AGENTE</label><input id="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="USUÁRIO"><label for="password">SENHA</label>
       <div class="password-wrap">
-        <input id="password" type="password" autocomplete="off" spellcheck="false" placeholder="INSIRA SUA SENHA">
+        <input id="password" type="password" autocomplete="current-password" placeholder="INSIRA SUA SENHA">
         <button id="password-toggle" class="password-toggle" type="button" aria-label="Mostrar senha"
           aria-pressed="false">
           <svg class="password-eye" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -77,7 +77,7 @@
           <a href="#arquivos"><span>03</span> ARQUIVOS</a>
           <a href="#localizacoes"><span>04</span> LOCALIZAÇÕES</a>
           <a href="#fichas"><span>05</span> FICHAS</a>
-          <a href="#quadro"><span>06</span> QUADRO</a>
+          <a href="#quadro"><span>06</span> QUADRO</a><a id="director-link" hidden href="campaign-director/dist/"><span>07</span> DIRECTOR</a>
         </nav>
         <div class="sidebar-footer">
           <span>C.R.I.S. // ACESSO LOCAL</span><span>PARIS // 07.10.2026</span>
@@ -659,7 +659,7 @@
       </section>
     </main>
   </div>
-  <script src="cris.js"></script>
+  <script type="module" src="cris.js"></script>
 </body>
 
 </html>

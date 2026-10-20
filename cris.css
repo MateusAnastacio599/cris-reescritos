@@ -3425,3 +3425,5 @@ body.master-access .board-launch-button { background: #21152f; border-color: #6f
 .board-launch-link[hidden] { display: none !important; }
 
 .board-engine-chip{display:inline-flex;margin:0 0 14px;padding:5px 8px;border:1px solid rgba(167,102,255,.35);color:#c998ff;background:rgba(101,53,164,.09);font-size:9px;letter-spacing:.09em;}
+
+#username{width:100%;box-sizing:border-box;padding:14px;margin:8px 0 20px;background:#0b0912;border:1px solid #59466d;color:#eee;font:inherit}.sheet-embed .topbar,.sheet-embed .sidebar,.sheet-embed .screen-section:not(#fichas){display:none!important}.sheet-embed .layout,.sheet-embed .content{display:block;margin:0!important;width:100%;padding:12px}.sheet-embed #fichas{display:block!important}

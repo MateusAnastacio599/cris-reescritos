@@ -134,10 +134,8 @@
                             imgs[i.audioId] = IMG[i.audioId]
                     }
                     );
-                    await kvSet("board", {
-                        state: S,
-                        imgs
-                    })
+                    await kvSet("board", {state:S,imgs});
+
                 }
                 , 500)
             }
@@ -16892,20 +16890,13 @@
             }
 
             /* ================= v14: mesa compartilhada (todos veem e mexem) — PeerJS / WebRTC ================= */
-            const SHARE_BASE = "https://mateusanastacio599.github.io/cris-reescritos/quadro/"
+            const SHARE_BASE = new URL("./",location.href).href
               , CAMPAIGN_ROOM = "CASO26107"
-              , MASTER_KEY = "mestre-26107"
+              
               , PEER_CDN = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
             const QS = new URLSearchParams(location.search);
             let SALA = (QS.get("sala") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-            const CRIS_AGENTS = {
-                "iris-7x91": "Íris Tenebra Vasconcellos",
-                "andre-4k27": "André Torres",
-                "matias-9q63": "Matias Valen Azevedo",
-                "celine-2m84": "Celine Lins Noir",
-                "convidado-26": "AGENTE CONVIDADO",
-                "mestre-26107": "MESTRE"
-            };
+            
             function boardDeviceId() {
                 try {
                     let id = localStorage.getItem("cris_quadro_dispositivo");
@@ -16918,17 +16909,9 @@
                     return Math.random().toString(36).slice(2, 10)
                 }
             }
-            function crisBoardIdentity() {
-                let key = "";
-                try {
-                    key = localStorage.getItem("cris_agente") || ""
-                } catch (e) {}
-                const name = CRIS_AGENTS[key] || "";
-                const device = boardDeviceId();
-                return { key, name, id: key ? key + ":" + device : "" }
-            }
-            const CRIS_ID = crisBoardIdentity();
-            const IS_MASTER = CRIS_ID.key === MASTER_KEY;
+            function crisBoardIdentity(){const identity=window.CRIS_IDENTITY;const device=boardDeviceId();return {key:identity?.userId||'',name:identity?.name||'',id:identity?.userId?identity.userId+':'+device:''};}
+            const CRIS_ID=crisBoardIdentity();
+            const IS_MASTER=!!window.CRIS_IDENTITY?.isMaster;
             if (!SALA && !IS_MASTER) {
                 SALA = CAMPAIGN_ROOM;
                 try {
@@ -17656,7 +17639,7 @@
                         if (NET.links.size === 1)
                             baseline();
                         const imgs = {};
-                        S.items.forEach(i => ["imgId", "audioId"].forEach(k => {
+                        S.items.filter(i => !i.gm && !i.hand).forEach(i => ["imgId", "audioId"].forEach(k => {
                             const id = i[k];
                             if (id && IMG[id]) {
                                 imgs[id] = IMG[id];
@@ -23411,7 +23394,7 @@
             function boardMB() {
                 let n = 0;
                 const seen = new Set();
-                S.items.forEach(i => ["imgId", "audioId"].forEach(k => {
+                S.items.filter(i => !i.gm && !i.hand).forEach(i => ["imgId", "audioId"].forEach(k => {
                     const id = i[k];
                     if (id && IMG[id] && !seen.has(id)) {
                         seen.add(id);
@@ -35206,8 +35189,10 @@
                     startViewer();
                     return
                 }
+                window.CRIS_BOARD_API={save:async()=>{const imgs={};for(const i of S.items)for(const k of ['imgId','audioId'])if(i[k]&&IMG[i[k]])imgs[i[k]]=IMG[i[k]];return window.CRISBridge.saveBoard({state:JSON.parse(JSON.stringify(S)),imgs});}};
                 await idb();
-                const saved = await kvGet("board");
+                const cloudSaved = await window.CRISBridge.loadBoard().catch(()=>null);
+                const saved = await kvGet("board") || cloudSaved;
                 if (saved && saved.state) {
                     Object.assign(IMG, saved.imgs || {});
                     S = migrate(Object.assign(DEF(), saved.state))
