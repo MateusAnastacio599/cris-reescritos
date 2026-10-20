@@ -1,6 +1,6 @@
 # CRIS — ponto de controle da integração
 
-Atualizado em 20/10/2026. Etapa 1 concluída: base do Supabase.
+Atualizado em 20/10/2026. Etapa 1 concluída: base do Supabase. Etapa 2 implementada: login opcional e inventário local, sem envio de dados.
 
 Projeto: https://zumrguvsihtuahunxuyq.supabase.co
 Migração remota aplicada: 20261020114201 — cris_director_foundation.
@@ -36,13 +36,13 @@ As referências página/cena usam uma chave composta para impedir associação e
 
 verify.sql passou em transação revertida, usando quatro identidades temporárias e dois casos de campanha. Verificou criação/edição pelo proprietário, leitura/edição por outro mestre, isolamento de jogador e pessoa externa, bloqueio sem login, prevenção de autopromoção, proteção de propriedade, referência entre campanhas, caminho de arquivo inválido, cópia imutável, RLS e buckets privados. Nenhum usuário ou conteúdo de teste foi mantido.
 Auditor de segurança: nenhum alerta. Auditor de desempenho: apenas índices ainda sem uso, esperados em uma base recém-criada (https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index).
-A autorização de arquivos foi revisada nas políticas e na função de associação; upload/download reais com sessão autenticada serão testados na etapa 2. Login por navegador, entrega de e-mail e sincronização ainda não foram testados nem implementados.
+A autorização de arquivos foi revisada nas políticas e na função de associação; upload/download reais com sessão autenticada serão testados na etapa 2. Login por navegador e entrega de e-mail ainda precisam de teste real. Sincronização não foi implementada.
 
 ## Próximas etapas, na ordem
 
 1. CONCLUÍDO — base e permissões no Supabase.
-2. PRÓXIMA — login e conexão do Director, mantendo uso local disponível. Usar chave publicável no navegador; nenhuma chave secreta. Definir URL de retorno permitida para o site do Director. Não confundir o login privado do site hospedado com uma sessão do Supabase.
-3. Migração pelo navegador do usuário: exportação local completa, cópia JSON remota, inventário de arquivos, upload com retomada, verificação de contagens e tamanhos, vínculo dos IDs antigos aos novos. Repetir uma importação não deve duplicar itens. Só marcar como sincronizado quando tudo estiver confirmado. Nunca apagar os dados locais automaticamente.
+2. IMPLEMENTADO — login e conexão do Director, mantendo uso local disponível. Cadastro, recuperação e e-mails precisam de validação com a conta real e URLs de retorno configuradas. A conferência local não envia os dados. Usar chave publicável no navegador; nenhuma chave secreta. Definir URL de retorno permitida para o site do Director. Não confundir o login privado do site hospedado com uma sessão do Supabase.
+3. PRÓXIMA — migração pelo navegador do usuário: exportação local completa, cópia JSON remota, inventário de arquivos, upload com retomada, verificação de contagens e tamanhos, vínculo dos IDs antigos aos novos. Repetir uma importação não deve duplicar itens. Só marcar como sincronizado quando tudo estiver confirmado. Nunca apagar os dados locais automaticamente.
 4. Sincronização de alterações e conflitos. O campo revision existe, mas o controle de concorrência ainda precisa ser implementado e testado; ele não se incrementa sozinho. Evitar que duas abas sobrescrevam silenciosamente o texto uma da outra.
 5. Integração com CRIS principal: autenticação real preservando a interface, fichas personalizadas, campanhas e quadro existente. Esta etapa ainda não foi iniciada.
 6. Documentos reveláveis do texto para o quadro: registros próprios de versão para jogadores e concessões explícitas, filtrando tanto metadados quanto arquivos. Só então permitir downloads de jogadores e canais privados Realtime. Operação de revelar deve ser idempotente.
@@ -53,7 +53,7 @@ A autorização de arquivos foi revisada nas políticas e na função de associa
 
 Director atual: https://cris-campaign-director-v3.mateusfernando599.chatgpt.site
 Versão de referência: 3.5.1, commit d54e4c79e277306025e8c7e1ceed4a5f7e1bbf1d.
-Nenhuma modificação no Director ou no repositório principal nesta etapa.
+Director 3.6.0 inclui conta e conferência local. O código é acompanhado no GitHub na branch director-v3-supabase, dentro de campaign-director/. A main do CRIS principal não foi alterada.
 As cenas da Casa São Martinho, cues, músicas, playlists, efeitos, fades, loops e ambientes continuam no armazenamento local do navegador. O banco remoto está pronto e vazio; não contém o trabalho do usuário ainda.
 Chave local: cris-campaign-director:v3. Arquivos: IndexedDB cris-director-media, store blobs. Uma cópia JSON não inclui automaticamente esses arquivos; a migração deve tratá-los separadamente.
 IDs antigos de páginas, músicas, playlists e cues precisam de mapeamento consistente para preservar links internos. Os campos JSON permitem preservar configurações existentes, mas o adaptador de migração ainda precisa conferir os formatos de cada módulo.
