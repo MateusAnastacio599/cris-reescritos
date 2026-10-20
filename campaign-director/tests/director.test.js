@@ -15,7 +15,7 @@ import {removeAudioAsset,removePlaylist} from '../dist/audio-assets.js';
 const memory=new Map();
 globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)};
 globalThis.window={};
-const fakePanels=new Map();globalThis.document={getElementById:id=>{if(!fakePanels.has(id))fakePanels.set(id,{hidden:true});return fakePanels.get(id);}};
+const fakePanels=new Map();globalThis.document={getElementById:id=>{if(!fakePanels.has(id))fakePanels.set(id,{hidden:true,remove(){fakePanels.delete(id);},insertBefore(node){fakePanels.set(node.id,node);},querySelector(){return null;}});return fakePanels.get(id);},createElement:()=>({remove(){fakePanels.delete(this.id);}})};
 globalThis.CustomEvent=class extends Event{constructor(type,opts){super(type);this.detail=opts?.detail;}};
 class Param{constructor(){this.value=0;this.transitions=[];}setTargetAtTime(v){this.value=v;}cancelAndHoldAtTime(){}cancelScheduledValues(){}setValueAtTime(v){this.value=v;}linearRampToValueAtTime(v,t){this.value=v;this.transitions.push({value:v,time:t});}}
 class Node{constructor(){this.gain=new Param();this.outputs=[];}connect(target){this.outputs.push(target);}disconnect(){this.disconnected=true;}}
@@ -495,4 +495,27 @@ test('Silêncio total cancela também um reinício automático aguardando o YouT
 test('backup guarda repetição por cue, cena e ambiente sem alterar configurações antigas',async()=>{
   const state=initialState(),scene=state.campaigns[0].pages[0].scenes[0];scene.music={mode:'play',assetId:'asset-bell',loop:false};scene.cues=[{id:'loop-off',name:'Uma vez',actions:[{type:'music-play',assetId:'asset-door',loop:false,delay:0}]}];state.ambiences[0].music={assetId:'asset-bell',volume:.4,loop:true};
   const data=JSON.parse(await (await exportWorkspace(state)).text());assert.deepEqual(validateState(data.state),state);validateState(initialState());data.state.campaigns[0].pages[0].scenes[0].cues[0].actions[0].loop='false';assert.throws(()=>validateState(data.state),/Repetição/);
+});
+
+
+test('fechar destrói o iframe e reabrir ignora eventos do player anterior',async()=>{
+  const {engine}=fixture();const originalYT=window.YT,originalLocation=globalThis.location,players=[];
+  globalThis.location={origin:'https://example.test'};engine.youtubeAPI=async()=>{};
+  window.YT={Player:class{constructor(id,options){this.events=options.events;this.destroyed=false;players.push(this);}destroy(){this.destroyed=true;}}};
+  try{
+    const opening=engine.ensureYouTube();await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(players.length,1);engine.closeYouTube();assert.equal(await opening,false);
+    assert.equal(players[0].destroyed,true);assert.equal(engine.yt,null);assert.equal(engine.playerPromise,null);
+    players[0].events.onReady();assert.equal(engine.ytReady,false);
+    const reopening=engine.ensureYouTube();await new Promise(resolve=>setImmediate(resolve));
+    players[1].events.onReady();assert.equal(await reopening,true);assert.equal(engine.yt,players[1]);
+    engine.ytPlaying=true;players[0].events.onStateChange({data:2});assert.equal(engine.ytPlaying,true);
+    engine.closeYouTube();assert.equal(players[1].destroyed,true);assert.equal(engine.ytReady,false);
+  }finally{engine.closeYouTube();window.YT=originalYT;globalThis.location=originalLocation;}
+});
+test('fechar durante o carregamento da API não ressuscita a música',async()=>{
+  const {engine}=fixture();let release;engine.youtubeAPI=()=>new Promise(resolve=>{release=resolve;});
+  const playing=engine.playMusic({id:'pending-yt',provider:'youtube',videoId:'abcdefghijk'});
+  await new Promise(resolve=>setImmediate(resolve));engine.closeYouTube();release();await playing;
+  assert.equal(engine.musicAsset,null);assert.equal(engine.ytReady,false);assert.equal(document.getElementById('youtubePanel').hidden,true);
 });

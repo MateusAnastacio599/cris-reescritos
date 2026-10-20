@@ -40,3 +40,21 @@
 @media(max-width:600px){.ambient-layer-heading{align-items:flex-start}.ambient-layer-heading>.heading-actions{width:100%}.ambient-layer-heading .btn{min-height:36px}.ambient-music{flex-wrap:wrap;gap:11px;padding:14px}.ambient-music>.btn{margin-left:50px;min-height:36px}.ambient-music h3{font-size:11px}.ambient-music .section-eyebrow{font-size:6px;letter-spacing:.7px}.ambience-example{font-size:9px}.ambient-now>span{font-size:8px}.ambient-now>.icon-btn{width:27px;height:29px}}
 
 .current-music-mix{padding:16px;margin:18px 0;border:1px solid #574267;border-radius:10px;background:#201925}.current-music-mix>strong{display:block;margin:9px 0 16px;overflow-wrap:anywhere}.current-music-mix .global-mix-row{margin-bottom:16px}.current-music-mix .check-field{margin:12px 0}
+
+/* Janela persistente: mover altera somente a posição, preservando o vídeo. */
+.youtube-panel.compact{width:232px}
+.youtube-panel>header{padding:3px 5px;gap:2px}
+.youtube-drag-handle{display:flex;align-items:center;gap:5px;flex:1;min-width:0;min-height:32px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:grab;touch-action:none;user-select:none}
+.youtube-drag-handle>span{font-size:20px;opacity:.7}
+.youtube-drag-handle:focus-visible{outline:2px solid #cfb2de;outline-offset:-2px;border-radius:3px}
+.youtube-panel.dragging .youtube-drag-handle{cursor:grabbing}
+.youtube-panel .youtube-hint{font-size:8px;padding:4px 7px;line-height:1.5}
+.youtube-window-actions>.icon-btn{width:27px;height:30px}
+.youtube-panel:not(.compact){width:min(482px,calc(100vw - 16px))}
+.youtube-panel:not(.compact) iframe{height:270px}
+.youtube-panel iframe{border:0}
+.page-tree{scrollbar-width:thin;scrollbar-color:#5e465d transparent}
+.page-tree::-webkit-scrollbar{width:5px;height:5px}
+.page-tree::-webkit-scrollbar-thumb{background:#5e465d;border-radius:6px}
+.page-tree::-webkit-scrollbar-track{background:transparent}
+@media(max-width:520px){.youtube-panel:not(.compact) iframe{height:200px}}

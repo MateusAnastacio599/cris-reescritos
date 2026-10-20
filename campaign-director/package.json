@@ -1,6 +1,6 @@
 {
   "name": "cris-campaign-director-v3",
-  "version": "3.7.0",
+  "version": "3.7.1",
   "private": true,
   "type": "module",
   "description": "M\u00f3dulo independente de dire\u00e7\u00e3o de campanhas, baseado no prot\u00f3tipo CRIS original.",

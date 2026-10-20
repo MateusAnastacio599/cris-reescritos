@@ -24,7 +24,7 @@ export const musicMethods={
       const wasPlaying=this.ytPlaying;
       if(wasPlaying){const faded=await this.ytEnvelope.fade(0,opts.fadeOut,isCurrent);if(!faded||!isCurrent())return;}
       if(!isCurrent())return;
-      await this.loadYouTube(asset,isCurrent,{...opts,generation});if(!isCurrent())return;
+      if(!await this.loadYouTube(asset,isCurrent,{...opts,generation})||!isCurrent())return;
       // A faixa local só sai quando o novo vídeo realmente começar a tocar.
       if(this.music&&this.ytPendingFade)this.ytPendingFade.retireMusic=this.music;
     }else{
@@ -99,24 +99,27 @@ export const musicMethods={
     }
   },
   async ensureYouTube(isCurrent=()=>true){
-    await this.youtubeAPI();if(!isCurrent())return false;
+    const windowGeneration=this.youtubeWindowGeneration||0;
+    await this.youtubeAPI();if(!isCurrent()||windowGeneration!==(this.youtubeWindowGeneration||0))return false;
     const panel=document.getElementById('youtubePanel');if(panel)panel.hidden=false;
     if(!this.ytReady){
       if(!this.playerPromise)this.playerPromise=new Promise((resolve,reject)=>{
-        const timeout=setTimeout(()=>{this.playerPromise=null;reject(new Error('O player do YouTube não respondeu. Tente novamente.'));},15000);
+        const playerGeneration=this.youtubeWindowGeneration||0,current=()=>playerGeneration===(this.youtubeWindowGeneration||0);
+        this.cancelPlayerInit=()=>resolve(false);
+        this.playerInitTimeout=setTimeout(()=>{reject(new Error('O player do YouTube não respondeu. Tente novamente.'));this.releaseYouTubePlayer();},15000);
         this.yt=new window.YT.Player('youtubePlayer',{height:'200',width:'100%',host:'https://www.youtube.com',playerVars:{playsinline:1,controls:1,origin:location.origin},events:{
-          onReady:()=>{clearTimeout(timeout);this.ytReady=true;resolve();},
-          onError:event=>{const messages={2:'Link de vídeo inválido.',5:'O navegador não conseguiu abrir o player.',100:'Vídeo removido ou privado.',101:'O autor não permite incorporação.',150:'O autor não permite incorporação.',153:'O YouTube recusou a identificação deste site.'};this.error(messages[event.data]||'Este vídeo não pode ser reproduzido no player.');this.ytEnvelope.cancel();this.ytPendingFade=null;this.ytPlaying=false;this.emit();},
-          onAutoplayBlocked:()=>{this.ytPlaying=false;this.error('Toque no play do vídeo para liberar a reprodução. O fade começa quando ele tocar.');this.emit();},
-          onStateChange:event=>this.handleYouTubeState(event.data)
+          onReady:()=>{if(!current())return;clearTimeout(this.playerInitTimeout);this.cancelPlayerInit=null;this.ytReady=true;resolve(true);},
+          onError:event=>{if(!current())return;const messages={2:'Link de vídeo inválido.',5:'O navegador não conseguiu abrir o player.',100:'Vídeo removido ou privado.',101:'O autor não permite incorporação.',150:'O autor não permite incorporação.',153:'O YouTube recusou a identificação deste site.'};this.error(messages[event.data]||'Este vídeo não pode ser reproduzido no player.');this.ytEnvelope.cancel();this.ytPendingFade=null;this.ytPlaying=false;this.emit();},
+          onAutoplayBlocked:()=>{if(!current())return;this.ytPlaying=false;this.error('Toque no play do vídeo para liberar a reprodução. O fade começa quando ele tocar.');this.emit();},
+          onStateChange:event=>{if(current())this.handleYouTubeState(event.data);}
         }});
       });
-      await this.playerPromise;
+      if(!await this.playerPromise)return false;
     }
-    return isCurrent();
+    return isCurrent()&&windowGeneration===(this.youtubeWindowGeneration||0);
   },
   async loadYouTube(asset,isCurrent=()=>true,options={}){
-    if(!await this.ensureYouTube(isCurrent)||!isCurrent())return;
+    if(!await this.ensureYouTube(isCurrent)||!isCurrent())return false;
     this.youtubePreviewOnly=false;this.youtubeHardStopped=false;this.youtubeAsset=asset;this.currentYouTubeTitle=null;this.ytEnvelope.cancel();this.ytLevel=0;this.applyYTVolume();
     this.ytPendingFade={duration:options.fadeIn??this.getState().settings.musicFadeIn??2.5,fadeOut:options.fadeOut??2.5,level:options.volume??1,generation:options.generation??this.musicEpoch};
     let index=Math.max(0,options.youtubeIndex??asset.youtubeIndex??0);const startSeconds=options.startSeconds??asset.start??0;
@@ -129,7 +132,7 @@ export const musicMethods={
       else{this.ytRequestedVideoId=videoId;this.ytShuffleApplied=null;this.yt.loadPlaylist({list:asset.playlistId,listType:'playlist',index,startSeconds});}
       this.ytLoadedPlaylist=asset.playlistId;
     }else{this.ytLoadedPlaylist=null;this.ytShuffleApplied=null;this.yt.loadVideoById({videoId:asset.videoId,startSeconds});}
-    this.ytPlaying=false;
+    this.ytPlaying=false;return true;
   },
   setYouTubeShuffle(asset,enabled){asset.shuffle=enabled===true;if(this.youtubeAsset?.id===asset.id){this.syncYouTubeShuffle();this.readYouTubeQueue();this.emit();}},
   syncYouTubeShuffle(){
@@ -192,5 +195,18 @@ export const musicMethods={
     for(let i=0;i<40&&isCurrent();i++){const items=(this.queueRevision||0)>revision?this.readYouTubeQueue():[];if(items.length)return items;await new Promise(resolve=>setTimeout(resolve,200));}
     if(!isCurrent())return [];throw new Error('O player ainda não disponibilizou a lista. Confira se a playlist é pública e tente “Atualizar lista”.');
   },
-  closeYouTube(){this.youtubePreviewOnly=false;this.youtubeHardStopped=true;this.inspectEpoch++;if(this.musicAsset?.provider==='youtube'){this.musicEpoch++;this.musicAsset=null;this.playlist=null;}this.ytEnvelope.cancel();this.ytPendingFade=null;if(this.ytReady)this.yt.stopVideo();this.ytPlaying=false;const panel=document.getElementById('youtubePanel');if(panel)panel.hidden=true;this.emit();},
+  releaseYouTubePlayer(){
+    // Invalidar callbacks antes de destruir o iframe; reabrir cria somente um novo player.
+    this.youtubeWindowGeneration=(this.youtubeWindowGeneration||0)+1;
+    clearTimeout(this.playerInitTimeout);this.cancelPlayerInit?.();this.cancelPlayerInit=null;
+    const player=this.yt;this.yt=null;this.ytReady=false;this.playerPromise=null;this.ytPlaying=false;
+    try{player?.destroy?.();}catch{}
+    this.ytLoadedPlaylist=null;this.ytShuffleApplied=null;this.ytLastVideoId=null;this.youtubeAsset=null;this.youtubeQueue=[];this.currentYouTubeTitle=null;
+    const panel=document.getElementById('youtubePanel');
+    if(panel){
+      const remaining=document.getElementById('youtubePlayer');remaining?.remove();
+      const placeholder=document.createElement('div');placeholder.id='youtubePlayer';panel.insertBefore(placeholder,panel.querySelector('.youtube-hint'));
+    }
+  },
+  closeYouTube(){this.youtubePreviewOnly=false;this.youtubeHardStopped=true;this.inspectEpoch++;if(this.musicAsset?.provider==='youtube'){this.musicEpoch++;this.musicAsset=null;this.playlist=null;this.musicOrder=null;}this.ytEnvelope.cancel();this.ytPendingFade=null;this.ytRampInfo=null;this.releaseYouTubePlayer();const panel=document.getElementById('youtubePanel');if(panel)panel.hidden=true;this.updateMediaSession();this.emit();},
 };
