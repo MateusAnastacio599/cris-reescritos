@@ -79,7 +79,8 @@ export function validateState(s) {
   for(const a of s.audioAssets) {
     identity(a);
     fades(a);
-    if(typeof a.name!=='string'||!['local','upload','youtube'].includes(a.provider)||!['music','ambience','sfx'].includes(a.kind)) throw new Error('Item de áudio inválido.');
+    if(typeof a.name!=='string'||!['local','upload','youtube','spotify'].includes(a.provider)||!['music','ambience','sfx'].includes(a.kind)) throw new Error('Item de áudio inválido.');
+    if(a.provider==='spotify'&&(a.kind!=='music'||!/^spotify:(track|playlist):[a-zA-Z0-9]{22}$/.test(a.spotifyUri||'')))throw new Error('Link Spotify inválido.');
     if(a.provider==='local'&&!/^assets\/audio\/[a-zA-Z0-9_.-]+$/.test(a.src||'')) throw new Error('Caminho de áudio inválido.');
     if(a.youtubeTracks!==undefined&&(!Array.isArray(a.youtubeTracks)||a.youtubeTracks.some(t=>!t||!/^[\w-]{11}$/.test(t.videoId||'')||typeof t.title!=='string'||t.alias!==undefined&&typeof t.alias!=='string')))throw new Error('Lista de vídeos inválida.');
     if(a.provider==='youtube'&&!/^[\w-]{11}$/.test(a.videoId||'')&&!/^[\w-]{10,}$/.test(a.playlistId||'')) throw new Error('Link do YouTube inválido.');
@@ -131,7 +132,7 @@ export async function deleteMedia(id) {const db=await database();return new Prom
 const objectURLs = new Map();
 export async function resolveAsset(asset) {
   if(!asset)throw new Error('Áudio não encontrado na biblioteca.');
-  if(asset.provider==='youtube')return asset;
+  if(['youtube','spotify'].includes(asset.provider))throw new Error('Links de streaming usam o canal de música.');
   if(asset.provider!=='upload')return {...asset,url:asset.src};
   if(!objectURLs.has(asset.id)) {
     const blob=await getMedia(asset.id);if(!blob)throw new Error(`O arquivo de “${asset.name}” não está neste navegador. Importe o backup com áudios.`);

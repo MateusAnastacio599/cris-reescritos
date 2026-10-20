@@ -519,3 +519,30 @@ test('fechar durante o carregamento da API não ressuscita a música',async()=>{
   await new Promise(resolve=>setImmediate(resolve));engine.closeYouTube();release();await playing;
   assert.equal(engine.musicAsset,null);assert.equal(engine.ytReady,false);assert.equal(document.getElementById('youtubePanel').hidden,true);
 });
+
+function fakeSpotify(engine){
+  const calls=[];engine.spotify.ensure=async()=> 'device';engine.spotify.activate=()=>{};
+  engine.spotify.play=async(asset,opts,isCurrent)=>{calls.push(['play',asset.id,opts]);engine.spotify.playing=true;return isCurrent();};
+  engine.spotify.pause=async()=>{calls.push(['pause']);engine.spotify.playing=false;};
+  engine.spotify.setVolume=value=>calls.push(['volume',value]);return calls;
+}
+test('cue Spotify usa o transporte oficial, sem tentar abrir o URI como arquivo',async()=>{
+  const {engine,state}=fixture(),calls=fakeSpotify(engine);const asset={id:'spotify-track',name:'Tensão',provider:'spotify',kind:'music',spotifyUri:'spotify:track:16GSp3rIcIIPrhoTlUxee3'};state.audioAssets.push(asset);
+  engine.fireCue({id:'spotify-cue',name:'A menina',actions:[{type:'music-play',assetId:asset.id,volume:.6,loop:true,fadeIn:10,fadeOut:10}]});
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(engine.musicAsset.id,asset.id);assert.equal(engine.music,null);assert.equal(created.length,0);
+  assert.equal(calls.find(c=>c[0]==='play')[2].loop,true);assert.ok(calls.some(c=>c[0]==='volume'&&Math.abs(c[1]-.8*.7*.6)<1e-10));
+  engine.stop();assert.equal(calls.at(-1)[0],'pause');assert.equal(engine.musicAsset,null);
+});
+test('silêncio durante preparo Spotify impede que a cue antiga toque depois',async()=>{
+  const {engine}=fixture(),calls=fakeSpotify(engine);let release;engine.spotify.ensure=()=>new Promise(resolve=>{release=resolve;});
+  const pending=engine.playMusic({id:'pending-spotify',provider:'spotify',spotifyUri:'spotify:track:16GSp3rIcIIPrhoTlUxee3'});await new Promise(resolve=>setImmediate(resolve));engine.stop();release();await pending;
+  assert.equal(engine.musicAsset,null);assert.equal(calls.some(c=>c[0]==='play'),false);
+});
+test('trocar Spotify por arquivo pausa o player Spotify e mantém transporte local',async()=>{
+  const {engine}=fixture(),calls=fakeSpotify(engine);await engine.playMusic({id:'spotify',provider:'spotify',spotifyUri:'spotify:track:16GSp3rIcIIPrhoTlUxee3'});
+  await engine.playMusic(engine.asset('asset-room'),{fadeIn:0,fadeOut:0});assert.equal(calls.some(c=>c[0]==='pause'),true);assert.equal(engine.musicAsset.id,'asset-room');assert.ok(engine.music);
+});
+test('Spotify não é aceito como efeito ou arquivo de ambiência',async()=>{
+  const {engine}=fixture(),asset={id:'spotify',provider:'spotify',spotifyUri:'spotify:track:16GSp3rIcIIPrhoTlUxee3'};
+  await assert.rejects(()=>engine.oneShot(asset),/canal de música/);
+});
