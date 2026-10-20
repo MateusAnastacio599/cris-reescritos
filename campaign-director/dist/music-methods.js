@@ -27,7 +27,7 @@ export const musicMethods={
       await this.spotify.ensure();if(!isCurrent())return;
       if(this.music){this.dispose(this.music);this.music=null;}for(const track of [...this.retiring])if(track.group==='music')this.dispose(track);
       if(this.yt){this.youtubeHardStopped=true;this.releaseYouTubePlayer();const panel=document.getElementById('youtubePanel');if(panel)panel.hidden=true;}
-      this.musicTargetLevel=opts.volume;const s=this.getState().settings;opts.outputVolume=clamp(s.master)*clamp(s.music)*clamp(s.spotifyVolume??1)*opts.volume;if(!this.spotify.playing)await this.spotify.setVolume(opts.outputVolume);if(!isCurrent())return;
+      this.musicTargetLevel=opts.volume;const s=this.getState().settings;opts.outputVolume=clamp(s.master)*clamp(s.music)*clamp(s.spotifyVolume??1)*opts.volume;if(!this.spotify.audible)await this.spotify.setVolume(opts.outputVolume);if(!isCurrent())return;
       if(!await this.spotify.play(asset,opts,isCurrent)||!isCurrent())return;
     }else if(asset.provider==='youtube'){
       const wasPlaying=this.ytPlaying;
@@ -98,6 +98,7 @@ export const musicMethods={
     try{const value=await resolveAsset(asset);if(generation!==this.preloadEpoch||this.removedAssets.has(asset.id))return;const audio=new Audio(value.url||value.src);audio.preload='auto';audio.load();this.preloadedMusic={assetId:asset.id,audio};}catch{}
   },
   tickMusic(){
+    if(this.musicAsset?.provider==='spotify')this.spotify.tick();
     if(this.paused)return;const opts=this.musicFadeOptions||this.musicOptions();
     if(this.music&&this.playlist&&this.getState().settings.autoAdvance!==false&&!this.music.audio.paused&&!this.music.disposed){
       const remaining=this.music.audio.duration-this.music.audio.currentTime;

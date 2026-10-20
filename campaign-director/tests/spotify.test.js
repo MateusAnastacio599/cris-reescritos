@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {SpotifyAuth,parseSpotify,SPOTIFY_HOME,SPOTIFY_REDIRECT} from '../dist/spotify-auth.js';
 import {SpotifyPlayer} from '../dist/spotify-player.js';
 import {initialState,validateState} from '../dist/storage.js';
+import {planCueActions} from '../dist/cue-actions.js';
 
 const ID='16GSp3rIcIIPrhoTlUxee3',URI='spotify:track:'+ID;
 const storage=()=>{const map=new Map();return {map,getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,String(v)),removeItem:k=>map.delete(k)};};
@@ -144,4 +145,35 @@ test('play durante fade de pausa cancela a pausa antiga e recupera a música',as
   const {player,calls}=readyPlayer();player.playing=true;player.acceptPlayback=true;player.player.getCurrentState=async()=>trackState();
   const pausing=player.pause({fadeOut:.3});await wait(45);await player.resume({fadeIn:.07});assert.equal(await pausing,false);await wait(110);
   assert.equal(calls.includes('pause'),false);assert.ok(calls.includes('resume'));assert.equal(player.level,1);await player.pause();
+});
+
+test('comandos aceitos com HTTP 200 e corpo não JSON não causam falsos erros',async()=>{
+  const player=new SpotifyPlayer({auth:{token:async()=> 'token'},fetcher:async()=>new Response('opaque-command-receipt',{status:200})});
+  for(const path of ['/me/player/play','/me/player/repeat?state=track','/me/player/shuffle?state=true'])assert.equal(await player.api(path,{method:'PUT'}),null);
+  assert.equal(player.lastError,undefined);
+  await assert.rejects(()=>player.api('/me/playlists'),error=>error.message.includes('resposta de dados inválida')&&!error.message.includes('opaque-command-receipt'));
+});
+test('contador avança entre eventos, congela na pausa e ressincroniza após seek',async()=>{
+  let now=1000;const {player}=readyPlayer();player.now=()=>now;player.acceptPlayback=true;
+  player.receiveState({...trackState(),position:10000,duration:60000});now+=2500;assert.equal(player.position(),12500);
+  await player.pause();now+=10000;assert.equal(player.position(),12500);
+  player.pausing=false;player.acceptPlayback=true;player.receiveState({...trackState(),position:40000,duration:60000});now+=1500;assert.equal(player.position(),41500);
+  player.receiveState({...trackState(),position:59000,duration:60000});now+=5000;assert.equal(player.position(),60000);await player.pause();
+});
+test('repetição muda entre off, playlist e faixa e só confirma depois de sucesso',async()=>{
+  const {player,calls}=readyPlayer();player.currentAsset={spotifyUri:'spotify:playlist:'+ID};
+  for(const mode of ['off','context','track']){assert.equal(await player.setRepeatMode(mode),true);assert.equal(player.repeatMode,mode);assert.ok(calls.some(c=>c?.path?.endsWith('state='+mode)));}
+  player.api=async()=>{throw Error('Sem acesso');};await assert.rejects(()=>player.setRepeatMode('off'));assert.equal(player.repeatMode,'track');
+  player.acceptPlayback=true;player.receiveState({...trackState(),repeat_mode:1});assert.equal(player.repeatMode,'context');await player.pause();
+});
+test('planejar cue unifica stop/play simultâneos preservando efeitos, atrasos e zero explícito',()=>{
+  const cue=[{type:'music-stop',duration:1.2,delay:0},{type:'music-play',assetId:'music',delay:0},{type:'play',assetId:'door',delay:0},{type:'music-stop',duration:2,delay:5}],snapshot=structuredClone(cue);
+  const planned=planCueActions(cue);assert.equal(planned.length,3);assert.equal(planned[0].fadeOut,1.2);assert.equal(planned[1].assetId,'door');assert.equal(planned[2].delay,5);assert.deepEqual(cue,snapshot);
+  assert.equal(planCueActions([{type:'music-stop',duration:1},{type:'music-play',fadeOut:0}])[0].fadeOut,0);
+});
+test('uma cue nova mantém o fade de saída mesmo ao substituir uma pausa em andamento',async()=>{
+  const {player,calls}=readyPlayer();player.acceptPlayback=true;player.playing=true;player.state=trackState();player.currentAsset={spotifyUri:URI};
+  const pause=player.pause({fadeOut:.3});await wait(45);const replacing=player.play({spotifyUri:'spotify:track:4zk4CEKBTw5n5J7wSd4Zf8'},{fadeIn:.07,fadeOut:.14});await wait(40);
+  assert.equal(calls.some(c=>c?.path?.includes('/play?')),false);assert.equal(await pause,false);
+  await replacing;assert.ok(calls.some(c=>c?.path?.includes('/play?')));await player.pause();
 });

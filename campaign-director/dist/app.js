@@ -106,6 +106,7 @@ function updateAudioUI(){
   if(spotifyTrack)$('#dockContext').innerHTML='<span class="spotify-source-link"><img src="assets/spotify-icon.png" alt=""> Spotify</span>';
   $('#dockTitle').textContent=spotifyTrack?.name||(engine.musicAsset?.provider==='youtube'?engine.currentYouTubeTitle:null)||engine.musicAsset?.name||engine.active?.scene.title||engine.ambiences.active?.name||'Dê vida à sua próxima cena';
   $('#dockSubtitle').textContent=spotifyTrack?'Spotify · '+((spotifyTrack.artists||[]).map(a=>a.name).join(', ')||engine.musicAsset.artists||'Premium'):engine.active?.pageTitle||engine.musicAsset&&'Biblioteca de áudio'||'Áudio permanece ativo durante a navegação';
+  const repeatMode=engine.spotify.repeatMode,repeatLabel={off:'Repetição desativada',context:'Repetir playlist',track:'Repetir esta música'}[repeatMode]||'Repetição desativada';$('#spotifyRepeat').innerHTML=icon('repeat')+(repeatMode==='track'?'<span aria-hidden="true">1</span>':'');$('#spotifyRepeat').dataset.mode=repeatMode;$('#spotifyRepeat').title=repeatLabel+' · clique para alternar';$('#spotifyRepeat').setAttribute('aria-label',repeatLabel+' · clique para alternar');$('#spotifyRepeat').setAttribute('aria-pressed',String(repeatMode!=='off'));
   $('#spotifyVolumeControl').hidden=!spotifyTrack;$('#spotifyVolume').value=Math.round((state.settings.spotifyVolume??1)*100);$('#spotifyVolumeValue').textContent=$('#spotifyVolume').value+'%';$('#audioDock').classList.toggle('has-spotify',!!spotifyTrack);document.body.classList.toggle('spotify-dock-active',!!spotifyTrack);
   $('#masterVolume').value=state.settings.master*100;$('#audioReady').innerHTML=`<i class="${active?'playing':''}"></i> ${active?'Áudio em execução':engine.paused?'Áudio pausado':'Motor de áudio pronto'}`;
   $('#dockPrevious').disabled=engine.musicAsset?.provider!=='spotify'&&!engine.playlist&&!engine.musicAsset?.playlistId;$('#dockNext').disabled=$('#dockPrevious').disabled;
@@ -116,7 +117,7 @@ function updateAudioUI(){
   if($('#mixerLiveRows'))renderMixerRows();
 }
 function updateTick(){
-  const time=engine.currentTime();$('#dockTime').textContent=formatTime(engine.musicAsset?.provider==='spotify'?(engine.spotify.state?.position||0)/1000:time);
+  const time=engine.currentTime();$('#dockTime').textContent=formatTime(engine.musicAsset?.provider==='spotify'?engine.spotify.position()/1000:time);
   if(!$('#sceneTimer'))return;const same=engine.active?.key===locationForScene().key;
   $('#sceneTimer').textContent=formatTime(same?time:0);
   $$('[data-timeline]').forEach(row=>row.classList.toggle('done',same&&engine.fired.has(Number(row.dataset.timeline))));
@@ -208,6 +209,7 @@ $('#sessionMode').onclick=()=>{persist();state.ui.sessionMode=!state.ui.sessionM
 $('#dockPlay').onclick=()=>{if(engine.active||engine.musicAsset||engine.tracks.size||engine.ambiences.active)engine.toggleTransport();else playSelected();};$('#dockPrevious').onclick=()=>engine.nextMusic(-1);$('#dockNext').onclick=()=>engine.nextMusic(1);$('#dockStop').onclick=()=>engine.stop();$('#openMixer').onclick=openMixer;$('#closeYoutube').onclick=()=>engine.closeYouTube();
 setupYouTubeWindow({panel:$('#youtubePanel'),dock:$('#audioDock'),moveButton:$('#moveYoutube'),sizeButton:$('#sizeYoutube'),getCompact:()=>state.settings.youtubeCompact!==false,setCompact:value=>{state.settings.youtubeCompact=value;autosave();}});
 $('#spotifyVolume').oninput=e=>{state.settings.spotifyVolume=Number(e.target.value)/100;engine.applySpotifyVolume();$('#spotifyVolumeValue').textContent=e.target.value+'%';autosave();};
+$('#spotifyRepeat').onclick=async()=>{const button=$('#spotifyRepeat'),modes=['off','context','track'],mode=modes[(modes.indexOf(engine.spotify.repeatMode)+1)%3];button.disabled=true;try{if(await engine.spotify.setRepeatMode(mode)){if(engine.musicFadeOptions)engine.musicFadeOptions.loop=mode!=='off';updateAudioUI();}}catch(error){toast(error.message,true);}finally{button.disabled=false;}};
 $('#spotifyFadeSettings').onclick=()=>library.spotify.open();
 $('#masterVolume').oninput=e=>{engine.setMix('master',Number(e.target.value)/100);autosave();};
 engine.addEventListener('change',()=>{updateAudioUI();if(state.ui.view==='library')library.renderRows();});engine.addEventListener('tick',updateTick);engine.addEventListener('error',e=>toast(e.detail.message,true));
