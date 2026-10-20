@@ -27,6 +27,17 @@ As edições são locais a cada navegador/origem, sem sincronização automátic
 
 Novos módulos: `audio-fades.js` (envelope dos efeitos, sem timers) e `fade-ui.js` (controles compartilhados). O motor e a interface permanecem independentes para a futura integração ao CRIS.
 
+## Atualização 3.6.0 — conta e preparação da importação
+
+- Conta e nuvem na barra lateral: cadastro por e-mail e senha, login, recuperação de senha e saída apenas desta sessão.
+- Sessão Supabase separada dos dados do Director. Entrar ou sair não importa, apaga ou substitui roteiros/áudios.
+- Conferência manual do conteúdo local, com inventário de campanhas, páginas, cenas, cues, playlists, ambientes, referências YouTube e arquivos do IndexedDB. Arquivos ausentes ou vazios impedem o estado pronto.
+- A conferência autentica o usuário com Auth e consulta campanhas via Data API, mas não envia conteúdo ou arquivos. Importação e sincronização permanecem para a próxima etapa.
+- Cliente oficial Supabase 2.118.0 e esbuild 0.28.2 fixados no package-lock.json; SDK empacotado em dist/vendor/supabase.js, sem CDN em tempo de execução. Recriar com npm ci && npm run build:vendor.
+- 128 testes aprovados. SDK local importado e Data API testada: acesso sem login retorna 401. Login real, entrega de e-mail e navegação no celular ainda dependem do teste com a conta do usuário; não houve teste visual automatizado neste ambiente.
+
+Antes de testar cadastro/recuperação no projeto Supabase, em Authentication > URL Configuration, conferir Site URL e Redirect URLs para https://cris-campaign-director-v3.mateusfernando599.chatgpt.site/ . Esta configuração não é alterada pelo aplicativo. Manter confirmação de e-mail ativada. A chave em cloud-config.js é pública; autorização depende de RLS, não de esconder essa chave. Nenhuma chave secreta está no código.
+
 ## Atualização 3.5.1 — repetição musical e volume no replay
 
 - Faixas musicais individuais repetem por padrão até trocar/encerrar, inclusive em cues existentes. O controle **Repetir a música** em cues, cenas e trilhas de ambiente permite tocar uma vez. Playlists preservam sua sequência e seu modo aleatório; efeitos sonoros continuam tocando uma vez.
