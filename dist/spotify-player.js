@@ -1,4 +1,5 @@
 import {SpotifyAuth,parseSpotify} from './spotify-auth.js';
+import {VolumeEnvelope} from './volume-envelope.js';
 const clamp=value=>Math.max(0,Math.min(1,Number(value)||0));
 let sdkPromise;
 function loadSDK(){
@@ -12,7 +13,22 @@ function loadSDK(){
 }
 /** Transporte oficial, separado do Web Audio e dos arquivos locais. */
 export class SpotifyPlayer extends EventTarget{
-  constructor({auth=new SpotifyAuth(),fetcher=(...args)=>fetch(...args),sdk=loadSDK}={}){super();Object.assign(this,{auth,fetcher,sdk});this.operation=0;this.playing=false;this.acceptPlayback=false;this.queue=Promise.resolve();this.volume=1;}
+  constructor({auth=new SpotifyAuth(),fetcher=(...args)=>fetch(...args),sdk=loadSDK}={}){super();Object.assign(this,{auth,fetcher,sdk});this.operation=0;this.playing=false;this.acceptPlayback=false;this.queue=Promise.resolve();this.volume=1;this.level=1;this.envelope=new VolumeEnvelope(()=>this.level,value=>{this.level=value;this.writeVolume();});}
+  cancelFade(){this.envelope.cancel();this.pendingFade=null;}
+  async writeVolume(){
+    this.volumeWanted=clamp(this.volume*this.level);
+    if(this.volumeWriting)return this.volumeWriting;
+    const player=this.player;if(!player)return;
+    this.volumeWriting=(async()=>{
+      while(this.volumeWanted!==undefined&&this.player===player){const value=this.volumeWanted;this.volumeWanted=undefined;await player.setVolume(value);}
+    })().catch(()=>this.fail('Não foi possível ajustar o volume Spotify.')).finally(()=>{this.volumeWriting=null;if(this.volumeWanted!==undefined&&this.player===player)return this.writeVolume();});
+    return this.volumeWriting;
+  }
+  beginFadeIn(seconds,operation,uri=null){this.pendingFade={seconds,operation,uri};this.fadeIfPlaying();}
+  fadeIfPlaying(){
+    const pending=this.pendingFade;if(!pending||pending.operation!==this.operation||!this.acceptPlayback||this.state?.paused!==false||pending.uri&&this.track?.uri!==pending.uri)return;
+    this.pendingFade=null;this.envelope.fade(1,pending.seconds,()=>pending.operation===this.operation&&this.acceptPlayback);
+  }
   emit(){this.dispatchEvent(new Event('change'));}
   fail(message){this.lastError=message;this.emit();}
   async api(path,{method='GET',body,retry=true}={}){
@@ -62,20 +78,22 @@ export class SpotifyPlayer extends EventTarget{
     if(!state){this.playing=false;this.emit();return;}
     if(!this.acceptPlayback){if(!state.paused)this.player?.pause().catch(()=>{});return;}
     const previous=this.state;this.state=state;this.playing=!state.paused;this.lastError=null;
-    this.track=state.track_window?.current_track||null;this.emit();
+    this.track=state.track_window?.current_track||null;this.playing=this.playing&&!this.pausing;this.fadeIfPlaying();this.emit();
     if(this.expectEnd&&previous&&!previous.paused&&previous.position>0&&state.paused&&state.position===0){this.expectEnd=false;this.dispatchEvent(new Event('ended'));}
   }
   async play(asset,options={},isCurrent=()=>true){
-    const operation=++this.operation;this.activate();const parsed=parseSpotify(asset.spotifyUri);
+    const operation=++this.operation;this.cancelFade();this.pausing=false;this.activate();const parsed=parseSpotify(asset.spotifyUri);
     // ensure usa a geração atual; parar ou uma cue posterior invalida o preparo.
     const device=await this.ensure();if(operation!==this.operation||!isCurrent())return false;
+    if(this.playing&&this.level>0){if(!await this.envelope.fade(0,options.fadeOut??0,()=>operation===this.operation&&isCurrent()))return false;}
+    this.volume=clamp(options.outputVolume??this.volume);this.level=0;await this.writeVolume();if(operation!==this.operation||!isCurrent())return false;
     const body=parsed.type==='playlist'?{context_uri:parsed.uri,position_ms:Math.max(0,Math.floor((options.startSeconds||0)*1000)),...(!asset.shuffle?{offset:{position:options.index??options.youtubeIndex??0}}:Number.isInteger(asset.spotifyCount)&&asset.spotifyCount>0?{offset:{position:Math.floor(Math.random()*asset.spotifyCount)}}:{})}:{uris:[parsed.uri],position_ms:Math.max(0,Math.floor((options.startSeconds||0)*1000))};
     return this.enqueue(async()=>{
       if(operation!==this.operation||!isCurrent())return false;
       this.acceptPlayback=true;this.expectEnd=!!options.playlist;this.lastError=null;
-      await this.api('/me/player/play?device_id='+encodeURIComponent(device),{method:'PUT',body});
+      this.state=null;await this.api('/me/player/play?device_id='+encodeURIComponent(device),{method:'PUT',body});
       if(operation!==this.operation||!isCurrent())return false;
-      this.currentAsset=asset;this.emit();
+      this.currentAsset=asset;this.beginFadeIn(options.fadeIn??0,operation,parsed.type==='track'?parsed.uri:null);await this.refreshState(operation);this.emit();
       try{
         await this.api('/me/player/repeat?device_id='+encodeURIComponent(device)+'&state='+(options.playlist||options.loop===false?'off':parsed.type==='playlist'?'context':'track'),{method:'PUT'});
         if(operation===this.operation&&isCurrent())await this.api('/me/player/shuffle?device_id='+encodeURIComponent(device)+'&state='+(parsed.type==='playlist'&&asset.shuffle===true),{method:'PUT'});
@@ -83,10 +101,26 @@ export class SpotifyPlayer extends EventTarget{
       return operation===this.operation&&isCurrent();
     });
   }
-  setVolume(value){this.volume=clamp(value);if(this.player)return this.player.setVolume(this.volume).catch(()=>this.fail('Não foi possível ajustar o volume Spotify.'));}
-  async pause(){this.operation++;this.acceptPlayback=false;this.playing=false;this.emit();return this.enqueue(()=>this.player?.pause());}
-  async resume(){this.activate();const operation=++this.operation;await this.ensure();return this.enqueue(async()=>{if(operation!==this.operation)return;this.acceptPlayback=true;await this.player.resume();});}
-  next(offset=1){return this.enqueue(()=>offset<0?this.player?.previousTrack():this.player?.nextTrack());}
+  setVolume(value){this.volume=clamp(value);return this.writeVolume();}
+  async pause({fadeOut=0}={}){
+    const operation=++this.operation;this.cancelFade();const audible=this.playing;this.pausing=true;this.playing=false;this.emit();
+    if(audible&&this.level>0&&!await this.envelope.fade(0,fadeOut,()=>operation===this.operation))return false;
+    if(operation!==this.operation)return false;
+    this.acceptPlayback=false;this.level=0;await this.writeVolume();
+    return this.enqueue(()=>{if(operation===this.operation)return this.player?.pause();});
+  }
+  async resume({fadeIn=0}={}){
+    this.activate();const operation=++this.operation;this.cancelFade();this.pausing=false;await this.ensure();if(operation!==this.operation)return false;
+    this.level=0;await this.writeVolume();return this.enqueue(async()=>{if(operation!==this.operation)return false;this.acceptPlayback=true;this.state=null;await this.player.resume();if(operation===this.operation){this.beginFadeIn(fadeIn,operation);await this.refreshState(operation);}});
+  }
+  async next(offset=1,{fadeIn=0,fadeOut=0}={}){
+    const operation=++this.operation;this.cancelFade();this.pausing=false;this.activate();
+    if(this.playing&&this.level>0&&!await this.envelope.fade(0,fadeOut,()=>operation===this.operation))return false;
+    if(operation!==this.operation)return false;this.level=0;await this.writeVolume();
+    return this.enqueue(async()=>{if(operation!==this.operation)return false;this.acceptPlayback=true;this.state=null;if(offset<0)await this.player?.previousTrack();else await this.player?.nextTrack();if(operation===this.operation){this.beginFadeIn(fadeIn,operation);await this.refreshState(operation);}});
+  }
+  async refreshState(operation){if(this.player?.getCurrentState){const state=await this.player.getCurrentState();if(operation===this.operation&&state)this.receiveState(state);}}
+  async privateSession(){const state=await this.api('/me/player');return this.deviceId&&state?.device?.id===this.deviceId&&typeof state.device.is_private_session==='boolean'?state.device.is_private_session:null;}
   repeat(enabled){if(!this.deviceId||!this.currentAsset)return Promise.resolve();const asset=this.currentAsset;return this.enqueue(()=>{if(this.currentAsset!==asset)return;return this.api('/me/player/repeat?device_id='+encodeURIComponent(this.deviceId)+'&state='+(enabled?(parseSpotify(asset.spotifyUri).type==='playlist'?'context':'track'):'off'),{method:'PUT'});});}
-  disconnect(){this.connectionGeneration=(this.connectionGeneration||0)+1;this.operation++;this.cancelInit?.();this.cancelInit=null;this.player?.disconnect();this.player=null;this.deviceId=null;this.initializing=null;this.acceptPlayback=false;this.playing=false;this.state=null;this.track=null;this.currentAsset=null;this.auth.disconnect();this.lastError=null;this.emit();}
+  disconnect(){this.cancelFade();this.connectionGeneration=(this.connectionGeneration||0)+1;this.operation++;this.cancelInit?.();this.cancelInit=null;this.player?.disconnect();this.player=null;this.deviceId=null;this.initializing=null;this.acceptPlayback=false;this.playing=false;this.state=null;this.track=null;this.currentAsset=null;this.auth.disconnect();this.lastError=null;this.emit();}
 }
