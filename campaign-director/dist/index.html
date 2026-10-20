@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101014">
+  <meta name="description" content="Seu roteiro, suas cenas e a atmosfera da sessão. CRIS Campaign Director V3, uma mesa de direção independente para mestres de RPG.">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>CRIS · Campaign Director V3</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231c172b'/%3E%3Cpath d='M42 20a18 18 0 1 0 0 24' fill='none' stroke='%23b6a1f5' stroke-width='5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="director.css">
+  <link rel="stylesheet" href="audio-tools.css">
+  <link rel="stylesheet" href="editor-tools.css">
+</head>
+<body>
+  <div class="sidebar-scrim" id="sidebarScrim"></div>
+  <aside class="sidebar" id="sidebar" aria-label="Campanhas e páginas">
+    <a class="brand" href="#" id="homeBrand"><span class="brand-mark">C<span>·</span></span><span><strong>C.R.I.S.</strong><small>CAMPAIGN DIRECTOR <b>V3</b></small></span></a>
+    <div class="workspace-label">ESPAÇO DO MESTRE <span class="private-badge">PRIVADO</span></div>
+    <div class="campaign-switch-wrap"><select id="campaignSwitch" aria-label="Selecionar campanha"></select><button class="icon-btn" id="manageCampaigns" title="Gerenciar campanhas" aria-label="Gerenciar campanhas"></button></div>
+    <button class="nav-item" id="openSearch"></button>
+    <button class="nav-item" id="openLibrary"></button>
+    <button class="nav-item" id="openAmbiences"></button>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">PÁGINAS DA CAMPANHA <button class="icon-btn" id="newPage" title="Nova página" aria-label="Nova página"></button></div>
+    <nav class="page-tree" id="pageTree" aria-label="Páginas"></nav>
+    <button class="new-page-button" id="newPageBottom"></button>
+    <div class="sidebar-bottom"><div class="save-status" id="saveStatus"><i></i><span>Todas as alterações salvas</span></div><button id="openBackups" class="nav-item"></button><small>Seu universo. Sob seu controle.</small></div>
+  </aside>
+  <div class="main-shell">
+    <header class="topbar">
+      <div class="topbar-left"><button class="icon-btn menu-toggle" id="menuToggle" aria-label="Abrir navegação"></button><span class="breadcrumbs" id="breadcrumbs"></span></div>
+      <div class="topbar-actions"><span class="audio-ready" id="audioReady"><i></i> Motor de áudio pronto</span><button class="btn subtle" id="sessionMode"></button><button class="icon-btn" id="helpButton" title="Ajuda e atalhos" aria-label="Ajuda e atalhos"></button></div>
+    </header>
+    <main id="workspace" class="workspace"></main>
+  </div>
+  <footer class="audio-dock" id="audioDock" aria-label="Player persistente">
+    <div class="dock-track"><div class="track-art" id="dockArtwork"></div><div class="dock-track-text"><small id="dockContext">A MESA ESTÁ PRONTA</small><strong id="dockTitle">Dê vida à sua próxima cena</strong><span id="dockSubtitle">Áudio permanece ativo durante a navegação</span></div></div>
+    <div class="dock-transport"><button class="icon-btn" id="dockPrevious" aria-label="Faixa anterior" title="Faixa anterior"></button><button class="transport-play" id="dockPlay" aria-label="Reproduzir cena" title="Reproduzir ou pausar"></button><button class="icon-btn" id="dockNext" aria-label="Próxima faixa" title="Próxima faixa"></button><span class="dock-time" id="dockTime">00:00</span><button class="icon-btn dock-stop" id="dockStop" aria-label="Parar todo o áudio" title="Parar todo o áudio"></button></div>
+    <div class="dock-right"><span class="engine-badge"><i></i> PERSISTENTE</span><div class="master-volume"><span id="volumeIcon"></span><input type="range" id="masterVolume" min="0" max="100" value="80" aria-label="Volume geral"></div><button class="btn mixer-open" id="openMixer"></button></div>
+  </footer>
+  <aside id="youtubePanel" class="youtube-panel" hidden aria-label="Player do YouTube"><header><span>YouTube <small>CANAL DE MÚSICA</small></span><div class="youtube-window-actions"><button id="moveYoutube" class="icon-btn" title="Mover player para o outro lado" aria-label="Mover player para o outro lado">↔</button><button id="sizeYoutube" class="icon-btn" title="Alternar tamanho compacto" aria-label="Alternar tamanho compacto">↗</button><button id="closeYoutube" class="icon-btn" aria-label="Parar e fechar YouTube">×</button></div></header><div id="youtubePlayer"></div><small class="youtube-hint">Use os controles do vídeo para liberar a reprodução.</small></aside>
+  <dialog id="appDialog" class="app-dialog"><form id="modalForm"><header class="dialog-head"><h2 id="dialogTitle"></h2><button type="button" id="closeDialog" class="icon-btn" aria-label="Fechar">×</button></header><div class="dialog-body" id="dialogBody"></div><div id="dialogError" class="form-error" role="alert" hidden></div><footer class="dialog-footer" id="dialogFooter"></footer></form></dialog>
+  <div id="toastRegion" class="toast-region" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript">Ative o JavaScript para usar o editor e o motor de áudio do CRIS.</p></noscript>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

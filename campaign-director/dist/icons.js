@@ -1,0 +1,28 @@
+const paths={
+  code:'m8 5-7 7 7 7m8-14 7 7-7 7',
+  menu:'M4 6h16M4 12h16M4 18h16',search:'m21 21-4.4-4.4M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
+  plus:'M12 5v14M5 12h14',chevron:'m9 5 7 7-7 7',down:'m6 9 6 6 6-6',arrow:'M5 12h14m-6-6 6 6-6 6',
+  file:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Zm0 0v6h6M8 13h8M8 17h5',
+  book:'M4 3h14a2 2 0 0 1 2 2v16H6a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Zm0 14h16M7 7h8M7 11h5',
+  music:'M9 18V5l12-2v13M9 9l12-2M9 18a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3Zm12-2a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3Z',
+  headphones:'M3 14v-3a9 9 0 0 1 18 0v3M3 13h4v8H4a1 1 0 0 1-1-1Zm18 0h-4v8h3a1 1 0 0 0 1-1Z',
+  sliders:'M4 21v-7m0-4V3m8 18V11m0-4V3m8 18v-4m0-4V3M1 14h6m2-7h6m2 10h6',
+  play:'m8 4 12 8-12 8Z',pause:'M8 5v14M16 5v14',stop:'M6 6h12v12H6Z',
+  shuffle:'M18 3h3v3M3 18l6-6M3 6l4 4m6-4 8-3M10 13l4 5h7m-3-3 3 3-3 3M9 12l5-6h7',
+  skip:'m5 4 10 8-10 8ZM19 4v16',previous:'m19 4-10 8 10 8ZM5 4v16',
+  volume:'m11 4-6 5H2v6h3l6 5ZM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14',
+  edit:'m16 3 5 5L8 21H3v-5ZM14 5l5 5',link:'M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2',
+  settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM10 2h4l1 3 3 1 3 2v4l-2 2-1 3-2 3h-4l-2-2-3-1-3-2v-4l2-2 1-3Z',
+  more:'M5 12h.01M12 12h.01M19 12h.01',close:'m6 6 12 12M6 18 18 6',check:'m5 12 4 4L19 6',
+  folder:'M3 5h6l2 2h10v13H3Z',upload:'M12 16V3m-5 5 5-5 5 5M3 16v5h18v-5',download:'M12 3v13m-5-5 5 5 5-5M3 17v4h18v-4',
+  cloud:'M7 18a5 5 0 0 1-1-10 6 6 0 0 1 11-2 6 6 0 0 1 1 12Z',bell:'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',
+  rain:'M7 13a4 4 0 1 1 0-8 5 5 0 0 1 9 0 4 4 0 1 1 1 8M8 17l-1 3m6-3-1 3m6-3-1 3',
+  bolt:'m13 2-9 12h7l-1 8 10-13h-7Z',clock:'M12 7v5l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
+  eye:'M2 12s4-8 10-8 10 8 10 8-4 8-10 8S2 12 2 12Zm10-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
+  trash:'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',copy:'M9 9h12v12H9ZM4 15H2V2h13v2',
+  external:'M14 3h7v7M21 3l-9 9M10 3H3v18h18v-7',grid:'M3 3h7v7H3Zm11 0h7v7h-7ZM3 14h7v7H3Zm11 0h7v7h-7Z',
+  shield:'m12 2 9 4v6c0 6-9 10-9 10S3 18 3 12V6ZM8 12l3 3 5-6',grip:'M8 4h.01M16 4h.01M8 12h.01M16 12h.01M8 20h.01M16 20h.01',
+  youtube:'M9 8v8l7-4ZM3 5c6-1 12-1 18 0 1 4 1 10 0 14-6 1-12 1-18 0-1-4-1-10 0-14Z',
+  list:'M9 5h12M9 12h12M9 19h12M3 5h.01M3 12h.01M3 19h.01',info:'M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z'
+};
+export function icon(name,cls=''){return `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name]||paths.file}"/></svg>`;}
