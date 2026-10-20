@@ -29,27 +29,27 @@ test('conferência usa uma cópia consistente mesmo se o texto muda durante a le
   const r=await inspectLocalWorkspace(state,{readMedia:async()=>{state.audioAssets.push({id:'second',name:'Segundo',provider:'upload',kind:'sfx'});return new Blob(['x']);}});assert.equal(r.files.length,1);assert.equal(state.audioAssets.length,8);
 });
 function fixture(){
-  const user={id:'owner',email:'gm@example.test'},calls=[];let callback;
-  const client={auth:{onAuthStateChange:cb=>{callback=cb;return {data:{subscription:{unsubscribe(){}}}};},getSession:async()=>({data:{session:null}}),signInWithPassword:async args=>{calls.push(['signin',args]);return {data:{user,session:{user}}};},signUp:async()=>({data:{user,session:null}}),signOut:async args=>{calls.push(['signout',args]);return {};},getUser:async()=>({data:{user}}),resetPasswordForEmail:async()=>({}),updateUser:async()=>({})},from:()=>{calls.push(['database']);return {select:async()=>({count:2})};}};
+  const user={id:'owner'},calls=[];let callback;
+  const client={auth:{onAuthStateChange:cb=>{callback=cb;return {data:{subscription:{unsubscribe(){}}}};},getSession:async()=>({data:{session:null}}),setSession:async args=>{calls.push(['setSession',args]);return {data:{user,session:{user}}};},signOut:async args=>{calls.push(['signout',args]);return {};},getUser:async()=>({data:{user}})},functions:{invoke:async(name,{body})=>{calls.push(['function',body.action]);return {data:{session:{access_token:'token',refresh_token:'refresh'},account:{username:'mateus',is_operator:true}}};}},from:()=>{calls.push(['database']);return {select:async()=>({count:2})};}};
   return {user,calls,client,emit:(event,session)=>callback(event,session)};
 }
 test('entrar e sair não importam dados nem acessam tabelas; logout é só desta sessão',async()=>{
   const f=fixture(),account=new DirectorAccount(async()=>f.client);await account.init();await account.signIn(' gm@example.test ','password');assert.equal(account.user.id,'owner');assert.equal(f.calls.some(c=>c[0]==='database'),false);
   await account.signOut();assert.equal(account.user,null);assert.deepEqual(f.calls.at(-1),['signout',{scope:'local'}]);
 });
-test('cadastro que exige confirmação não é exibido como conta conectada',async()=>{
-  const f=fixture(),a=new DirectorAccount(async()=>f.client);await a.signUp('gm@example.test','password','https://example.test');assert.equal(a.user,null);
+test('gerenciamento de contas usa endpoint autenticado, sem cadastro público',async()=>{
+ const f=fixture(),a=new DirectorAccount(async()=>f.client);await a.createAccount('amigo','password123');assert.deepEqual(f.calls,[['function','create']]);assert.equal(a.user,null);assert.equal(typeof a.signUp,'undefined');
 });
 test('conferência remota valida usuário com Auth antes de consultar campanhas',async()=>{
   const f=fixture(),a=new DirectorAccount(async()=>f.client);const result=await a.checkConnection();assert.equal(result.campaigns,2);
   f.calls.length=0;f.client.auth.getUser=async()=>({data:{user:null},error:new Error('Session revoked')});await assert.rejects(()=>a.checkConnection(),/Session revoked/);assert.equal(f.calls.length,0);
 });
 test('falha de autenticação não troca a conta atual nem parece sucesso',async()=>{
-  const f=fixture(),a=new DirectorAccount(async()=>f.client);f.client.auth.signInWithPassword=async()=>({error:new Error('Denied')});await assert.rejects(()=>a.signIn('gm@example.test','bad'),/Denied/);assert.equal(a.user,null);
+  const f=fixture(),a=new DirectorAccount(async()=>f.client);f.client.functions.invoke=async()=>({error:{context:{json:async()=>({code:'invalid_credentials'})}}});await assert.rejects(()=>a.signIn('mateus','bad'),e=>e.code==='invalid_credentials');assert.equal(a.user,null);
 });
 test('eventos da sessão não fazem consultas assíncronas dentro do callback Auth',async()=>{
-  const f=fixture(),a=new DirectorAccount(async()=>f.client);await a.init();let notified=false;a.addEventListener('change',()=>{notified=true;});f.emit('PASSWORD_RECOVERY',{user:f.user});assert.equal(notified,false);assert.equal(a.recovering,true);await new Promise(resolve=>setTimeout(resolve,5));assert.equal(notified,true);assert.equal(f.calls.length,0);
+  const f=fixture(),a=new DirectorAccount(async()=>f.client);await a.init();let notified=false;a.addEventListener('change',()=>{notified=true;});f.emit('TOKEN_REFRESHED',{user:f.user});assert.equal(notified,false);await new Promise(resolve=>setTimeout(resolve,5));assert.equal(notified,true);assert.equal(f.calls.length,0);
 });
 test('erros de conta e tamanho de arquivos são legíveis',()=>{
-  assert.match(accountError({code:'email_not_confirmed'}),/Confirme/);assert.match(accountError({code:'email_address_not_authorized'}),/configurado/);assert.match(accountError({message:'Failed to fetch'}),/dados locais/);assert.equal(formatBytes(1024),'1 KB');assert.equal(formatBytes(1024**2),'1 MB');
+  assert.match(accountError({code:'invalid_credentials'}),/Usuário/);assert.match(accountError({code:'forbidden'}),/mestre/);assert.match(accountError({message:'Failed to fetch'}),/dados locais/);assert.equal(formatBytes(1024),'1 KB');assert.equal(formatBytes(1024**2),'1 MB');
 });
