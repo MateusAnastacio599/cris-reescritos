@@ -222,4 +222,4 @@ window.addEventListener('error',e=>{console.error('CRIS runtime error:',e.error)
 normalizeSelection();renderApp();
 if(recoveryError)openForm({title:'Recuperar seus dados',body:'<p class="dialog-description">Os dados salvos neste navegador não puderam ser lidos. Eles foram preservados. Você pode baixar o conteúdo para recuperação ou restaurar um backup válido.</p><button type="button" class="btn outline full" id="downloadRecovery">Baixar os dados preservados</button><button type="button" class="btn primary full" id="recoveryImport">Importar um backup</button>',onReady:root=>{$('#downloadRecovery',root).onclick=()=>downloadBlob(new Blob([localStorage.getItem(STORAGE_KEY)||''],{type:'application/json'}),'CRIS-dados-recuperacao.json');$('#recoveryImport',root).onclick=openBackups;}});
 else persist();
-new CloudUI({state:()=>state,persist,blocked:()=>!!recoveryError,backups:openBackups});
+new CloudUI({state:()=>state,persist,blocked:()=>!!recoveryError,backups:openBackups,restore:next=>{engine.stop();state=next;editing=false;commit(true);}});

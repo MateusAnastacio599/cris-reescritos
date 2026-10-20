@@ -27,6 +27,18 @@ As edições são locais a cada navegador/origem, sem sincronização automátic
 
 Novos módulos: `audio-fades.js` (envelope dos efeitos, sem timers) e `fade-ui.js` (controles compartilhados). O motor e a interface permanecem independentes para a futura integração ao CRIS.
 
+## Atualização 3.7.0 — CRIS integrado e dados privados no Supabase
+
+- Importação real concluída do backup de 20/10: 1 campanha, 2 páginas, 6 cenas, 33 itens de áudio, 3 playlists, 4 ambientes e 5 cues compostas. Os 23 arquivos (51.555.008 bytes) foram enviados ao bucket privado e lidos de volta com verificação SHA-256. A cópia JSON original ficou preservada em director_backups; o estado canônico em director_workspaces é igual ao original importado.
+- Director permite abrir a cópia do Supabase e salvar alterações manualmente. A abertura verifica os áudios antes de aplicar o estado e preserva o JSON local anterior em cris-campaign-director:v3:before-cloud-load. Arquivo local com o mesmo ID e conteúdo divergente bloqueia a abertura. O salvamento envia arquivos novos, lê de volta e verifica hash; só depois confirma a revisão. Não há sincronização automática de texto em tempo real.
+- director_workspaces é a fonte da edição corrente. As tabelas normalizadas existentes registram a importação inicial e ficam como base para evoluir os serviços de cenas/biblioteca; o editor atual não deve ser reconstruído a partir delas após novas edições do workspace.
+- Preview completo do CRIS em dist/cris/ usa o código existente, com o motor ativo quadro-cris-v7, LUME e assets preservados. integration-main/ contém as alterações portáveis para a raiz do repositório principal; a única diferença de caminho do preview está em integration-bridge.js.
+- Credenciais antigas removidas do login principal e dos três motores do quadro. Nomes, identidade e acesso de mestre vêm do backend. Criadas as contas iris, andre, matias, celine e convidado com seus perfis de agente e associação à campanha. O administrador mateus preservou UUID/senha. Novas senhas dos amigos devem ser definidas pelo mestre em Conta e nuvem; não foram reaproveitadas as credenciais públicas antigas.
+- Fichas mantêm todas as regras e campos personalizados, com acesso por usuário e campanha. Salvamento compara revisão e preserva cópia local por UUID de usuário. A ficha antiga sem dono permanece local e só é vinculada por ação explícita do usuário. Rascunhos do assistente de criação permanecem locais. O mestre pode consultar fichas pela permissão de banco; a interface atual ainda mostra a própria ficha.
+- Quadro mantém PeerJS/WebRTC e objetos interativos. Mestre pode salvar um snapshot privado no banco pelo botão SALVAR NA NUVEM; outro dispositivo carrega o snapshot quando não tem quadro local. O quadro local tem preferência e não é apagado automaticamente. Não é ainda uma substituição do transporte PeerJS por Realtime autenticado. Os binários de itens ocultos foram filtrados do snapshot inicial enviado a jogadores. Jogadores podem abrir sua própria ficha dentro do quadro.
+- A importação no servidor usou autorização temporária; o endpoint de importação foi desativado após a conclusão. Nenhum backup pessoal, áudio adicionado, senha ou chave administrativa foi incluído no GitHub.
+- Validação: 150 testes, sintaxe dos módulos e do motor ativo, testes de RLS no banco para mestre/jogador, isolamento de fichas e conflitos de revisão. Testes de banco foram revertidos. Teste visual em navegador, uso com dois monitores e partida real continuam pendentes.
+
 ## Atualização 3.6.1 — usuários e senhas para uma mesa fechada
 
 - O acesso visível passa a ser por nome de usuário e senha. Cadastro público e recuperação por e-mail foram removidos da interface.

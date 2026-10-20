@@ -1,0 +1,11 @@
+* text=auto eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.mp3 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary

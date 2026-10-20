@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="cris-board-engine" content="C.R.I.S. Quadro Investigativo">
+        <title>C.R.I.S. // Quadro Investigativo</title>
+        <link rel="stylesheet" href="quadro-cris-v7.css">
+    </head>
+    <body class="ui">
+        <div id="view">
+            <div id="surface"></div>
+            <div id="world" class="layer">
+                <div id="items"></div>
+            </div>
+            <canvas id="ropes"></canvas>
+            <div id="pinsW" class="layer"></div>
+            <div id="light"></div>
+            <div id="dark"></div>
+            <div id="uvwash"></div>
+            <div id="nightL"></div>
+            <div id="flameL"></div>
+            <div id="torch"></div>
+            <div id="torchG"></div>
+            <div id="uvMask">
+                <div id="uvW" class="layer"></div>
+            </div>
+            <canvas id="grain" width="480" height="270"></canvas>
+            <canvas id="fx"></canvas>
+        </div>
+        <div class="panel" id="tools">
+            <button class="minb" data-min="tools" title="Minimizar ferramentas">‹ minimizar</button>
+            <button data-tool="select" class="on" title="Selecionar e mover (V)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 3l14 8-6 2-2 6z"/>
+                </svg>
+                Mover
+            </button>
+            <button data-act="upload" title="Adicionar imagem (I)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="16" rx="2"/>
+                    <circle cx="9" cy="10" r="2"/>
+                    <path d="M21 16l-5-5-9 9"/>
+                </svg>
+                Imagem
+            </button>
+            <button data-tool="note" title="Nota (N)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16v11l-5 5H4z"/>
+                    <path d="M15 20v-5h5"/>
+                </svg>
+                Nota
+            </button>
+            <hr>
+            <button data-tool="pin" title="Alfinete (P)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="7" r="4"/>
+                    <path d="M12 11v10"/>
+                </svg>
+                Pin
+            </button>
+            <button data-tool="string" title="Fio vermelho (F)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="5" cy="6" r="2"/>
+                    <circle cx="19" cy="8" r="2"/>
+                    <path d="M5 8c3 10 11 10 14 2"/>
+                </svg>
+                Fio
+            </button>
+            <hr>
+            <div class="mgrp">
+                <button data-tool="mark" id="markBtn" title="Marcações (C): clique de novo para trocar">
+                    <span id="markIco"></span>
+                    <span id="markLbl">Marcar</span>
+                </button>
+            </div>
+            <hr>
+            <button data-tool="fita" id="fitaBtn" title="Fitas (T) e raspadinhas (R): clique de novo para trocar">
+                <span id="fitaIco"></span>
+                <span id="fitaLbl">Fita</span>
+            </button>
+            <button data-tool="cont" id="objBtn" title="Objetos e recipientes (K)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 8l9-4 9 4v9l-9 4-9-4z"/>
+                    <path d="M3 8l9 4 9-4M12 12v9"/>
+                </svg>
+                Objetos
+            </button>
+            <button data-act="lens" title="Lupa (L)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="10" cy="10" r="6"/>
+                    <path d="M14.5 14.5L21 21"/>
+                </svg>
+                Lupa
+            </button>
+        </div>
+        <div class="panel" id="top">
+            <div class="g">
+                <span class="lbl">Luz</span>
+                <input type="color" id="lightColor" value="#ffd9a0" title="Cor da luz">
+                <div class="seg" id="lightDir">
+                    <button data-d="l" title="Cima esquerda">↖</button>
+                    <button data-d="c" title="Cima centro">↑</button>
+                    <button data-d="r" title="Cima direita">↗</button>
+                </div>
+                <input type="range" id="lightInt" min="0" max="100" value="60" title="Intensidade">
+            </div>
+            <button class="b" id="uvBtn" title="Luz negra (B)">Luz negra</button>
+            <button class="b lamp" id="lampBtn" title="Liga/desliga a luz da mesa">Luminária</button>
+            <button class="b" id="torchBtn" title="Lanterna (J) · Shift + roda muda o tamanho">Lanterna</button>
+            <div class="sep"></div>
+            <div class="g">
+                <span class="lbl">Pin</span>
+                <div class="sw" id="pinSw"></div>
+            </div>
+            <div class="sep"></div>
+            <div class="g">
+                <span class="lbl">Mesa</span>
+                <select id="surfSel">
+                    <option value="madeira">Madeira</option>
+                    <option value="cortica">Cortiça</option>
+                    <option value="feltro">Feltro verde</option>
+                    <option value="escuro">Escura</option>
+                </select>
+            </div>
+            <div class="g">
+                <button class="b" id="zOut" title="Afastar (−)">−</button>
+                <span id="zoomTxt">100%</span>
+                <button class="b" id="zIn" title="Aproximar (+)">+</button>
+                <button class="b" id="fitBtn" title="Enquadrar tudo (0)">Enquadrar</button>
+            </div>
+            <div class="sep"></div>
+            <div class="g" style="position:relative">
+                <button class="b" id="fileBtn">Arquivo ▾</button>
+                <div id="fmenu">
+                    <button class="b" id="expBtn" title="Salvar a mesa num arquivo">Exportar mesa</button>
+                    <button class="b" id="impBtn" title="Abrir uma mesa salva">Importar mesa</button>
+                    <button class="b" id="newBtn">Nova mesa</button>
+                </div>
+            </div>
+            <div class="sep"></div>
+            <div class="g" style="position:relative">
+                <button class="b" id="sndBtn" title="Volume">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>
+                        <path class="w" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>
+                        <path class="m" d="M16 9l6 6M22 9l-6 6" style="display:none"/>
+                    </svg>
+                </button>
+                <div id="vmenu">
+                    <label class="chk">
+                        <input type="checkbox" id="vMute">Mudo
+                    </label>
+                    <div class="vr">
+                        <span>Geral</span>
+                        <input type="range" data-v="g" min="0" max="100">
+                    </div>
+                    <div class="vr">
+                        <span>Itens</span>
+                        <input type="range" data-v="i" min="0" max="100">
+                    </div>
+                    <div class="vr">
+                        <span>Efeitos</span>
+                        <input type="range" data-v="e" min="0" max="100">
+                    </div>
+                    <div class="vr">
+                        <span>Vozes e áudios</span>
+                        <input type="range" data-v="v" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+            <div class="g" style="position:relative">
+                <button class="b" id="panBtn" title="Mostrar/esconder painéis">Painéis ▾</button>
+                <div id="pmenu">
+                    <label>
+                        <input type="checkbox" data-p="tools">Ferramentas
+                    </label>
+                    <label>
+                        <input type="checkbox" data-p="mini">Minimapa (M)
+                    </label>
+                </div>
+            </div>
+            <button class="b" id="hideBtn" title="Tela cheia (H)">Tela cheia</button>
+            <button class="b" data-min="top" title="Minimizar a barra">–</button>
+        </div>
+        <div class="panel" id="props"></div>
+        <div class="panel" id="help">
+            <button class="x" data-min="help" title="Minimizar dicas">–</button>
+            <span class="hc">
+                <i>
+                    <svg viewBox="0 0 16 20" fill="none" stroke="currentColor" stroke-width="1.6">
+                        <rect x="2" y="1" width="12" height="18" rx="6"/>
+                        <path d="M8 1v7M2 8h12"/>
+                        <rect x="7" y="3" width="2" height="4" fill="currentColor" stroke="none"/>
+                    </svg>
+                </i>
+                zoom
+            </span>
+            <span class="hc">
+                <i>
+                    <svg viewBox="0 0 16 20" fill="none" stroke="currentColor" stroke-width="1.6">
+                        <rect x="2" y="1" width="12" height="18" rx="6"/>
+                        <path d="M8 1v7M2 8h12"/>
+                        <path d="M8 1.5h4.5a1.5 5 0 011.5 5V8H8z" fill="currentColor" stroke="none"/>
+                    </svg>
+                </i>
+                andar
+            </span>
+            <span class="hc">
+                <i>
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+                        <rect x="2" y="2" width="16" height="16" stroke-dasharray="3 2"/>
+                    </svg>
+                </i>
+                selecionar vários
+            </span>
+            <span class="hc">
+                <i>
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+                        <path d="M6 11V5a1.5 1.5 0 013 0v5M9 9V4a1.5 1.5 0 013 0v5M12 9V5a1.5 1.5 0 013 0v7c0 4-2 6-5 6s-4-1-6-4l-2-3a1.4 1.4 0 012-2l2 2"/>
+                    </svg>
+                    +
+                    <svg viewBox="0 0 16 20" fill="none" stroke="currentColor" stroke-width="1.6">
+                        <rect x="2" y="1" width="12" height="18" rx="6"/>
+                        <path d="M8 1v7M2 8h12"/>
+                        <rect x="7" y="3" width="2" height="4" fill="currentColor" stroke="none"/>
+                    </svg>
+                </i>
+                gira · <kbd>⇧</kbd>
+                tamanho
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>2×</kbd>
+                </i>
+                editar texto
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>Del</kbd>
+                </i>
+                apagar
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>Ctrl Z</kbd>
+                </i>
+                desfazer
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>Ctrl D</kbd>
+                </i>
+                duplicar
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>0</kbd>
+                </i>
+                enquadrar
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>H</kbd>
+                </i>
+                tela cheia
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>B</kbd>
+                </i>
+                luz negra
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>J</kbd>
+                </i>
+                lanterna
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>L</kbd>
+                </i>
+                lupa
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>M</kbd>
+                </i>
+                mapa
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>C</kbd>
+                </i>
+                marcar
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>T</kbd>
+                </i>
+                fita
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>K</kbd>
+                </i>
+                objetos
+            </span>
+            <span class="hc">
+                <i>
+                    <kbd>R</kbd>
+                </i>
+                raspa
+            </span>
+        </div>
+        <div class="panel" id="mini">
+            <button class="x" data-min="mini" title="Minimizar minimapa">–</button>
+            <canvas id="miniC" width="480" height="300"></canvas>
+        </div>
+        <div id="lens">
+            <div id="lensSurf"></div>
+            <div id="lensW" class="layer"></div>
+            <canvas id="lensR" width="300" height="300"></canvas>
+            <div id="lensP" class="layer"></div>
+            <div id="lensTint"></div>
+            <div id="lensGlass"></div>
+        </div>
+        <button class="panel mtab" id="tab-tools" data-restore="tools" style="display:none">Ferramentas ›</button>
+        <button class="panel mtab" id="tab-mini" data-restore="mini" style="display:none">▣ Mapa</button>
+        <button class="panel mtab" id="tab-top" data-restore="top" style="display:none">▾ Menu</button>
+        <div id="markMenu"></div>
+        <div id="fitaMenu"></div>
+        <div id="puz">
+            <div class="lt" id="puzT"></div>
+            <div id="puzB"></div>
+            <div class="btns">
+                <button class="b" id="puzX">Fechar</button>
+            </div>
+        </div>
+        <div id="tuneUI">
+            <div class="lt" id="tuneT">Sintonizar</div>
+            <div id="tuneF">147.30 MHz</div>
+            <input type="range" id="tuneR">
+            <div class="btns">
+                <button class="b" id="tuneM">◀</button>
+                <button class="b" id="tuneP">▶</button>
+                <button class="b" id="tuneX">Fechar</button>
+            </div>
+            <div class="hint">Arraste, use as setas ou a roda do mouse. Na frequência certa o rádio fala.</div>
+        </div>
+        <div id="objMenu"></div>
+        <div id="dialUI">
+            <div class="lt">Combinação do cofre</div>
+            <svg id="dialSvg" viewBox="-120 -126 240 246" width="240" height="246">
+                <defs>
+                    <radialGradient id="dg" cx=".4" cy=".35">
+                        <stop offset="0" stop-color="#eef0f2"/>
+                        <stop offset="1" stop-color="#7d838a"/>
+                    </radialGradient>
+                </defs>
+                <polygon points="-9,-124 9,-124 0,-106" fill="#d33"/>
+                <g id="dialG"></g>
+            </svg>
+            <div id="dialSeq" class="hint"></div>
+            <div class="btns">
+                <button class="b red" id="dialGo">Abrir</button>
+                <button class="b" id="dialClr">Limpar</button>
+                <button class="b" id="dialX">Cancelar</button>
+            </div>
+            <div class="hint">Gire o disco arrastando. Ao soltar, o número é marcado.</div>
+        </div>
+        <div id="qa" class="panel">
+            <button data-q="flip" title="Virar (frente e verso)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5"/>
+                    <path d="M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5"/>
+                </svg>
+            </button>
+            <button data-q="front" title="Trazer para frente (])">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="8" y="8" width="12" height="12" rx="1" fill="currentColor" fill-opacity=".35"/>
+                    <path d="M4 16V5a1 1 0 011-1h11"/>
+                </svg>
+            </button>
+            <button data-q="back" title="Mandar para trás ([)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="4" width="12" height="12" rx="1"/>
+                    <path d="M8 20h11a1 1 0 001-1V8" stroke-dasharray="3 2"/>
+                </svg>
+            </button>
+            <button data-q="dup" title="Duplicar (Ctrl+D)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="8" y="8" width="12" height="12" rx="2"/>
+                    <path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>
+                </svg>
+            </button>
+            <button data-q="del" class="del" title="Apagar (Del)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>
+                </svg>
+            </button>
+        </div>
+        <div id="lockUI">
+            <div class="lt">Senha da maleta</div>
+            <div id="lockW"></div>
+            <div class="btns">
+                <button class="b red" id="lockGo">Abrir</button>
+                <button class="b" id="lockX">Cancelar</button>
+            </div>
+        </div>
+        <div id="toast"></div>
+        <div id="drop">Solte a imagem na mesa</div>
+        <div id="busy">Processando imagem…</div>
+        <input type="file" id="fileIn" accept="image/*" multiple hidden>
+        <input type="file" id="impIn" accept=".json,application/json" hidden>
+        <input type="file" id="fileArt" accept="image/*" hidden>
+        <input type="file" id="fileAud" accept="audio/*" hidden>
+        <input type="file" id="fileInto" accept="image/*" multiple hidden>
+        <script type="module">
+        import {CRISBridge} from '../integration-bridge.js';
+        window.CRISBridge=CRISBridge;
+        try{const id=await CRISBridge.requireIdentity();if(id){window.CRIS_IDENTITY=id;const script=document.createElement('script');script.src='quadro-cris-v7.js';document.body.appendChild(script);const tools=document.createElement('div');tools.style.cssText='position:fixed;right:12px;bottom:12px;z-index:99999;display:flex;gap:8px';tools.innerHTML=(id.isMaster&&!new URLSearchParams(location.search).has('sala')?'<button type="button" id="save-cloud-board">SALVAR NA NUVEM</button>':'')+'<button type="button" id="open-own-sheet">MINHA FICHA</button><a href="../">CRIS</a>';document.body.appendChild(tools);document.getElementById('save-cloud-board')?.addEventListener('click',async()=>{const b=document.getElementById('save-cloud-board');b.disabled=true;try{if(!window.CRIS_BOARD_API)throw Error('Aguarde o quadro carregar.');await window.CRIS_BOARD_API.save();b.textContent='QUADRO SALVO';}catch(e){b.textContent='FALHA AO SALVAR · TENTAR NOVAMENTE';b.title=e.message;}finally{b.disabled=false;}});document.getElementById('open-own-sheet').onclick=()=>{const d=document.createElement('dialog');d.style.cssText='width:min(960px,94vw);height:85vh;background:#100d19;color:white;border:1px solid #76618d';const close=document.createElement('button');close.textContent='Fechar ficha';close.onclick=()=>d.remove();d.appendChild(close);const frame=document.createElement('iframe');frame.title='Minha ficha CRIS';frame.src='../?sheet=1#fichas';frame.style.cssText='width:100%;height:calc(100% - 40px);border:0';d.appendChild(frame);document.body.appendChild(d);d.showModal();};}}
+        catch(e){document.body.textContent='Não foi possível confirmar o acesso. Volte ao CRIS e entre novamente.';}
+        </script>
+    </body>
+</html>
