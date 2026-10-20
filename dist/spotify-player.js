@@ -13,7 +13,11 @@ function loadSDK(){
 }
 /** Transporte oficial, separado do Web Audio e dos arquivos locais. */
 export class SpotifyPlayer extends EventTarget{
-  constructor({auth=new SpotifyAuth(),fetcher=(...args)=>fetch(...args),sdk=loadSDK}={}){super();Object.assign(this,{auth,fetcher,sdk});this.operation=0;this.playing=false;this.acceptPlayback=false;this.queue=Promise.resolve();this.volume=1;this.level=1;this.envelope=new VolumeEnvelope(()=>this.level,value=>{this.level=value;this.writeVolume();});}
+  constructor({auth=new SpotifyAuth(),fetcher=(...args)=>fetch(...args),sdk=loadSDK,now=()=>performance.now()}={}){super();Object.assign(this,{auth,fetcher,sdk,now});this.operation=0;this.playing=false;this.acceptPlayback=false;this.queue=Promise.resolve();this.volume=1;this.level=1;this.repeatMode='off';this.positionAnchor=0;this.positionUpdatedAt=now();this.envelope=new VolumeEnvelope(()=>this.level,value=>{this.level=value;this.writeVolume();});}
+  get audible(){return this.playing||this.acceptPlayback&&this.state?.paused!==true;}
+  position(){const elapsed=this.playing&&!this.state?.loading?Math.max(0,this.now()-this.positionUpdatedAt):0,duration=Number(this.state?.duration||this.track?.duration_ms)||Infinity;return Math.min(duration,Math.max(0,this.positionAnchor+elapsed));}
+  freezePosition(){this.positionAnchor=this.position();this.positionUpdatedAt=this.now();}
+  tick(){if(!this.playing||!this.player?.getCurrentState||this.positionSyncing||this.now()<(this.nextPositionSync||0))return;this.nextPositionSync=this.now()+5000;this.positionSyncing=this.refreshState(this.operation).catch(()=>{}).finally(()=>{this.positionSyncing=null;});}
   cancelFade(){this.envelope.cancel();this.pendingFade=null;}
   async writeVolume(){
     this.volumeWanted=clamp(this.volume*this.level);
@@ -38,7 +42,9 @@ export class SpotifyPlayer extends EventTarget{
     if(r.status===401&&retry){await this.auth.token(true);return this.api(path,{method,body,retry:false});}
     if(r.status===429){this.retryAt=Date.now()+Math.max(1,Number(r.headers.get('Retry-After'))||5)*1000;throw Error('Limite temporário do Spotify. Aguarde antes de tentar novamente.');}
     if(!r.ok){if(r.status===403)throw Error('O Spotify recusou o acesso. Confira Premium, permissões e Users Management do aplicativo no Dashboard.');if(r.status===404)throw Error('O Spotify não encontrou este item ou player. Prepare o player e confira o link.');throw Error('O Spotify não concluiu a operação ('+r.status+').');}
-    return r.status===204?null:r.json();
+    // Comandos podem confirmar sucesso sem JSON (inclusive com HTTP 200).
+    if(method!=='GET'||r.status===204)return null;
+    try{return await r.json();}catch{throw Error('O Spotify retornou uma resposta de dados inválida. Tente atualizar a lista.');}
   }
   async pages(path){const items=[],seen=new Set();let next=path;
     while(next){if(seen.has(next))throw Error('O Spotify repetiu uma página da lista.');seen.add(next);const page=await this.api(next);items.push(...(page.items||[]));
@@ -62,7 +68,7 @@ export class SpotifyPlayer extends EventTarget{
         this.cancelInit=()=>{clearTimeout(timer);reject(Error('Preparação do Spotify cancelada.'));};
         const failed=message=>{if(this.player!==player)return;this.fail(message);clearTimeout(timer);this.initializing=null;this.cancelInit=null;player.disconnect();this.player=null;this.deviceId=null;reject(Error(message));};
         player.addListener('ready',({device_id})=>{if(this.player!==player)return;clearTimeout(timer);this.cancelInit=null;this.deviceId=device_id;this.lastError=null;this.emit();resolve(device_id);});
-        player.addListener('not_ready',()=>{if(this.player!==player)return;this.deviceId=null;this.initializing=null;this.playing=false;this.fail('O player Spotify ficou offline. Prepare novamente.');});
+        player.addListener('not_ready',()=>{if(this.player!==player)return;this.deviceId=null;this.initializing=null;this.freezePosition();this.playing=false;this.fail('O player Spotify ficou offline. Prepare novamente.');});
         player.addListener('initialization_error',()=>failed('Este navegador não conseguiu abrir o áudio protegido do Spotify.'));
         player.addListener('authentication_error',()=>failed('A conexão Spotify expirou. Desconecte e conecte novamente.'));
         player.addListener('account_error',()=>failed('O Spotify não confirmou uma assinatura Premium nesta conta.'));
@@ -75,9 +81,10 @@ export class SpotifyPlayer extends EventTarget{
   enqueue(action){const pending=this.queue.catch(()=>{}).then(action);this.queue=pending;return pending;}
   async prepare(){this.activate();const device=await this.ensure();await this.enqueue(()=>this.api('/me/player',{method:'PUT',body:{device_ids:[device],play:false}}));return device;}
   receiveState(state){
-    if(!state){this.playing=false;this.emit();return;}
+    if(!state){this.freezePosition();this.playing=false;this.emit();return;}
     if(!this.acceptPlayback){if(!state.paused)this.player?.pause().catch(()=>{});return;}
-    const previous=this.state;this.state=state;this.playing=!state.paused;this.lastError=null;
+    const previous=this.state;this.state=state;this.positionAnchor=Math.max(0,Number(state.position)||0);this.positionUpdatedAt=this.now();this.playing=!state.paused;this.lastError=null;
+    if([0,1,2].includes(state.repeat_mode))this.repeatMode=['off','context','track'][state.repeat_mode];
     this.track=state.track_window?.current_track||null;this.playing=this.playing&&!this.pausing;this.fadeIfPlaying();this.emit();
     if(this.expectEnd&&previous&&!previous.paused&&previous.position>0&&state.paused&&state.position===0){this.expectEnd=false;this.dispatchEvent(new Event('ended'));}
   }
@@ -85,7 +92,7 @@ export class SpotifyPlayer extends EventTarget{
     const operation=++this.operation;this.cancelFade();this.pausing=false;this.activate();const parsed=parseSpotify(asset.spotifyUri);
     // ensure usa a geração atual; parar ou uma cue posterior invalida o preparo.
     const device=await this.ensure();if(operation!==this.operation||!isCurrent())return false;
-    if(this.playing&&this.level>0){if(!await this.envelope.fade(0,options.fadeOut??0,()=>operation===this.operation&&isCurrent()))return false;}
+    if(this.audible&&this.level>0){if(!await this.envelope.fade(0,options.fadeOut??0,()=>operation===this.operation&&isCurrent()))return false;}
     this.volume=clamp(options.outputVolume??this.volume);this.level=0;await this.writeVolume();if(operation!==this.operation||!isCurrent())return false;
     const body=parsed.type==='playlist'?{context_uri:parsed.uri,position_ms:Math.max(0,Math.floor((options.startSeconds||0)*1000)),...(!asset.shuffle?{offset:{position:options.index??options.youtubeIndex??0}}:Number.isInteger(asset.spotifyCount)&&asset.spotifyCount>0?{offset:{position:Math.floor(Math.random()*asset.spotifyCount)}}:{})}:{uris:[parsed.uri],position_ms:Math.max(0,Math.floor((options.startSeconds||0)*1000))};
     return this.enqueue(async()=>{
@@ -95,7 +102,9 @@ export class SpotifyPlayer extends EventTarget{
       if(operation!==this.operation||!isCurrent())return false;
       this.currentAsset=asset;this.beginFadeIn(options.fadeIn??0,operation,parsed.type==='track'?parsed.uri:null);await this.refreshState(operation);this.emit();
       try{
-        await this.api('/me/player/repeat?device_id='+encodeURIComponent(device)+'&state='+(options.playlist||options.loop===false?'off':parsed.type==='playlist'?'context':'track'),{method:'PUT'});
+        const mode=options.playlist||options.loop===false?'off':parsed.type==='playlist'?'context':'track';
+        await this.api('/me/player/repeat?device_id='+encodeURIComponent(device)+'&state='+mode,{method:'PUT'});
+        if(operation===this.operation&&isCurrent()){this.repeatMode=mode;this.emit();}
         if(operation===this.operation&&isCurrent())await this.api('/me/player/shuffle?device_id='+encodeURIComponent(device)+'&state='+(parsed.type==='playlist'&&asset.shuffle===true),{method:'PUT'});
       }catch(error){this.fail('Música iniciada, mas não foi possível ajustar repetição/aleatório: '+error.message);}
       return operation===this.operation&&isCurrent();
@@ -103,7 +112,7 @@ export class SpotifyPlayer extends EventTarget{
   }
   setVolume(value){this.volume=clamp(value);return this.writeVolume();}
   async pause({fadeOut=0}={}){
-    const operation=++this.operation;this.cancelFade();const audible=this.playing;this.pausing=true;this.playing=false;this.emit();
+    const operation=++this.operation;this.cancelFade();const audible=this.audible;this.freezePosition();this.pausing=true;this.playing=false;this.emit();
     if(audible&&this.level>0&&!await this.envelope.fade(0,fadeOut,()=>operation===this.operation))return false;
     if(operation!==this.operation)return false;
     this.acceptPlayback=false;this.level=0;await this.writeVolume();
@@ -121,6 +130,11 @@ export class SpotifyPlayer extends EventTarget{
   }
   async refreshState(operation){if(this.player?.getCurrentState){const state=await this.player.getCurrentState();if(operation===this.operation&&state)this.receiveState(state);}}
   async privateSession(){const state=await this.api('/me/player');return this.deviceId&&state?.device?.id===this.deviceId&&typeof state.device.is_private_session==='boolean'?state.device.is_private_session:null;}
-  repeat(enabled){if(!this.deviceId||!this.currentAsset)return Promise.resolve();const asset=this.currentAsset;return this.enqueue(()=>{if(this.currentAsset!==asset)return;return this.api('/me/player/repeat?device_id='+encodeURIComponent(this.deviceId)+'&state='+(enabled?(parseSpotify(asset.spotifyUri).type==='playlist'?'context':'track'):'off'),{method:'PUT'});});}
+  setRepeatMode(mode){
+    if(!['off','context','track'].includes(mode))return Promise.reject(Error('Modo de repetição inválido.'));
+    if(!this.deviceId||!this.currentAsset)return Promise.resolve(false);const asset=this.currentAsset,operation=this.operation;
+    return this.enqueue(async()=>{if(this.currentAsset!==asset||operation!==this.operation)return false;await this.api('/me/player/repeat?device_id='+encodeURIComponent(this.deviceId)+'&state='+mode,{method:'PUT'});if(this.currentAsset!==asset||operation!==this.operation)return false;this.repeatMode=mode;this.emit();return true;});
+  }
+  repeat(enabled){return this.setRepeatMode(enabled?(this.currentAsset&&parseSpotify(this.currentAsset.spotifyUri).type==='playlist'?'context':'track'):'off');}
   disconnect(){this.cancelFade();this.connectionGeneration=(this.connectionGeneration||0)+1;this.operation++;this.cancelInit?.();this.cancelInit=null;this.player?.disconnect();this.player=null;this.deviceId=null;this.initializing=null;this.acceptPlayback=false;this.playing=false;this.state=null;this.track=null;this.currentAsset=null;this.auth.disconnect();this.lastError=null;this.emit();}
 }

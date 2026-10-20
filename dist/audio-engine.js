@@ -1,3 +1,4 @@
+import {planCueActions} from './cue-actions.js';
 import {SpotifyPlayer} from './spotify-player.js';
 import { resolveAsset, clone } from './storage.js';
 import { VolumeEnvelope } from './volume-envelope.js';
@@ -132,7 +133,7 @@ export class AudioEngine extends EventTarget {
   }
   fireCue(cue) {
     if(!cue)return;this.pendingCue=cue.name;
-    for(const action of cue.actions){const execute=()=>{
+    for(const action of planCueActions(cue.actions)){const execute=()=>{
       if(action.assetId&&this.removedAssets.has(action.assetId)&&!action.playlistId)return;
       if(action.type==='play')this.oneShot(this.asset(action.assetId),action.volume??.8,{fadeIn:action.fadeIn,fadeOut:action.fadeOut}).catch(e=>this.error(e.message));
       if(action.type==='fade')this.ramp(this.tracks.get(action.layerId),action.to,action.duration??1);
