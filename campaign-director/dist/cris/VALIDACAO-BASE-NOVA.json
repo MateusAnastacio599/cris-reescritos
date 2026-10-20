@@ -1,0 +1,24 @@
+{
+  "source_sha256": "dd8f4896f54909ed884a892f2cb06cd689ab17ddb9ec83c41a1a5f1bb45c7e07",
+  "checks": {
+    "source exact version": true,
+    "new ready scene": true,
+    "scenes": true,
+    "case report": true,
+    "criminal sheet": true,
+    "dice d100": true,
+    "dice physics": true,
+    "deck": true,
+    "tv vhs": true,
+    "cd discman": true,
+    "private notes": true,
+    "pocket": true,
+    "triggers": true,
+    "mobile commands": true,
+    "CRIS master": true,
+    "fixed official room": true,
+    "no custom player bye sender": true,
+    "versioned assets": true
+  },
+  "node_check": "OK"
+}

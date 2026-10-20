@@ -1,12 +1,5 @@
-const CREDENTIALS = {
-  'iris-7x91': { name: 'Íris Tenebra Vasconcellos', clearance: 'NÍVEL DE ACESSO: 05', role: 'agent' },
-  'andre-4k27': { name: 'André Torres', clearance: 'NÍVEL DE ACESSO: 04', role: 'agent' },
-  'matias-9q63': { name: 'Matias Valen Azevedo', clearance: 'NÍVEL DE ACESSO: 04', role: 'agent' },
-  'celine-2m84': { name: 'Celine Lins Noir', clearance: 'NÍVEL DE ACESSO: 04', role: 'agent' },
-  'convidado-26': { name: 'AGENTE CONVIDADO', clearance: 'NÍVEL DE ACESSO: 03', role: 'agent' },
-  'mestre-26107': { name: 'MESTRE', clearance: 'ACESSO TOTAL // CONTROLE', role: 'master' }
-};
-
+import {CRISBridge} from './integration-bridge.js';
+window.CRISBridge=CRISBridge;
 const STORAGE_KEY = 'cris_agente';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -61,6 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showSystem(agent, key) {
+    window.CRIS_IDENTITY=agent;
+    fichaLoadFromCloud().catch(e=>fichaFeedbackMessage('FALHA NA NUVEM // '+e.message));
+    const director=document.getElementById('director-link');if(director){director.hidden=!agent.isMaster;director.href=CRISBridge.directorURL;}
+    if(new URLSearchParams(location.search).has('sheet')){document.body.classList.add('sheet-embed');setTimeout(()=>document.getElementById('fichas')?.scrollIntoView(),700);}
     agentName.textContent = agent.name;
     clearance.textContent = agent.clearance;
     topAgentName.textContent = agent.name;
@@ -92,47 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 650);
   }
 
-  function authenticate() {
-    const key = input.value.trim().toLowerCase();
-    const agent = CREDENTIALS[key];
-
-    if (!agent) {
-      error.textContent = '[ERRO] CREDENCIAL INVÁLIDA // ACESSO NEGADO';
-      input.classList.add('invalid');
-      setTimeout(() => input.classList.remove('invalid'), 500);
-      return;
-    }
-
-    // Salva apenas o identificador do agente.
-    // A senha nunca é armazenada.
-    localStorage.setItem(STORAGE_KEY, key);
-
-    showSystem(agent, key);
+  async function authenticate() {
+    const username=document.getElementById('username').value.trim();button.disabled=true;error.textContent='CONECTANDO…';
+    try{const agent=await CRISBridge.login(username,input.value);input.value='';error.textContent='';showSystem(agent,agent.userId);}catch(e){error.textContent=e.message;}finally{button.disabled=false;}
   }
-
-  /*
-   * RESTAURA SESSÃO
-   *
-   * Se o agente já tiver sido autenticado anteriormente
-   * neste navegador, entra diretamente no CRIS.
-   */
-  const savedAgent = localStorage.getItem(STORAGE_KEY);
-
-  if (savedAgent && CREDENTIALS[savedAgent]) {
-    showSystem(CREDENTIALS[savedAgent], savedAgent);
-  }
-
-
-  /* =========================================================
-     LOGIN
-     ========================================================= */
-
-  button.addEventListener('click', authenticate);
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') authenticate();
-  });
-
+  CRISBridge.restore().then(agent=>{if(agent)showSystem(agent,agent.userId);}).catch(()=>{error.textContent='Não foi possível restaurar a sessão. Entre novamente.';});
+  button.addEventListener('click',authenticate);
+  for(const el of [input,document.getElementById('username')])el.addEventListener('keydown',e=>{if(e.key==='Enter')authenticate();});
 
   /* =========================================================
      MOSTRAR / OCULTAR SENHA
@@ -189,49 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
      ENCERRAR SESSÃO
      ========================================================= */
 
-  logout.addEventListener('click', () => {
-
-    // Remove a sessão salva no navegador.
-    localStorage.removeItem(STORAGE_KEY);
-
-    system.classList.add('hidden');
-
-    sidebar.classList.remove('open');
-
-    menuToggle.setAttribute(
-      'aria-expanded',
-      'false'
-    );
-
-    login.classList.remove(
-      'hidden',
-      'authenticated'
-    );
-
-    input.value = '';
-    input.type = 'password';
-
-    togglePassword.innerHTML =
-      '<svg class="password-eye" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 12s3.5-5.5 9.5-5.5S21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>';
-
-    togglePassword.setAttribute(
-      'aria-label',
-      'Mostrar senha'
-    );
-
-    togglePassword.setAttribute(
-      'aria-pressed',
-      'false'
-    );
-
-    togglePassword.classList.remove(
-      'is-visible'
-    );
-
-    error.textContent = '';
-
-    input.focus();
-  });
+  logout.addEventListener('click',async()=>{try{await CRISBridge.logout();localStorage.removeItem(STORAGE_KEY);location.reload();}catch(e){error.textContent='Não foi possível encerrar a sessão.';}});
 
 
   /* =========================================================
@@ -520,9 +441,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const fichaFeedback = document.getElementById('ficha-feedback');
   const fichaStatus = document.getElementById('ficha-status');
 
-  const FICHA_STORAGE_KEY = 'cris_ficha_v2';
-  const FICHA_LEGACY_KEY = 'cris_ficha_atual';
-  const FICHA_DRAFT_KEY = 'cris_ficha_draft_v1';
+  let FICHA_STORAGE_KEY = 'cris_ficha_v2:unassigned';
+  let FICHA_LEGACY_KEY = 'cris_ficha_atual:unassigned';
+  let FICHA_DRAFT_KEY = 'cris_ficha_draft_v1:unassigned';
+  let fichaCloudReady=false;
   const FICHA_DIE_ORDER = ['d4','d6','d8','d10','d12'];
   const FICHA_DIE_FACES = {d4:4,d6:6,d8:8,d10:10,d12:12};
   const FICHA_SKILL_START_DIE = 'd4';
@@ -682,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function fichaStartWizard(startStep=null){ clearTimeout(fichaSaveTimer); if(Number.isInteger(startStep)) fichaCreationStep=Math.min(7,Math.max(1,startStep)); fichaSetVisible(true); fichaWizardRender(); }
   function fichaFinishWizard(){ fichaWizardCollectFields(); if(!fichaState.name){ fichaFeedbackMessage('INFORME O NOME DA PERSONAGEM ANTES DE FINALIZAR'); fichaCreationStep=1; fichaWizardRender(); return; } fichaSafeSave(); fichaHasStoredData=true; fichaRender(); fichaSetVisible(false); fichaFeedbackMessage('FICHA CRIADA // DADOS LOCAIS'); window.scrollTo({top:0,behavior:'smooth'}); }
-  function fichaResetAndDelete(showWizard=true){ clearTimeout(fichaSaveTimer); fichaState=fichaDefault(); localStorage.removeItem(FICHA_STORAGE_KEY); localStorage.removeItem(FICHA_LEGACY_KEY); localStorage.removeItem(FICHA_DRAFT_KEY); fichaHasStoredData=false; fichaCreationStep=1; fichaRender(); if(showWizard) fichaStartWizard(1); }
+  function fichaResetAndDelete(showWizard=true){ if(fichaCloudReady)CRISBridge.deleteSheet().catch(e=>fichaFeedbackMessage(e.message)); clearTimeout(fichaSaveTimer); fichaState=fichaDefault(); localStorage.removeItem(FICHA_STORAGE_KEY); localStorage.removeItem(FICHA_LEGACY_KEY); localStorage.removeItem(FICHA_DRAFT_KEY); fichaHasStoredData=false; fichaCreationStep=1; fichaRender(); if(showWizard) fichaStartWizard(1); }
 
   function fichaFeedbackMessage(message){
     if(!fichaFeedback) return;
@@ -695,6 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try{
       localStorage.setItem(FICHA_STORAGE_KEY,JSON.stringify(fichaState));
       if(fichaStatus) fichaStatus.textContent='SALVO // LOCAL';
+      if(fichaCloudReady)CRISBridge.saveSheet(fichaState).then(()=>{if(fichaStatus)fichaStatus.textContent='SALVO // NUVEM';}).catch(e=>{if(fichaStatus)fichaStatus.textContent='LOCAL // SINCRONIZAÇÃO PENDENTE';fichaFeedbackMessage(e.message);});
       return true;
     }catch(error){
       console.error('CRIS ficha: falha ao salvar',error);
@@ -1067,7 +990,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.addEventListener('input',event=>{const ability=event.target.closest?.('[data-wizard-ability-field]');if(ability){const item=fichaState.abilities[Number(ability.dataset.index)];if(item)item[ability.dataset.wizardAbilityField]=ability.value;fichaAutoSave();}});
   const wizardAddAbility=document.getElementById('wizard-add-ability'); if(wizardAddAbility) wizardAddAbility.addEventListener('click',()=>{fichaState.abilities.push({name:'',origin:'',cost:'',description:''});fichaWizardRenderAbilities();fichaAutoSave();});
-  if(fichaDeleteButton) fichaDeleteButton.addEventListener('click',()=>{if(!fichaHasStoredData && !fichaState.name){fichaFeedbackMessage('NENHUMA FICHA SALVA PARA APAGAR');return;}if(confirm('Apagar a ficha salva neste navegador? Esta ação remove os dados locais da personagem.')){fichaResetAndDelete(true);fichaFeedbackMessage('FICHA APAGADA // DADOS LOCAIS REMOVIDOS');}});
+  if(fichaDeleteButton) fichaDeleteButton.addEventListener('click',()=>{if(!fichaHasStoredData && !fichaState.name){fichaFeedbackMessage('NENHUMA FICHA SALVA PARA APAGAR');return;}if(confirm('Apagar a ficha desta conta, incluindo a cópia na nuvem?')){fichaResetAndDelete(true);fichaFeedbackMessage('FICHA APAGADA // DADOS LOCAIS REMOVIDOS');}});
 
   if(fichaSaveButton) fichaSaveButton.addEventListener('click',()=>{
     if(fichaWizard && !fichaWizard.classList.contains('hidden')){
@@ -1158,22 +1081,22 @@ document.addEventListener('DOMContentLoaded', () => {
     fichaFeedbackMessage('FICHA EXPORTADA // JSON');
   });
 
-  try{
-    const stored=localStorage.getItem(FICHA_STORAGE_KEY)||localStorage.getItem(FICHA_LEGACY_KEY);
-    if(stored){
-      fichaState=fichaNormalize(JSON.parse(stored));
-      fichaHasStoredData=true;
-    }else{
-      const draftRaw=localStorage.getItem(FICHA_DRAFT_KEY);
-      if(draftRaw){
-        const draft=JSON.parse(draftRaw);
-        if(draft?.state && typeof draft.state==='object') fichaState=fichaNormalize(draft.state);
-        if(Number.isInteger(draft?.step) && draft.step>=1 && draft.step<=7) fichaCreationStep=draft.step;
+  async function fichaLoadFromCloud(){
+    fichaCloudReady=false;fichaSection.inert=true;
+    try{
+      const uid=CRISBridge.identity.userId;FICHA_STORAGE_KEY='cris_ficha_v2:'+uid;FICHA_LEGACY_KEY='cris_ficha_atual:'+uid;FICHA_DRAFT_KEY='cris_ficha_draft_v1:'+uid;
+      const cloud=await CRISBridge.loadSheet();
+      const scoped=localStorage.getItem(FICHA_STORAGE_KEY);fichaState=fichaDefault();fichaHasStoredData=false;
+      if(cloud){fichaState=fichaNormalize(cloud);fichaHasStoredData=true;localStorage.setItem(FICHA_STORAGE_KEY,JSON.stringify(fichaState));}
+      else if(scoped){fichaState=fichaNormalize(JSON.parse(scoped));fichaHasStoredData=true;}else{const rawDraft=localStorage.getItem(FICHA_DRAFT_KEY);if(rawDraft){const draft=JSON.parse(rawDraft);if(draft.state)fichaState=fichaNormalize(draft.state);if(Number.isInteger(draft.step))fichaCreationStep=Math.max(1,Math.min(7,draft.step));}}
+      fichaCloudReady=true;fichaRender();if(fichaHasStoredData)fichaSetVisible(false);else fichaStartWizard(fichaCreationStep);
+      if(!cloud&&(localStorage.getItem('cris_ficha_v2')||localStorage.getItem('cris_ficha_atual'))&&!document.getElementById('importLegacySheet')){
+        const b=document.createElement('button');b.id='importLegacySheet';b.type='button';b.className='board-launch-button';b.textContent='IMPORTAR A FICHA ANTIGA DESTE NAVEGADOR PARA ESTA CONTA';fichaSection.prepend(b);
+        b.onclick=()=>{try{const raw=localStorage.getItem('cris_ficha_v2')||localStorage.getItem('cris_ficha_atual');fichaState=fichaNormalize(JSON.parse(raw));fichaHasStoredData=true;fichaRender();fichaSetVisible(false);fichaSafeSave();b.remove();}catch(e){fichaFeedbackMessage('Não foi possível importar a ficha preservada.');}};
       }
-    }
-  }catch(error){
-    console.warn('CRIS ficha: dados locais inválidos',error); fichaState=fichaDefault(); fichaHasStoredData=false; fichaCreationStep=1;
+    }finally{fichaSection.inert=false;}
   }
+
   fichaRender();
   if(fichaHasStoredData) fichaSetVisible(false); else fichaStartWizard();
 
