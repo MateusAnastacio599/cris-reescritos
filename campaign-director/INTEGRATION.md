@@ -1,6 +1,6 @@
 # CRIS — ponto de controle da integração
 
-Atualizado em 20/10/2026. Etapa 1 concluída: base do Supabase. Etapa 2 implementada: login opcional e inventário local, sem envio de dados.
+Atualizado em 20/10/2026. Etapa 1 concluída: base do Supabase. Etapa 2 implementada: login opcional por usuário e senha, administração de contas pelo mestre e inventário local, sem envio de dados.
 
 Projeto: https://zumrguvsihtuahunxuyq.supabase.co
 Migração remota aplicada: 20261020114201 — cris_director_foundation.
@@ -41,7 +41,7 @@ A autorização de arquivos foi revisada nas políticas e na função de associa
 ## Próximas etapas, na ordem
 
 1. CONCLUÍDO — base e permissões no Supabase.
-2. IMPLEMENTADO — login e conexão do Director, mantendo uso local disponível. Cadastro, recuperação e e-mails precisam de validação com a conta real e URLs de retorno configuradas. A conferência local não envia os dados. Usar chave publicável no navegador; nenhuma chave secreta. Definir URL de retorno permitida para o site do Director. Não confundir o login privado do site hospedado com uma sessão do Supabase.
+2. IMPLEMENTADO — login e conexão do Director, mantendo uso local disponível. A versão 3.6.1 substituiu o fluxo de e-mail por usuário/senha e Edge Function autenticada. A conta existente foi preservada com usuário mateus; contas de amigos são criadas pelo mestre. Login real ainda precisa do teste do usuário. A conferência local não envia os dados. Usar chave publicável no navegador; nenhuma chave secreta. Não há dependência de URLs de retorno no fluxo de usuário/senha. Não confundir o login privado do site hospedado com uma sessão do Supabase.
 3. PRÓXIMA — migração pelo navegador do usuário: exportação local completa, cópia JSON remota, inventário de arquivos, upload com retomada, verificação de contagens e tamanhos, vínculo dos IDs antigos aos novos. Repetir uma importação não deve duplicar itens. Só marcar como sincronizado quando tudo estiver confirmado. Nunca apagar os dados locais automaticamente.
 4. Sincronização de alterações e conflitos. O campo revision existe, mas o controle de concorrência ainda precisa ser implementado e testado; ele não se incrementa sozinho. Evitar que duas abas sobrescrevam silenciosamente o texto uma da outra.
 5. Integração com CRIS principal: autenticação real preservando a interface, fichas personalizadas, campanhas e quadro existente. Esta etapa ainda não foi iniciada.
@@ -59,3 +59,7 @@ Chave local: cris-campaign-director:v3. Arquivos: IndexedDB cris-director-media,
 IDs antigos de páginas, músicas, playlists e cues precisam de mapeamento consistente para preservar links internos. Os campos JSON permitem preservar configurações existentes, mas o adaptador de migração ainda precisa conferir os formatos de cada módulo.
 O CRIS principal é https://github.com/MateusAnastacio599/cris-reescritos e não foi alterado. O quadro ativo usa quadro/quadro-cris-v7.js. Ele possui armazenamento local e comunicação PeerJS; não substituir por arquivos de versões antigas. Antes de conectar documentos secretos, corrigir o envio inicial de binários de objetos ocultos. Preservar o LUME público e os sons dos objetos interativos.
 As tabelas futuras de fichas, documentos compartilhados, quadros e sessão não foram criadas nesta etapa. O esquema atual é a fundação do Director e das permissões, não a implementação completa do hub.
+
+## Conferência do backup recebido em 20/10
+
+Arquivo validado pelo validador do aplicativo, JSON íntegro e todos os 23 arquivos de áudio presentes e decodificáveis. 1 campanha, 2 páginas, 6 cenas, 3 playlists, 4 ambientes. O envio do arquivo no chat não faz a importação no Supabase nem comprova o estado de outro navegador. O conteúdo do backup não foi enviado ao GitHub. Nenhuma importação para a nuvem foi feita nesta etapa.

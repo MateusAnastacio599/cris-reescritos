@@ -27,6 +27,20 @@ As edições são locais a cada navegador/origem, sem sincronização automátic
 
 Novos módulos: `audio-fades.js` (envelope dos efeitos, sem timers) e `fade-ui.js` (controles compartilhados). O motor e a interface permanecem independentes para a futura integração ao CRIS.
 
+## Atualização 3.6.1 — usuários e senhas para uma mesa fechada
+
+- O acesso visível passa a ser por nome de usuário e senha. Cadastro público e recuperação por e-mail foram removidos da interface.
+- A conta existente e confirmada foi associada ao usuário `mateus`, com o mesmo UUID e senha. Nenhuma senha foi lida, redefinida ou adicionada ao código.
+- O mestre administrador pode criar usuários, definir novas senhas para amigos e trocar sua própria senha em Conta e nuvem. Contas novas não ganham acesso a campanhas automaticamente.
+- A Edge Function `director-accounts` autentica o login com Supabase Auth e exige token validado em todas as ações de conta. Administração depende da tabela protegida `director_accounts`, nunca de metadados editáveis do usuário. E-mails técnicos das contas ficam apenas no backend, sem envio ou confirmação. Não é necessário configurar links de retorno para esse fluxo.
+- `verify_jwt=false` é intencional para permitir o login inicial: a função faz sua própria autenticação e autorização. Login tem limite persistente por usuário e origem. As chaves administrativas existem somente no ambiente da função e nunca no navegador ou no repositório.
+- 139 testes passaram. RLS de contas, bloqueio de autopromoção e limite de tentativas foram testados no banco em transação revertida. Endpoint real recusou login inválido e criação sem token. Login com a senha real e o fluxo visual ainda precisam do teste do usuário.
+- O backup fornecido em 20/10 foi validado sem modificações: 1 campanha, 2 páginas, 6 cenas, 33 itens de áudio, 3 playlists, 4 ambientes e 23 arquivos incluídos (51.555.008 bytes). Nenhum arquivo ausente ou base64 inválido. O backup do usuário não foi incluído no repositório, nem importado para o banco remoto nesta etapa.
+
+Configuração: `backend/username-accounts.sql` registra o SQL já aplicado; a adoção inicial pressupõe uma única conta confirmada. A função usa `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` fornecidos pelo ambiente Supabase. Ao publicar outra instalação, revisar o domínio CORS em `backend/functions/director-accounts/index.ts`.
+
+A auditoria de segurança registra RLS sem política em `cris_private.login_limits`, intencional: somente service_role tem acesso. Também informa que a configuração opcional de proteção contra senhas vazadas está desativada no projeto; essa configuração de Auth não foi alterada por esta implementação. Referências: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy e https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection .
+
 ## Atualização 3.6.0 — conta e preparação da importação
 
 - Conta e nuvem na barra lateral: cadastro por e-mail e senha, login, recuperação de senha e saída apenas desta sessão.
@@ -36,7 +50,7 @@ Novos módulos: `audio-fades.js` (envelope dos efeitos, sem timers) e `fade-ui.j
 - Cliente oficial Supabase 2.118.0 e esbuild 0.28.2 fixados no package-lock.json; SDK empacotado em dist/vendor/supabase.js, sem CDN em tempo de execução. Recriar com npm ci && npm run build:vendor.
 - 128 testes aprovados. SDK local importado e Data API testada: acesso sem login retorna 401. Login real, entrega de e-mail e navegação no celular ainda dependem do teste com a conta do usuário; não houve teste visual automatizado neste ambiente.
 
-Antes de testar cadastro/recuperação no projeto Supabase, em Authentication > URL Configuration, conferir Site URL e Redirect URLs para https://cris-campaign-director-v3.mateusfernando599.chatgpt.site/ . Esta configuração não é alterada pelo aplicativo. Manter confirmação de e-mail ativada. A chave em cloud-config.js é pública; autorização depende de RLS, não de esconder essa chave. Nenhuma chave secreta está no código.
+Nota histórica da versão 3.6.0 (fluxo substituído por usuário/senha na 3.6.1): antes de testar cadastro/recuperação no projeto Supabase, em Authentication > URL Configuration, conferir Site URL e Redirect URLs para https://cris-campaign-director-v3.mateusfernando599.chatgpt.site/ . Esta configuração não é alterada pelo aplicativo. Manter confirmação de e-mail ativada. A chave em cloud-config.js é pública; autorização depende de RLS, não de esconder essa chave. Nenhuma chave secreta está no código.
 
 ## Atualização 3.5.1 — repetição musical e volume no replay
 
