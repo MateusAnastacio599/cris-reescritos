@@ -6,7 +6,7 @@ export function ambientPlaylistSource(engine,layer){
   const playlist=engine.getState().playlists.find(p=>p.id===layer.playlistId);
   if(!playlist)throw new Error(`A playlist de “${layer.name}” não está na biblioteca.`);
   const assets=[...new Set(playlist.assetIds)].map(id=>engine.asset(id)).filter(a=>a&&!engine.removedAssets.has(a.id));
-  if(assets.some(a=>a.provider==='youtube'))throw new Error(`Use a trilha musical do ambiente para a playlist “${playlist.name}” do YouTube.`);
+  if(assets.some(a=>['youtube','spotify'].includes(a.provider)))throw new Error(`Use a trilha musical do ambiente para a playlist “${playlist.name}” de streaming.`);
   if(!assets.length)throw new Error(`Adicione arquivos à playlist “${playlist.name}”.`);
   return {playlist,assets,shuffle:layer.shuffle??playlist.shuffle===true};
 }

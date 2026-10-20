@@ -1,3 +1,4 @@
+import {SpotifyPlayer} from './spotify-player.js';
 import { resolveAsset, clone } from './storage.js';
 import { VolumeEnvelope } from './volume-envelope.js';
 import { AmbienceBus } from './ambience-engine.js';
@@ -14,6 +15,7 @@ export class AudioEngine extends EventTarget {
     super();this.getState=getState;this.tracks=new Map();this.retiring=new Set();this.effects=new Set();
     this.delays=new Set();this.removedAssets=new Set();this.epoch=0;this.musicEpoch=0;this.active=null;this.running=false;this.elapsed=0;this.fired=new Set();
     this.music=null;this.musicAsset=null;this.playlist=null;this.yt=null;this.ytReady=false;this.ytPlaying=false;this.ytLevel=1;this.pendingCue=null;
+    this.spotify=new SpotifyPlayer();this.spotify.addEventListener('change',()=>{if(this.spotify.lastError&&this.spotify.lastError!==this.spotifyError){this.spotifyError=this.spotify.lastError;this.error(this.spotify.lastError);}if(!this.spotify.lastError)this.spotifyError=null;this.emit();});this.spotify.addEventListener('ended',()=>{if(this.musicAsset?.provider==='spotify'&&this.playlist)this.nextMusic();});
     this.Envelope=VolumeEnvelope;this.ambiences=new AmbienceBus(this);this.musicTargetLevel=1;this.ytPendingFade=null;this.youtubeAsset=null;this.youtubeQueue=[];this.inspectEpoch=0;this.youtubeHardStopped=true;
     this.ytEnvelope=new VolumeEnvelope(()=>this.ytLevel,value=>{this.ytLevel=value;this.applyYTVolume();});
     this.timer=setInterval(()=>this.tick(),200);
@@ -34,11 +36,11 @@ export class AudioEngine extends EventTarget {
   applyMixer() {
     const settings=this.getState().settings;
     if(this.context){this.master.gain.setTargetAtTime(clamp(settings.master),this.context.currentTime,.025);for(const key of ['music','ambience','sfx'])this.groups[key].gain.setTargetAtTime(clamp(settings[key]),this.context.currentTime,.025);}
-    this.applyYTVolume();this.emit();
+    this.applyYTVolume();this.applySpotifyVolume();this.emit();
   }
   setMix(key,value){if(!['master','music','ambience','sfx'].includes(key))return;this.getState().settings[key]=clamp(value);this.applyMixer();}
   setAssetBoost(assetId,value){
-    const asset=this.asset(assetId);if(!asset||asset.provider==='youtube')return 1;
+    const asset=this.asset(assetId);if(!asset||['youtube','spotify'].includes(asset.provider))return 1;
     asset.boost=clamp(value,1,4);const tracks=new Set([...this.tracks.values(),...this.effects,...this.retiring,...this.ambiences.tracks.values(),...(this.music?[this.music]:[])]);
     for(const track of tracks)if(track.assetId===assetId&&!track.disposed&&track.boostGain){track.boost=asset.boost;track.boostGain.gain.setTargetAtTime(asset.boost,this.context.currentTime,.025);}
     this.emit();return asset.boost;
@@ -121,7 +123,7 @@ export class AudioEngine extends EventTarget {
   }
   async oneShot(asset,volume=.8,{group='sfx',owner=null,fadeIn,fadeOut}={}) {
     if(!asset)throw new Error('Este efeito não está na biblioteca.');
-    if(asset.provider==='youtube')throw new Error('Use um arquivo de áudio para efeitos; links do YouTube ficam no canal de música.');
+    if(['youtube','spotify'].includes(asset.provider))throw new Error('Use um arquivo de áudio para efeitos; links de streaming ficam no canal de música.');
     const epoch=this.epoch;await this.init();if(epoch!==this.epoch)return;
     const fades={fadeIn:fadeSeconds(fadeIn??asset.fadeIn),fadeOut:fadeSeconds(fadeOut??asset.fadeOut)};
     const track=await this.createTrack(asset,{volume,group,epoch,effectFades:fades});if(!track)return;
@@ -154,7 +156,7 @@ export class AudioEngine extends EventTarget {
     this.emit('cue',{id:trigger.id,name:trigger.name});
   }
   pause() {
-    this.musicEpoch++;this.ytEnvelope.cancel();this.ytPendingFade=null;this.ambiences.pause();
+    this.musicEpoch++;this.spotify.pause().catch(error=>this.error(error.message));this.ytEnvelope.cancel();this.ytPendingFade=null;this.ambiences.pause();
     if(this.running){this.elapsed=this.currentTime();this.running=false;}this.paused=true;
     // Delayed cue actions are discarded on pause; timeline resumes from elapsed time.
     this.clearDelays();for(const t of this.retiring)this.dispose(t);
@@ -165,11 +167,12 @@ export class AudioEngine extends EventTarget {
     await this.init();const results=await Promise.allSettled([...this.tracks.values(),...this.effects,...(this.music?[this.music]:[])].filter(t=>!t.disposed).map(t=>t.audio.play()));
     for(const r of results)if(r.status==='rejected')this.error('Toque em reproduzir para liberar o áudio.');
     await this.ambiences.resume();
+    if(this.musicAsset?.provider==='spotify')await this.spotify.resume();
     if(this.musicAsset?.provider==='youtube'&&this.ytReady){this.youtubeHardStopped=false;this.ytPendingFade={duration:.35,level:this.musicTargetLevel,generation:this.musicEpoch};this.ytLevel=0;this.applyYTVolume();this.yt.playVideo();}
     if(this.active){this.running=true;this.startedAt=performance.now();}this.paused=false;this.emit();
   }
   stop() {
-    this.youtubePreviewOnly=false;this.ytRampInfo=null;this.youtubeHardStopped=true;this.ytEnvelope.cancel();for(const env of Object.values(this.mixEnvelopes||{}))env.cancel();this.ytPendingFade=null;this.inspectEpoch++;this.ambiences.stop(0);this.clearPreload();
+    this.spotify.pause().catch(error=>this.error(error.message));this.youtubePreviewOnly=false;this.ytRampInfo=null;this.youtubeHardStopped=true;this.ytEnvelope.cancel();for(const env of Object.values(this.mixEnvelopes||{}))env.cancel();this.ytPendingFade=null;this.inspectEpoch++;this.ambiences.stop(0);this.clearPreload();
     this.epoch++;this.musicEpoch++;this.clearDelays();this.removedAssets.clear();this.active=null;this.running=false;this.paused=false;this.elapsed=0;this.fired.clear();this.pendingCue=null;
     for(const t of [...this.tracks.values(),...this.effects,...this.retiring])this.dispose(t);this.tracks.clear();this.effects.clear();this.retiring.clear();
     if(this.music)this.dispose(this.music);this.music=null;this.musicAsset=null;this.playlist=null;this.musicOrder=null;
@@ -199,7 +202,7 @@ export class AudioEngine extends EventTarget {
     const epoch=this.epoch;await this.init();if(epoch!==this.epoch)return;
     const t=await this.createTrack(asset,{loop:true,group:'ambience',volume:.65,fade:asset.fadeIn??.5,epoch});if(t)this.tracks.set(key,t);this.emit();
   }
-  toggleTransport(){if(this.running||this.ytPlaying||this.music&&!this.music.audio.paused||this.ambiences.isPlaying||[...this.tracks.values()].some(t=>!t.audio.paused))this.pause();else this.resume().catch(e=>this.error(e.message));}
+  toggleTransport(){this.spotify.activate();if(this.running||this.spotify.playing||this.ytPlaying||this.music&&!this.music.audio.paused||this.ambiences.isPlaying||[...this.tracks.values()].some(t=>!t.audio.paused))this.pause();else this.resume().catch(e=>this.error(e.message));}
   async youtubeAPI() {
     if(window.YT?.Player)return;
     if(!this.apiPromise)this.apiPromise=new Promise((resolve,reject)=>{

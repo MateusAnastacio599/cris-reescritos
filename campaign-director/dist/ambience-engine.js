@@ -17,7 +17,7 @@ export class AmbienceBus {
     this.active=structuredClone(preset);this.paused=false;
     if(prior)for(const effect of this.engine.effects)if(effect.owner?.presetId===prior.id)this.engine.retire(effect,fade??effect.fadeOut??exit);
     const results=await Promise.allSettled(this.active.layers.filter(l=>l.enabled!==false).map(async layer=>{
-      const asset=layer.playlistId?ambientPlaylistSource(this.engine,layer).assets[0]:this.engine.asset(layer.assetId);if(!asset||asset.provider==='youtube')throw new Error(`O áudio de “${layer.name}” precisa ser um arquivo da biblioteca.`);
+      const asset=layer.playlistId?ambientPlaylistSource(this.engine,layer).assets[0]:this.engine.asset(layer.assetId);if(!asset||['youtube','spotify'].includes(asset.provider))throw new Error(`O áudio de “${layer.name}” precisa ser um arquivo da biblioteca.`);
       const layerIn=fadeSeconds(fade??layer.fadeIn??(!layer.playlistId?asset.fadeIn:undefined)??enter),layerOut=fadeSeconds(layer.fadeOut??(!layer.playlistId?asset.fadeOut:undefined)??preset.fadeOut??this.engine.getState().settings.crossfade);
       if(layer.mode==='random'){
         const job={layer,presetId:preset.id,generation,remaining:null};this.jobs.set(layer.id,job);this.schedule(job);return;

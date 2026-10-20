@@ -1,3 +1,5 @@
+import {safeSpotifyImage} from './spotify-ui.js';
+import {parseSpotify} from './spotify-auth.js';
 import {setupYouTubeWindow} from './youtube-window.js';
 import {loadState,saveState,initialState,makePage,makeScene,uid,clone,exportWorkspace,importWorkspace,STORAGE_KEY} from './storage.js';
 import {AudioEngine,formatTime} from './audio-engine.js';
@@ -93,16 +95,19 @@ function renderDirector(){
 }
 async function playSelected(){try{await engine.startScene(scene(),locationForScene());}catch(error){toast(error.message,true);}}
 async function fireTrigger(id){try{await engine.fireTrigger(scene().triggers.find(t=>t.id===id),scene());}catch(error){toast(error.message,true);}}
-function playing(){return engine.running||engine.ytPlaying||engine.ambiences.isPlaying||engine.music&&!engine.music.audio.paused||[...engine.tracks.values()].some(t=>!t.audio.paused&&!t.disposed)||[...engine.effects].some(t=>!t.audio.paused&&!t.disposed);}
+function playing(){return engine.spotify.playing||engine.running||engine.ytPlaying||engine.ambiences.isPlaying||engine.music&&!engine.music.audio.paused||[...engine.tracks.values()].some(t=>!t.audio.paused&&!t.disposed)||[...engine.effects].some(t=>!t.audio.paused&&!t.disposed);}
 function updateAudioUI(){
   const active=!!playing(),location=locationForScene(),selectedActive=engine.active?.key===location.key;
   $('#dockPlay').innerHTML=icon(active?'pause':'play');$('#dockPlay').setAttribute('aria-label',active?'Pausar áudio':'Reproduzir áudio');
-  $('#dockArtwork').innerHTML=active?'<div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i></div>':icon('headphones');$('#dockArtwork').classList.toggle('playing',active);
+  const spotifyTrack=engine.musicAsset?.provider==='spotify'?(engine.spotify.track||{}):null,spotifyCover=safeSpotifyImage(spotifyTrack?.album?.images?.[0]?.url||engine.musicAsset?.cover);
+  $('#dockArtwork').classList.toggle('spotify-cover',!!spotifyTrack);
+  $('#dockArtwork').innerHTML=spotifyTrack&&spotifyCover?`<a class="spotify-track-link" href="${esc(parseSpotify(engine.musicAsset.spotifyUri).url)}" target="_blank" rel="noopener" aria-label="Abrir faixa no Spotify"><img src="${esc(spotifyCover)}" alt="Capa do álbum"></a>`:active?'<div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i></div>':icon('headphones');$('#dockArtwork').classList.toggle('playing',active);
   $('#dockContext').textContent=engine.musicAsset?'TOCANDO NA SUA MESA':engine.active?'CENA ATIVA · '+engine.active.campaignTitle.toLocaleUpperCase():'A MESA ESTÁ PRONTA';
-  $('#dockTitle').textContent=(engine.musicAsset?.provider==='youtube'?engine.currentYouTubeTitle:null)||engine.musicAsset?.name||engine.active?.scene.title||engine.ambiences.active?.name||'Dê vida à sua próxima cena';
-  $('#dockSubtitle').textContent=engine.active?.pageTitle||engine.musicAsset&&'Biblioteca de áudio'||'Áudio permanece ativo durante a navegação';
+  if(spotifyTrack)$('#dockContext').innerHTML='<span class="spotify-source-link"><img src="assets/spotify-icon.png" alt=""> Spotify</span>';
+  $('#dockTitle').textContent=spotifyTrack?.name||(engine.musicAsset?.provider==='youtube'?engine.currentYouTubeTitle:null)||engine.musicAsset?.name||engine.active?.scene.title||engine.ambiences.active?.name||'Dê vida à sua próxima cena';
+  $('#dockSubtitle').textContent=spotifyTrack?'Spotify · '+((spotifyTrack.artists||[]).map(a=>a.name).join(', ')||engine.musicAsset.artists||'Premium'):engine.active?.pageTitle||engine.musicAsset&&'Biblioteca de áudio'||'Áudio permanece ativo durante a navegação';
   $('#masterVolume').value=state.settings.master*100;$('#audioReady').innerHTML=`<i class="${active?'playing':''}"></i> ${active?'Áudio em execução':engine.paused?'Áudio pausado':'Motor de áudio pronto'}`;
-  $('#dockPrevious').disabled=!engine.playlist&&!engine.musicAsset?.playlistId;$('#dockNext').disabled=!engine.playlist&&!engine.musicAsset?.playlistId;
+  $('#dockPrevious').disabled=engine.musicAsset?.provider!=='spotify'&&!engine.playlist&&!engine.musicAsset?.playlistId;$('#dockNext').disabled=$('#dockPrevious').disabled;
   if($('#startScene')){$('#startScene').innerHTML=icon(selectedActive&&engine.running?'pause':'play')+`<span>${selectedActive&&engine.running?'Pausar cena':selectedActive&&engine.paused?'Continuar cena':engine.running?'Transicionar para cena':'Iniciar cena'}</span><kbd>ESPAÇO</kbd>`;$('#startScene').classList.toggle('running',selectedActive&&engine.running);$('#selectedSceneState').textContent=selectedActive?(engine.running?'CENA EM EXECUÇÃO':engine.paused?'CENA PAUSADA':'PRONTA PARA COMEÇAR'):engine.running?'OUTRA CENA ESTÁ TOCANDO':'PRONTA PARA COMEÇAR';}
   if(selectedActive)for(const [id,track] of engine.tracks){const input=$(`[data-layer-volume="${CSS.escape(id)}"]`);if(input){input.value=Math.round(track.volume*100);$(`[data-layer-value="${CSS.escape(id)}"]`).textContent=Math.round(track.volume*100)+'%';}}
   ambienceUI.update();
@@ -110,7 +115,7 @@ function updateAudioUI(){
   if($('#mixerLiveRows'))renderMixerRows();
 }
 function updateTick(){
-  const time=engine.currentTime();$('#dockTime').textContent=formatTime(time);
+  const time=engine.currentTime();$('#dockTime').textContent=formatTime(engine.musicAsset?.provider==='spotify'?(engine.spotify.state?.position||0)/1000:time);
   if(!$('#sceneTimer'))return;const same=engine.active?.key===locationForScene().key;
   $('#sceneTimer').textContent=formatTime(same?time:0);
   $$('[data-timeline]').forEach(row=>row.classList.toggle('done',same&&engine.fired.has(Number(row.dataset.timeline))));
@@ -224,3 +229,5 @@ normalizeSelection();renderApp();
 if(recoveryError)openForm({title:'Recuperar seus dados',body:'<p class="dialog-description">Os dados salvos neste navegador não puderam ser lidos. Eles foram preservados. Você pode baixar o conteúdo para recuperação ou restaurar um backup válido.</p><button type="button" class="btn outline full" id="downloadRecovery">Baixar os dados preservados</button><button type="button" class="btn primary full" id="recoveryImport">Importar um backup</button>',onReady:root=>{$('#downloadRecovery',root).onclick=()=>downloadBlob(new Blob([localStorage.getItem(STORAGE_KEY)||''],{type:'application/json'}),'CRIS-dados-recuperacao.json');$('#recoveryImport',root).onclick=openBackups;}});
 else persist();
 new CloudUI({state:()=>state,persist,blocked:()=>!!recoveryError,backups:openBackups,restore:next=>{engine.stop();state=next;editing=false;commit(true);}});
+
+if(new URLSearchParams(location.search).get('spotify')==='connected'){history.replaceState(null,'',location.pathname);toast('Spotify conectado. Abra Biblioteca → Spotify → Preparar player.');}

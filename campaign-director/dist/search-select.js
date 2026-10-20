@@ -6,7 +6,7 @@ let catalog=()=>({}),current=null;
 export function configureAudioPickers(getState){catalog=getState;}
 export function optionDetails(option,state={}){
   const id=option.value.replace(/^(asset|playlist):/,''),asset=state.audioAssets?.find(a=>a.id===id),playlist=state.playlists?.find(p=>p.id===id);
-  const group=asset?(asset.provider==='youtube'?'YouTube':'Arquivos'):playlist?'Playlists':option.parentElement?.tagName==='OPTGROUP'?option.parentElement.label:'';
+  const group=asset?(asset.provider==='youtube'?'YouTube':asset.provider==='spotify'?'Spotify':'Arquivos'):playlist?'Playlists':option.parentElement?.tagName==='OPTGROUP'?option.parentElement.label:'';
   const detail=asset?[({music:'Música',ambience:'Ambiência',sfx:'Efeito'})[asset.kind],asset.tags,asset.filename].filter(Boolean).join(' · '):playlist?playlist.assetIds.length+' faixas':'';
   return {value:option.value,label:option.textContent,group,detail,disabled:option.disabled,terms:normalizeSearch(option.textContent+' '+detail+' '+group)};
 }
