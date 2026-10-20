@@ -156,7 +156,7 @@ export class AudioEngine extends EventTarget {
     this.emit('cue',{id:trigger.id,name:trigger.name});
   }
   pause() {
-    this.musicEpoch++;this.spotify.pause().catch(error=>this.error(error.message));this.ytEnvelope.cancel();this.ytPendingFade=null;this.ambiences.pause();
+    this.musicEpoch++;this.spotify.pause({fadeOut:this.getState().settings.spotifyFadeOut}).catch(error=>this.error(error.message));this.ytEnvelope.cancel();this.ytPendingFade=null;this.ambiences.pause();
     if(this.running){this.elapsed=this.currentTime();this.running=false;}this.paused=true;
     // Delayed cue actions are discarded on pause; timeline resumes from elapsed time.
     this.clearDelays();for(const t of this.retiring)this.dispose(t);
@@ -167,7 +167,7 @@ export class AudioEngine extends EventTarget {
     await this.init();const results=await Promise.allSettled([...this.tracks.values(),...this.effects,...(this.music?[this.music]:[])].filter(t=>!t.disposed).map(t=>t.audio.play()));
     for(const r of results)if(r.status==='rejected')this.error('Toque em reproduzir para liberar o áudio.');
     await this.ambiences.resume();
-    if(this.musicAsset?.provider==='spotify')await this.spotify.resume();
+    if(this.musicAsset?.provider==='spotify')await this.spotify.resume({fadeIn:this.getState().settings.spotifyFadeIn});
     if(this.musicAsset?.provider==='youtube'&&this.ytReady){this.youtubeHardStopped=false;this.ytPendingFade={duration:.35,level:this.musicTargetLevel,generation:this.musicEpoch};this.ytLevel=0;this.applyYTVolume();this.yt.playVideo();}
     if(this.active){this.running=true;this.startedAt=performance.now();}this.paused=false;this.emit();
   }

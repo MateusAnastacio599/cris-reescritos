@@ -9,7 +9,7 @@ export const musicMethods={
     const music=scene.music||(scene.musicAssetId?{mode:'play',assetId:scene.musicAssetId}:{mode:'keep'});
     if(music.mode==='stop')return this.stopMusic(music.fadeOut??this.getState().settings.musicFadeOut);
     if(music.mode!=='play'){
-      if(resume){if(this.musicAsset?.provider==='spotify')await this.spotify.resume();if(this.music&&!this.music.disposed)await this.music.audio.play();if(this.musicAsset?.provider==='youtube'&&this.ytReady){this.youtubeHardStopped=false;this.ytPendingFade={duration:.35,level:this.musicTargetLevel,generation:this.musicEpoch};this.ytLevel=0;this.applyYTVolume();this.yt.playVideo();}}
+      if(resume){if(this.musicAsset?.provider==='spotify')await this.spotify.resume({fadeIn:this.getState().settings.spotifyFadeIn});if(this.music&&!this.music.disposed)await this.music.audio.play();if(this.musicAsset?.provider==='youtube'&&this.ytReady){this.youtubeHardStopped=false;this.ytPendingFade={duration:.35,level:this.musicTargetLevel,generation:this.musicEpoch};this.ytLevel=0;this.applyYTVolume();this.yt.playVideo();}}
       return;
     }
     const playlist=this.getState().playlists.find(p=>p.id===music.playlistId);
@@ -20,13 +20,14 @@ export const musicMethods={
     if(!asset)throw new Error('Escolha uma faixa na biblioteca.');
     if(asset.provider==='spotify')this.spotify.activate();
     const opts=this.musicOptions(options),generation=++this.musicEpoch,isCurrent=()=>generation===this.musicEpoch&&!this.removedAssets.has(asset.id)&&(opts.ambienceMusicToken===undefined||this.ambiences.active?.id===opts.ambienceOwnerId&&this.ambiences.musicToken===opts.ambienceMusicToken);
+    if(asset.provider==='spotify'){opts.fadeIn=options.fadeIn??this.getState().settings.spotifyFadeIn;opts.fadeOut=options.fadeOut??this.getState().settings.spotifyFadeOut;}
     this.ytTransitionEpoch=generation;this.ytEnded=false;this.ytEndFadeKey=null;this.ytLastPosition=null;this.ytRampInfo=null;this.ytEnvelope.cancel();this.musicAdvancePending=this.music;if(asset.provider!=='spotify')await this.init();if(!isCurrent())return;
-    if(asset.provider!=='spotify'&&(this.spotify.acceptPlayback||this.musicAsset?.provider==='spotify')){await this.spotify.pause();if(!isCurrent())return;}
+    if(asset.provider!=='spotify'&&(this.spotify.acceptPlayback||this.musicAsset?.provider==='spotify')){await this.spotify.pause({fadeOut:options.fadeOut??this.getState().settings.spotifyFadeOut});if(!isCurrent())return;}
     if(asset.provider==='spotify'){
       await this.spotify.ensure();if(!isCurrent())return;
       if(this.music){this.dispose(this.music);this.music=null;}for(const track of [...this.retiring])if(track.group==='music')this.dispose(track);
       if(this.yt){this.youtubeHardStopped=true;this.releaseYouTubePlayer();const panel=document.getElementById('youtubePanel');if(panel)panel.hidden=true;}
-      this.musicTargetLevel=opts.volume;await this.applySpotifyVolume();if(!isCurrent())return;
+      this.musicTargetLevel=opts.volume;const s=this.getState().settings;opts.outputVolume=clamp(s.master)*clamp(s.music)*clamp(s.spotifyVolume??1)*opts.volume;if(!this.spotify.playing)await this.spotify.setVolume(opts.outputVolume);if(!isCurrent())return;
       if(!await this.spotify.play(asset,opts,isCurrent)||!isCurrent())return;
     }else if(asset.provider==='youtube'){
       const wasPlaying=this.ytPlaying;
@@ -62,13 +63,13 @@ export const musicMethods={
     if(this.playlist?.id===playlist.id){this.playlist.index=this.playlistItems(playlist).findIndex(a=>a.id===this.musicAsset?.id);this.playlistOrder(playlist);this.preloadNextMusic();this.emit();}
   },
   nextMusic(offset=1){
-    if(this.musicAsset?.provider==='spotify'&&!this.playlist)return this.spotify.next(offset).catch(error=>this.error(error.message));
+    if(this.musicAsset?.provider==='spotify'&&!this.playlist)return this.spotify.next(offset,{fadeIn:this.getState().settings.spotifyFadeIn,fadeOut:this.getState().settings.spotifyFadeOut}).catch(error=>this.error(error.message));
     if(this.musicAsset?.provider==='youtube'&&this.musicAsset.playlistId&&this.ytReady){const queue=this.yt.getPlaylist?.()||[];const current=this.yt.getPlaylistIndex?.()||0;const index=queue.length?((current+offset)%queue.length+queue.length)%queue.length:Math.max(0,current+offset);return this.playMusic(this.musicAsset,{...this.musicFadeOptions,youtubeIndex:index,youtubeVideoId:queue[index]}).catch(e=>this.error(e.message));}
     const playlist=this.getState().playlists.find(p=>p.id===this.playlist?.id);if(playlist){const list=this.playlistItems(playlist),order=this.playlistOrder(playlist),id=offset<0?order.previous():order.next(),index=list.findIndex(a=>a.id===id);if(index<0)return this.stopMusic(0);return this.playMusic(list[index],{...this.musicFadeOptions,playlist,index}).catch(e=>this.error(e.message));}
   },
   async stopMusic(seconds=this.getState().settings.musicFadeOut??2){
     const generation=++this.musicEpoch;this.ytTransitionEpoch=generation;this.ytEnded=false;this.ytEndFadeKey=null;this.ytLastPosition=null;this.ytPendingFade=null;this.ytRampInfo=null;this.ytEnvelope.cancel();this.clearPreload();
-    if(this.spotify.acceptPlayback||this.musicAsset?.provider==='spotify'){await this.spotify.pause();if(generation!==this.musicEpoch)return;}
+    if(this.spotify.acceptPlayback||this.musicAsset?.provider==='spotify'){await this.spotify.pause({fadeOut:seconds});if(generation!==this.musicEpoch)return;}
     if(this.music){this.retire(this.music,seconds);this.music=null;}
     if(this.ytReady){const complete=await this.ytEnvelope.fade(0,seconds,()=>generation===this.musicEpoch);if(!complete)return;this.yt.stopVideo();this.ytPlaying=false;}
     if(generation===this.musicEpoch){this.youtubeHardStopped=true;this.musicAsset=null;this.playlist=null;this.musicOrder=null;this.musicAdvancePending=null;this.ytTransitionEpoch=null;this.emit();}
@@ -83,7 +84,7 @@ export const musicMethods={
     this.ytEndFadeKey=null;this.ytEnded=false;this.ytRampInfo=null;this.ytEnvelope.cancel();
     if(this.ytPlaying&&!this.ytPendingFade&&this.ytTransitionEpoch!==this.musicEpoch)this.startYouTubeFade(this.musicTargetLevel,.2);
   },
-  applySpotifyVolume(){const s=this.getState().settings;return this.spotify?.setVolume(clamp(s.master)*clamp(s.music)*this.musicTargetLevel);},
+  applySpotifyVolume(){const s=this.getState().settings;return this.spotify?.setVolume(clamp(s.master)*clamp(s.music)*clamp(s.spotifyVolume??1)*this.musicTargetLevel);},
   fadeMusicTo(volume,seconds=2){this.musicTargetLevel=clamp(volume);if(this.musicAsset?.provider==='spotify')this.applySpotifyVolume();if(this.ytPendingFade)this.ytPendingFade.level=this.musicTargetLevel;if(this.musicFadeOptions)this.musicFadeOptions.volume=this.musicTargetLevel;if(this.music)this.ramp(this.music,this.musicTargetLevel,seconds);if(this.ytReady&&!this.ytPendingFade&&this.musicAsset?.provider==='youtube')this.ytEnvelope.fade(this.musicTargetLevel,seconds,()=>!!this.musicAsset);this.emit();},
   fadeMix(group,to,seconds=2){
     if(!['master','music','ambience','sfx'].includes(group))return;

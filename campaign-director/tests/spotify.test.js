@@ -103,3 +103,45 @@ test('desconectar enquanto SDK carrega não cria player depois',async()=>{
   let release;const player=new SpotifyPlayer({auth:{connected:true,disconnect(){}},sdk:()=>new Promise(resolve=>{release=resolve;})});
   const preparing=player.ensure();player.disconnect();release();await assert.rejects(preparing,/cancelada/);assert.equal(player.player,null);
 });
+
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const trackState=(paused=false,uri=URI)=>({paused,position:10000,track_window:{current_track:{uri,name:'Faixa'}}});
+test('fade in espera reprodução confirmada e chega ao volume escolhido',async()=>{
+  const {player,calls}=readyPlayer();player.player.getCurrentState=async()=>null;
+  await player.play({spotifyUri:URI},{fadeIn:.07,outputVolume:.6});await wait(90);
+  assert.equal(player.level,0);assert.equal(calls.filter(c=>Array.isArray(c)&&c[0]==='volume').at(-1)[1],0);
+  player.receiveState(trackState());await wait(110);
+  const volumes=calls.filter(c=>Array.isArray(c)&&c[0]==='volume').map(c=>c[1]);assert.equal(player.level,1);assert.equal(volumes.at(-1),.6);assert.ok(volumes.some(v=>v>0&&v<.6));
+  await player.pause();
+});
+test('pause faz fade out antes de enviar pausa ao SDK e resume recupera o volume',async()=>{
+  const {player,calls}=readyPlayer();player.playing=true;player.acceptPlayback=true;player.player.getCurrentState=async()=>trackState();
+  const pausing=player.pause({fadeOut:.07});assert.equal(calls.includes('pause'),false);await pausing;
+  assert.equal(player.level,0);assert.equal(calls.at(-1),'pause');
+  await player.resume({fadeIn:.07});await wait(110);assert.equal(player.level,1);assert.equal(player.playing,true);
+  await player.pause();
+});
+test('próxima faixa sai em fade antes de avançar e entra suavemente no novo estado',async()=>{
+  const {player,calls}=readyPlayer();player.playing=true;player.acceptPlayback=true;player.player.nextTrack=async()=>calls.push('next');player.player.getCurrentState=async()=>trackState(false,'spotify:track:4zk4CEKBTw5n5J7wSd4Zf8');
+  const changing=player.next(1,{fadeOut:.07,fadeIn:.07});assert.equal(calls.includes('next'),false);await changing;await wait(110);
+  const index=calls.indexOf('next');assert.ok(index>0);assert.deepEqual(calls[index-1],['volume',0]);assert.equal(player.level,1);
+  await player.pause();
+});
+test('pausa imediata cancela fade in e callbacks antigos não aumentam o volume',async()=>{
+  const {player,calls}=readyPlayer();player.acceptPlayback=true;player.receiveState(trackState());player.level=0;player.beginFadeIn(.3,player.operation);await wait(60);
+  await player.pause({fadeOut:0});const count=calls.length;await wait(110);assert.equal(player.level,0);assert.equal(player.playing,false);assert.equal(calls.length,count);
+});
+test('alterar volume durante fade não cancela envelope nem retorna a um volume antigo',async()=>{
+  const {player,calls}=readyPlayer();player.acceptPlayback=true;player.receiveState(trackState());player.level=0;player.beginFadeIn(.14,player.operation);await wait(40);await player.setVolume(.25);await wait(150);
+  assert.equal(player.level,1);assert.equal(calls.filter(c=>Array.isArray(c)&&c[0]==='volume').at(-1)[1],.25);await player.pause();
+});
+test('sessão particular só é confirmada para o dispositivo CRIS, sem tentar alterá-la',async()=>{
+  const {player}=readyPlayer(),paths=[];let state={device:{id:'other-device',is_private_session:true}};player.api=async path=>{paths.push(path);return state;};
+  assert.equal(await player.privateSession(),null);state={device:{id:'cris-device',is_private_session:false}};assert.equal(await player.privateSession(),false);state.device.is_private_session=true;assert.equal(await player.privateSession(),true);assert.ok(paths.every(p=>p==='/me/player'));
+});
+
+test('play durante fade de pausa cancela a pausa antiga e recupera a música',async()=>{
+  const {player,calls}=readyPlayer();player.playing=true;player.acceptPlayback=true;player.player.getCurrentState=async()=>trackState();
+  const pausing=player.pause({fadeOut:.3});await wait(45);await player.resume({fadeIn:.07});assert.equal(await pausing,false);await wait(110);
+  assert.equal(calls.includes('pause'),false);assert.ok(calls.includes('resume'));assert.equal(player.level,1);await player.pause();
+});
