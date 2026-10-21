@@ -148,6 +148,7 @@ export class AudioEngine extends EventTarget {
       if(action.type==='ambience'){const preset=this.getState().ambiences?.find(a=>a.id===action.ambienceId);this.ambiences.apply(preset,{fade:action.duration}).catch(e=>this.error(e.message));}
       if(action.type==='ambience-stop')this.ambiences.stop(action.duration);
       if(action.type==='mix')this.fadeMix(action.group||'master',action.to,action.duration??2);
+      if(['board-reveal','board-hide'].includes(action.type))this.emit('board-action',{itemId:action.itemId,campaignId:action.boardCampaignId,action:action.type==='board-hide'?'hide':'reveal'});
       if(action.type==='message')this.emit('message',{message:action.message||cue.name});
       if(action.type==='navigate')this.emit('navigate',{pageId:action.pageId,sceneId:action.sceneId||null});
       this.emit();
