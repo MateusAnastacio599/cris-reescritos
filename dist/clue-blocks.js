@@ -1,0 +1,6 @@
+import {parseBlocks,blocksToMarkdown} from './markdown.js';
+export function standaloneClueAction(scene,trigger){const cue=trigger?.cue&&(scene.cues||[]).find(c=>c.id===(trigger.cueId||trigger.id));const a=cue?.actions?.length===1?cue.actions[0]:null;return a&&['board-reveal','board-hide'].includes(a.type)&&!a.delay?a:null;}
+export function sceneClueBlocks(scene){return parseBlocks(scene.markdown).map(b=>{if(b.type!=='cue')return b;const a=standaloneClueAction(scene,scene.triggers.find(t=>t.id===b.triggerId));return a?{type:'clue',text:b.text,itemId:a.itemId,campaignId:a.boardCampaignId,action:a.type==='board-hide'?'hide':'reveal'}:b;});}
+export function createClueBlock(item,campaignId,action='reveal'){return {type:'clue',text:item.title,itemId:item.id,campaignId,action};}
+export function attachClue(scene,item,campaignId,{insert,blockIndex}={}){const b=createClueBlock(item,campaignId);if(insert)insert(b);else if(blockIndex===undefined)scene.markdown+='\n\n'+blocksToMarkdown([b]);else{const blocks=sceneClueBlocks(scene);blocks.splice(blockIndex??blocks.length,0,b);scene.markdown=blocksToMarkdown(blocks);}return b;}
+export function sceneClues(scene){const found=new Map();for(const b of sceneClueBlocks(scene))if(b.type==='clue'&&b.itemId)found.set([b.campaignId,b.itemId,b.action].join(':'),b);return [...found.values()];}
