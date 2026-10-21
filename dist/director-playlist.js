@@ -21,6 +21,7 @@ export class DirectorPlaylist{
   root.querySelectorAll('[data-director-tab]').forEach(b=>{b.onclick=()=>this.show(b.dataset.directorTab);b.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const view=e.key==='Home'?'scene':e.key==='End'?'tracks':this.view==='scene'?'tracks':'scene';this.show(view);root.querySelector(`[data-director-tab="${view}"]`).focus();};});
   this.show(this.view);this.root.scrollTop=0;
  }
+ showCurrent(){this.selection='auto';this.term='';this.limit=50;this.show('tracks');}
  show(view){this.view=view;this.root.scrollTop=0;for(const b of this.root.querySelectorAll('[data-director-tab]')){const active=b.dataset.directorTab===view;b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;}
   this.root.querySelector('#directorScenePane').hidden=view!=='scene';this.root.querySelector('#directorTrackPane').hidden=view!=='tracks';if(view==='tracks')this.load();
  }
