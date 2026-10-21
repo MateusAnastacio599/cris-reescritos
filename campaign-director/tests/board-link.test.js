@@ -6,7 +6,7 @@ import {initialState,validateState} from '../dist/storage.js';
 import {boardStamp,chooseBoardVersion,applyBoardCommands,BoardSession} from '../integration-main/quadro/board-session.js';
 const campaign='39003a62-cb07-57fd-9d6a-da2b6f802421';
 test('catálogo exclui inventário e binários e conserva IDs e visibilidade das pistas',()=>{
- const rows=clueCatalog([{id:'a',gm:true,type:'foto',name:'<b>Janela</b>',imgId:'secret',secret:'anotação'},{id:'b',hand:'box',name:'Guardado'},{id:'c',text:'Carta\nSegredo'}]);assert.deepEqual(rows,[{id:'a',title:'Janela',hidden:true,type:'foto'},{id:'c',title:'Carta',hidden:false,type:'item'}]);assert.equal(JSON.stringify(rows).includes('secret'),false);
+ const rows=clueCatalog([{id:'a',gm:true,type:'foto',name:'<b>Janela</b>',imgId:'secret',secret:'anotação'},{id:'b',hand:'box',name:'Guardado'},{id:'c',text:'Carta\nSegredo'}]);assert.deepEqual(rows,[{id:'a',title:'Janela',hidden:true,type:'foto',named:false},{id:'c',title:'Carta',hidden:false,type:'item',named:false}]);assert.equal(JSON.stringify(rows).includes('secret'),false);
 });
 test('vincular pista cria cue e bloco usando IDs estáveis, sem copiar dados ocultos no roteiro',()=>{
  const s=initialState(),scene=s.campaigns[0].pages[0].scenes[0],before=scene.markdown,trigger=attachClue(scene,{id:'clue',title:'Carta perdida'},campaign);assert.ok(scene.markdown.startsWith(before));assert.ok(scene.markdown.includes('[[cue:'+trigger.id));assert.equal(scene.cues.at(-1).actions[0].itemId,'clue');assert.doesNotThrow(()=>validateState(s));scene.cues.at(-1).actions[0].boardCampaignId='invalid';assert.throws(()=>validateState(s),/Pista/);
@@ -33,4 +33,10 @@ test('auto salvamento confirma somente snapshot enviado e continua edições dur
 
 test('snapshot é preservado no aparelho antes de confirmar a nuvem e não confirma se a cópia local falhar',async()=>{
  const calls=[],snapshot={state:{items:[]},imgs:{}},bridge={identity:{userId:'owner'},campaignId:campaign,saveBoard:async()=>calls.push('cloud')},s=new BoardSession({bridge,storage:{setItem:()=>calls.push('meta')}});s.status=()=>{};s.api={snapshot:()=>snapshot,persistLocal:async()=>calls.push('local')};await s.flush();assert.deepEqual(calls,['local','cloud','meta']);s.base=null;s.api.persistLocal=async()=>{throw Error('IndexedDB unavailable');};await assert.rejects(()=>s.flush(),/IndexedDB/);assert.equal(calls.filter(c=>c==='cloud').length,1);
+});
+
+
+test('nomes do roteiro ficam vinculados ao ID e decoração e inventário não viram pistas',()=>{
+ const rows=clueCatalog([{id:'photo',type:'img',crisClueName:'Desenho molhado · verso',crisClue:true,gm:true},{id:'decor',kind:'vela',type:'cont'},{id:'trigger',type:'cont',kind:'ativador',crisClue:true},{id:'pocket',hand:'player',crisClue:true}]);
+ assert.deepEqual(rows.map(r=>[r.id,r.title,r.named]),[['photo','Desenho molhado · verso',true],['decor','Vela',false]]);
 });
