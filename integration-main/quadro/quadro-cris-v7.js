@@ -1686,7 +1686,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     return Ft(t2).drawImage(e2, 0, 0), t2;
   } }, Ee.splice(0, Ee.length, "original", "antiga", "polaroid", "queimado", "selo", "jornal", "caderno", "xerox", "confidencial", "negativo", "celular", "objeto", "saco"), Object.assign(Re, { polaroid: [["legenda", "txt", "Legenda (\xE0 m\xE3o)"]], queimado: [["legenda", "txt", "Legenda (\xE0 m\xE3o)"]], celular: [["hora", "txt", "Hora"], ["legenda", "txt", "Mensagem"]], confidencial: [["titulo", "txt", "T\xEDtulo"], ["nome", "txt", "Nome"], ["legenda", "txt", "Observa\xE7\xE3o"], ["carimbo", "txt", "Carimbo"]], xerox: [], negativo: [["quadro", "txt", "N\xBA do quadro"]] });
   let zt = null, It = null, Ut = null, Kt = null;
-  function Bt() { return null;
+  function Bt() {
     if (!zt) {
       try {
         zt = new (window.AudioContext || window.webkitAudioContext)();
@@ -3405,7 +3405,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     t("#dialUI").classList.remove("show"), mn = null;
   };
   const On = { g: 0.8, i: 0.8, e: 0.8, v: 1 }, jn = /* @__PURE__ */ new Set(["beep", "sms", "key", "static", "rattle", "flick", "blow", "zippo", "zipclose", "strike", "crack", "creak", "eerie", "tickd", "latch", "unlock", "buzz", "tick", "wood"]), Dn = Nt;
-  function Nn() { return;
+  function Nn() {
     const e2 = Object.assign({}, On, u.vol || {}), t2 = false === u.sound;
     if (Ut && zt) {
       const o2 = zt.currentTime;
@@ -7308,7 +7308,11 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
     }, true);
   }
   async function Nl() {
-    return await M("scenes") || [];
+    const key=crisBoardStorageKey()+":scenes", scoped=await M(key);if(scoped)return scoped;
+    const owner=localStorage.getItem('cris:board:legacy-owner');
+    const legacy=owner===window.CRIS_IDENTITY.userId?(await M('scenes')||[]):[];
+    for(const scene of legacy){const value=await M('scene:'+scene.id);if(value)await S(crisBoardStorageKey()+':scene:'+scene.id,value);}
+    await S(key,legacy);return legacy;
   }
   function Hl() {
     const e2 = {};
@@ -7320,7 +7324,7 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
   }
   async function _l(e2) {
     const t2 = await Nl(), o2 = r();
-    await S("scene:" + o2, { state: JSON.parse(JSON.stringify(u)), imgs: Hl() }), t2.unshift({ id: o2, name: e2, date: (/* @__PURE__ */ new Date()).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }), n: u.items.length }), await S("scenes", t2), St("Cena salva: " + e2);
+    await S(crisBoardStorageKey()+":scene:" + o2, { state: JSON.parse(JSON.stringify(u)), imgs: Hl() }), t2.unshift({ id: o2, name: e2, date: (/* @__PURE__ */ new Date()).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }), n: u.items.length }), await S(crisBoardStorageKey()+":scenes", t2), St("Cena salva: " + e2);
   }
   async function Vl(e2, t2) {
     $(), Object.assign(p, t2 || {});
@@ -7331,18 +7335,17 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
   async function Gl() {
     const e2 = t("#scenePanel"), o2 = await Nl();
     e2.innerHTML = `<div class="fl-h">Cenas salvas</div><div class="sc-row"><button class="b" id="scSave">\uFF0B Salvar a mesa atual como cena</button></div><div class="sc-list">${o2.length ? o2.map((e3) => `<div class="sc-it"><div><b>${gt(e3.name)}</b><span>${gt(e3.date)} \xB7 ${e3.n} itens</span></div><button class="b" data-ld="${e3.id}">Abrir</button><button class="b x" data-rm="${e3.id}" title="Apagar">\u2715</button></div>`).join("") : '<div class="hint">Nenhuma cena ainda. Prepare mesas antes da sess\xE3o e troque entre elas no meio do jogo.</div>'}</div>
-    <div class="fl-h" style="margin-top:12px">Come\xE7ar de um modelo</div><div class="sc-tpl">${Object.entries(Wl).map(([e3, t2]) => `<button class="b" data-tp="${e3}">${t2.name}</button>`).join("")}</div>
     <div class="fl-h" style="margin-top:12px">Arquivo</div><div class="sc-tpl"><button class="b" id="scImg">Exportar imagem (PNG)</button><button class="b" id="scExp">Exportar mesa (arquivo)</button><button class="b" id="scImp">Importar mesa</button><button class="b" id="scNew">Nova mesa</button></div>
     <div class="hint" style="margin-top:8px">Cenas ficam salvas neste navegador. Pra levar pra outro computador, use Exportar/Importar mesa.</div>`, t("#scSave").onclick = async () => {
       const e3 = await xf("Salvar a mesa como cena", "Nome da cena", "Cena " + ((o2.length || 0) + 1));
       e3 && (await _l(e3.trim() || "Cena"), Gl());
     }, e2.querySelectorAll("[data-ld]").forEach((e3) => e3.onclick = async () => {
-      const t2 = await M("scene:" + e3.dataset.ld);
+      const t2 = await M(crisBoardStorageKey()+":scene:" + e3.dataset.ld);
       t2 && await wf("Abrir esta cena?") && (await Vl(t2.state, t2.imgs), St("Cena aberta"));
     }), e2.querySelectorAll("[data-rm]").forEach((e3) => e3.onclick = async () => {
       if ("yes" !== await bf({ title: "Apagar esta cena?", msg: "Ela some da lista de cenas salvas deste navegador.", buttons: [["no", "Cancelar"], ["yes", "Apagar", "danger"]] })) return;
       const t2 = (await Nl()).filter((t3) => t3.id !== e3.dataset.rm);
-      await S("scenes", t2), await S("scene:" + e3.dataset.rm, null), Gl();
+      await S(crisBoardStorageKey()+":scenes", t2), await S(crisBoardStorageKey()+":scene:" + e3.dataset.rm, null), Gl();
     }), e2.querySelectorAll("[data-tp]").forEach((t2) => t2.onclick = async () => {
       u.items.length && !await wf("Trocar pela mesa pronta?") || (e2.classList.remove("open"), Qr = null, await Ql(t2.dataset.tp));
     }), t("#scImg").onclick = () => {
@@ -7540,7 +7543,7 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
     let o2 = t("#verBar");
     o2 || (o2 = document.createElement("div"), o2.id = "verBar", document.body.appendChild(o2)), o2.innerHTML = `<span>${gt(e2)}</span><button class="b gold" id="verR">Recarregar</button><button class="b" id="verX">\u2715</button>`, t("#verR").onclick = () => location.reload(), t("#verX").onclick = () => o2.remove();
   }
-  async function ic() {
+  async function ic() { return;
     if (location.protocol.startsWith("http")) try {
       const e2 = await (await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" })).text(), t2 = String.fromCharCode(34), o2 = e2.match(new RegExp("name=" + t2 + "qi-ver" + t2 + " content=" + t2 + "([^" + t2 + "]+)")) || e2.match(new RegExp("const QI_VER=" + t2 + "([A-Za-z][^" + t2 + "]+)" + t2));
       o2 && /^[A-Za-z]+ \d/.test(o2[1]) && o2[1] !== hl && nc(`Saiu uma vers\xE3o nova (${o2[1]}). Recarregue pra atualizar.`);
@@ -29465,13 +29468,23 @@ Clique pra mudar`, m2.innerHTML = `${Hv(f2)}<span>${u2}</span>${c2 > 1 ? `<em>${
   ;
 
 
-// CRIS owns accounts, persistence, and all sound through Director/SoundPad.
-Nt=function(){};
+// CRIS integration: account, clues and local interaction sounds.
+for(const template of Object.keys(Wl))delete Wl[template];
+Nc=function(){}; // Ambient tracks are managed in SoundPad.
+bl=function(){}; // No upstream announcements or promotional dialog in CRIS.
+setTimeout(()=>{const button=t('#sndBtn');button.title='Sons de interação · ligar/desligar';button.onclick=()=>{u.sound=u.sound===false;applySound();Nn();E();if(u.sound)Nt('pick');St(u.sound?'Sons de interação ligados':'Sons de interação desligados');};},100);
+
+Lt=function(){u=d();u.items=[];u.pins=[];u.strings=[];};
+const crisProps=vt;
+vt=function(){const result=crisProps.apply(this,arguments);if(!Ks&&h){const item=K(h),panel=t('#props');if(item&&panel)window.CRISMOUNT_CLUE_PANEL?.({panel,item,onChange:()=>{E();ar();}});}return result;};
+
+
 if(!Ks){setTimeout(()=>{const modal=document.createElement('div');modal.id='masterLaunch';modal.innerHTML='<div class="master-card"><div class="master-title">C.R.I.S. · MESA INVESTIGATIVA</div><p>Prepare o quadro ou inicie a transmissão para os agentes.</p><div class="master-actions"><button id="masterStart" class="master-primary">INICIAR MESA OFICIAL</button><button id="masterOffline" class="master-secondary">EDITAR SEM TRANSMITIR</button><button id="masterBack" class="master-secondary">VOLTAR AO C.R.I.S.</button></div></div>';document.body.append(modal);t('#masterOffline').onclick=()=>modal.remove();t('#masterBack').onclick=()=>location.href='../';t('#masterStart').onclick=async()=>{if(!t('#sharePanel'))wr();await yr(false);modal.remove();};},0);}
 
 
   /*! Quadro Investigativo © Viquitor "Harden" Saldanha · hipsandhops.com.br · Todos os direitos reservados. */
-  function applySound() { u.sound=false;
+  function applySound() {
+    try{localStorage.setItem("cris:board:interaction-sounds",u.sound===false?"off":"on");}catch{}
     const e2 = t("#sndBtn");
     e2.classList.toggle("off", false === u.sound), e2.querySelector(".w").style.display = false === u.sound ? "none" : "", e2.querySelector(".m").style.display = false === u.sound ? "" : "none";
   }
@@ -29533,8 +29546,9 @@ if(!Ks){setTimeout(()=>{const modal=document.createElement('div');modal.id='mast
                     u = $t(Object.assign(d(), saved.state))
                 } else
                     Lt();
+                u.sound=localStorage.getItem("cris:board:interaction-sounds")!=="off";
                 await ze();
-                u.sound=false;
+
                 if(session)session.ready(window.CRIS_BOARD_API);
                 E();
                 if(!saved){qt();U();E();}
