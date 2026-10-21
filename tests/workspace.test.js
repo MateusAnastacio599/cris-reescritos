@@ -43,6 +43,6 @@ test('CRIS integrado usa módulos, identidade autenticada e não contém mapas d
  assert.match(readFileSync(new URL('cris.js',root),'utf8'),/CRISBridge.login/);assert.match(readFileSync(new URL('cris.js',root),'utf8'),/cris_ficha_v2:'\+uid/);
 });
 test('quadro conserva o motor ativo e filtra os binários de itens ocultos no envio inicial',()=>{
- const s=readFileSync(new URL('../integration-main/quadro/quadro-cris-v7.js',import.meta.url),'utf8');assert.match(s,/S.items.filter\(i => !i.gm && !i.hand\).forEach/);assert.match(s,/window.CRIS_IDENTITY\?\.isMaster/);assert.match(s,/await session.choose\(localSaved,cloudSaved\)/);
+ const s=readFileSync(new URL('../integration-main/quadro/quadro-cris-v7.js',import.meta.url),'utf8');assert.match(s,/u.items.filter\(i=>!i.gm&&!i.hand&&i.kind!=="ativador"\).forEach/);assert.match(s,/window.CRIS_IDENTITY.isMaster/);assert.match(s,/await session.choose\(localSaved,cloudSaved\)/);
  const html=readFileSync(new URL('../integration-main/quadro/index.html',import.meta.url),'utf8');assert.match(html,/quadro-cris-v7.js/);assert.match(html,/mountBoardSession/);assert.match(readFileSync(new URL('../integration-main/quadro/board-session.js',import.meta.url),'utf8'),/Minha ficha/);assert.match(html,/requireIdentity/);
 });
