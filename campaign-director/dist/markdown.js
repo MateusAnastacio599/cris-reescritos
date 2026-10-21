@@ -1,3 +1,4 @@
+const decodeURIComponentSafe=value=>{try{return decodeURIComponent(value);}catch{return value;}};
 export const escapeHTML = value => String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 export function tableCells(line){
   const value=line.trim().replace(/^\|/,'').replace(/(?<!\\)\|$/,'');const cells=[];let cell='',escaped=false,wiki=0;
@@ -16,7 +17,8 @@ export function parseBlocks(markdown) {
     }
     let type='paragraph',value=text,extra={},match;
     if(text==='<!--cris:empty-->'){flush();result.push({type:'paragraph',text:''});continue;}
-    if((match=text.match(/^\[\[cue:([^|\]]*)\|(.*)\]\]$/))){type='cue';extra={triggerId:match[1]};value=match[2];}
+    if((match=text.match(/^\[\[clue(-hide)?:([^:|\]]*):([^|\]]*)\|(.*)\]\]$/))){type='clue';extra={campaignId:match[2],itemId:decodeURIComponentSafe(match[3]),action:match[1]?'hide':'reveal'};value=match[4];}
+    else if((match=text.match(/^\[\[cue:([^|\]]*)\|(.*)\]\]$/))){type='cue';extra={triggerId:match[1]};value=match[2];}
     else if((match=text.match(/^\[\[note:(.*)\]\]$/))){type='note';value=match[1];}
     else if(text==='---'||text==='***'){type='divider';value='';}
     else if((match=text.match(/^(#{1,3}) (.*)$/))){type='h'+match[1].length;value=match[2];}
@@ -33,6 +35,7 @@ const tableEscape=value=>lineEscape(value).replace(/\|/g,'\\|');
 export function blocksToMarkdown(blocks){return blocks.map(b=>{
   const prefix={h1:'# ',h2:'## ',h3:'### ',quote:'> ',list:'- '};
   if(b.type==='table'){const headers=b.headers||['Coluna 1','Coluna 2'];return ['| '+headers.map(tableEscape).join(' | ')+' |','| '+headers.map((_,i)=>({left:'---',right:'---:',center:':---:'})[b.align?.[i]]||'---').join(' | ')+' |',...(b.rows||[]).map(row=>'| '+headers.map((_,i)=>tableEscape(row[i])).join(' | ')+' |')].join('\n');}
+  if(b.type==='clue')return `[[clue${b.action==='hide'?'-hide':''}:${b.campaignId||''}:${encodeURIComponent(b.itemId||'')}|${lineEscape(b.text).replace(/\|/g,'·')}]]`;
   if(b.type==='cue')return `[[cue:${b.triggerId||''}|${lineEscape(b.text)}]]`;
   if(b.type==='note')return `[[note:${lineEscape(b.text)}]]`;
   if(b.type==='divider')return '---';
@@ -77,6 +80,7 @@ export function renderReadBlocks(blocks,pages=[]) {
     const text=inlineHTML(b.text,pages);
     if(list){if(!listType){html+=list==='numbered'?`<ol class="document-list" start="${b.number||1}">`:'<ul class="document-list">';listType=list;}html+=`<li>${text}</li>`;return;}
     if(b.type==='table'){html+=renderTable(b,pages);return;}
+    if(b.type==='clue'){html+=`<div class="inline-board-clue"><div><span aria-hidden="true">◇</span><span><small>PISTA DO QUADRO</small>${text||'Escolher pista'}</span></div><button type="button" class="btn" data-inline-clue="${escapeHTML(b.itemId)}" data-board-campaign="${escapeHTML(b.campaignId)}" data-board-action="${b.action==='hide'?'hide':'reveal'}">${b.action==='hide'?'Ocultar':'Revelar pista'}</button></div>`;return;}
     if(b.type==='cue'){html+=`<div class="inline-cue"><div><span class="cue-glyph">♫</span><span>${text}</span></div><button class="btn cue-fire" data-inline-cue="${escapeHTML(b.triggerId)}">▶ <span>Disparar</span></button></div>`;return;}
     if(b.type==='note'){html+=`<aside class="master-note"><span class="note-label">✦ NOTA DO MESTRE</span><p>${text}</p></aside>`;return;}
     if(b.type==='divider'){html+='<hr>';return;}

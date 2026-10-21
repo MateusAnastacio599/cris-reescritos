@@ -1,3 +1,4 @@
+import {openBoardSheet} from './board-sheet.js';
 import {CRISBridge} from '../integration-bridge.js';
 export const boardStamp=value=>{const text=JSON.stringify(value,function(key,value){return value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value;});let a=2166136261,b=2246822519;for(let i=0;i<text.length;i++){a=Math.imul(a^text.charCodeAt(i),16777619);b=Math.imul(b^text.charCodeAt(i),3266489917);}return text.length+':'+(a>>>0).toString(16)+':'+(b>>>0).toString(16);};
 export function chooseBoardVersion(local,remote,base){if(!local)return 'remote';if(!remote)return 'local';if(boardStamp(local)===boardStamp(remote))return 'remote';if(base===boardStamp(local))return 'remote';if(base===boardStamp(remote))return 'local';return 'review';}
@@ -6,7 +7,7 @@ function chooseDialog(){return new Promise(resolve=>{const d=document.createElem
 export class BoardSession{
  constructor({bridge=CRISBridge,storage=localStorage,client}={}){Object.assign(this,{bridge,storage,client});this.base=null;this.error=null;this.timer=null;this.flushing=null;this.polling=false;}
  get key(){return 'cris:board:sync:'+this.bridge.identity.userId+':'+this.bridge.campaignId;}
- status(message,error=false){const e=document.querySelector('#boardSyncStatus');if(e){e.textContent=message;e.dataset.error=String(error);}}
+ status(message,error=false){const e=document.querySelector('#boardSyncStatus');if(e){e.textContent=message;e.dataset.error=String(error);}const toggle=document.querySelector('.cris-menu-toggle');if(toggle){toggle.dataset.error=String(error);toggle.title=message;}}
  async choose(local,remote){this.base=remote?boardStamp(remote):null;const stored=this.storage.getItem(this.key);let choice=chooseBoardVersion(local,remote,stored);if(choice==='review')choice=await chooseDialog();return choice==='remote'?remote:local;}
  ready(api){this.api=api;if(globalThis.BroadcastChannel){this.channel=new BroadcastChannel('cris-board-commands');this.channel.onmessage=e=>{if(e.data?.campaignId===this.bridge.campaignId)this.poll();};window.addEventListener('pagehide',()=>{this.channel?.close();clearInterval(this.interval);},{once:true});}this.status('Quadro vinculado à sua conta');window.addEventListener('cris-board-change',()=>this.changed());window.addEventListener('online',()=>this.changed());window.addEventListener('beforeunload',e=>{if(this.dirty){e.preventDefault();e.returnValue='';}});this.interval=setInterval(()=>this.poll(),2500);this.changed();this.poll();}
  get dirty(){return this.api&&boardStamp(this.api.snapshot())!==this.base;}
@@ -21,8 +22,13 @@ export class BoardSession{
 }
 export async function mountBoardSession(identity,{bridge=CRISBridge,client}={}){
  if(!client){const {getCloudClient}=await import(new URL('cloud-account.js',bridge.directorURL));client=getCloudClient;}const session=new BoardSession({bridge,client});window.CRIS_BOARD_SESSION=session;
- const toolbar=document.createElement('nav');toolbar.className='cris-board-toolbar';toolbar.setAttribute('aria-label','Campanha e ficha');toolbar.innerHTML=`<div class="cris-board-who"><strong></strong><small id="boardSyncStatus">${identity.isMaster?'Abrindo quadro da conta…':'Quadro da campanha · aguardando mesa'}</small></div><button type="button" id="openOwnSheet">Minha ficha</button>${identity.isMaster?'<button type="button" id="boardSaveNow">Sincronizar</button><a id="boardDirectorLink" target="crisDirector" rel="noopener">Roteiro e SoundPad ↗</a>':''}<a href="../">CRIS</a>`;toolbar.querySelector('strong').textContent=identity.name;document.body.append(toolbar);
+ const toolbar=document.createElement('nav');toolbar.className='cris-board-toolbar';toolbar.setAttribute('aria-label','Campanha e ficha');toolbar.innerHTML=`<button type="button" class="cris-menu-toggle" aria-label="Menu do quadro" aria-expanded="false" aria-controls="crisBoardMenu">☰ <span>CRIS</span></button><div id="crisBoardMenu" class="cris-board-menu" hidden><div class="cris-board-who"><strong></strong><small id="boardSyncStatus">${identity.isMaster?'Abrindo quadro da conta…':'Quadro da campanha · aguardando mesa'}</small></div><button type="button" id="openOwnSheet">Minha ficha</button>${identity.isMaster?'<button type="button" id="boardSaveNow">Sincronizar</button><a id="boardDirectorLink" target="crisDirector" rel="noopener">Roteiro e SoundPad ↗</a>':''}<a href="../">Voltar ao CRIS</a></div>`;toolbar.querySelector('strong').textContent=identity.name;document.body.append(toolbar);
  if(identity.isMaster){toolbar.querySelector('#boardDirectorLink').href=bridge.directorURL;toolbar.querySelector('#boardSaveNow').onclick=()=>session.flush().catch(()=>{});}
- toolbar.querySelector('#openOwnSheet').onclick=()=>{const d=document.createElement('dialog');d.className='cris-board-dialog cris-sheet-dialog';const head=document.createElement('header');head.innerHTML='<h2>Minha ficha</h2><button type="button">Fechar ficha ×</button>';head.querySelector('button').onclick=()=>d.close();d.append(head);const frame=document.createElement('iframe');frame.title='Minha ficha CRIS';frame.src='../?sheet=1#fichas';d.append(frame);d.addEventListener('close',()=>d.remove(),{once:true});document.body.append(d);d.showModal();};
+ const toggle=toolbar.querySelector('.cris-menu-toggle'),menu=toolbar.querySelector('#crisBoardMenu');
+ const setOpen=open=>{menu.hidden=!open;toggle.setAttribute('aria-expanded',String(open));};toggle.onclick=()=>setOpen(menu.hidden);
+ document.addEventListener('pointerdown',e=>{if(!toolbar.contains(e.target))setOpen(false);});toolbar.onkeydown=e=>{if(e.key==='Escape'){setOpen(false);toggle.focus();}};
+ const showSheet=()=>{setOpen(false);openBoardSheet({bridge,identity});};
+ toolbar.querySelector('#openOwnSheet').onclick=showSheet;
+
  return session;
 }

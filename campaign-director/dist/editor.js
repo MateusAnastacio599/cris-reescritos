@@ -5,7 +5,7 @@ import {icon} from './icons.js';
 
 const isCell=field=>field?.dataset.cellRow!==undefined;
 export class BlockEditor {
-  constructor(element,options){this.el=element;this.options=options;this.blocks=parseBlocks(options.markdown);this.active=0;this.history=new EditorHistory(this.blocks);this.abort=new AbortController();document.addEventListener('selectionchange',()=>this.selectionToolbar(),{signal:this.abort.signal});this.render();}
+  constructor(element,options){this.el=element;this.options=options;this.blocks=parseBlocks(options.markdown);this.active=0;this.history=new EditorHistory(this.blocks);this.abort=new AbortController();document.addEventListener('selectionchange',()=>{this.captureSelection();this.selectionToolbar();},{signal:this.abort.signal});this.render();}
   destroy(){this.abort.abort();this.hideToolbar();document.getElementById('blockPopover')?.remove();}
   serialize(){return blocksToMarkdown(this.blocks);}
   changed(typing=false){this.history.record(this.blocks,this.active,typing);this.options.onChange(this.serialize());}
@@ -20,6 +20,7 @@ export class BlockEditor {
       if(b.type==='divider')body='<hr>';
       if(b.type==='todo')body=`<input type="checkbox" data-block-check="${i}" aria-label="Concluir tarefa" ${b.checked?'checked':''}>`+field;
       if(b.type==='numbered')body=`<span class="editor-number" contenteditable="false">${b.number||1}.</span>`+field;
+      if(b.type==='clue')body=`<div class="editable-board-clue"><span aria-hidden="true">◇</span>${field}<button type="button" class="btn outline small" data-select-clue="${i}">${b.itemId?'Trocar pista':'Escolher pista'}</button><button type="button" class="icon-btn" data-preview-clue="${i}" aria-label="Revelar pista">${icon('eye')}</button></div>`;
       if(b.type==='cue')body=`<div class="editable-cue"><span>♫</span>${field}<select aria-label="Efeito da cue" data-trigger-select="${i}"><option value="">Escolher efeito</option>${this.options.triggers.map(t=>`<option value="${esc(t.id)}" ${t.id===b.triggerId?'selected':''}>${esc(t.name)}</option>`).join('')}</select><button type="button" class="icon-btn" data-preview-cue="${i}" aria-label="Testar cue">${icon('play')}</button></div>`;
       if(b.type==='table')body=renderTable(b,this.options.pages,true,i)+`<div class="table-controls" contenteditable="false"><button type="button" data-table-action="row" data-table="${i}">+ Linha</button><button type="button" data-table-action="column" data-table="${i}">+ Coluna</button><button type="button" data-table-action="remove-row" data-table="${i}">− Linha</button><button type="button" data-table-action="remove-column" data-table="${i}">− Coluna</button></div>`;
       return `<div class="editor-block block-${b.type}" data-block-row="${i}">${tools}${body}</div>`;
@@ -29,6 +30,7 @@ export class BlockEditor {
     this.el.onclick=e=>{
       const add=e.target.closest('[data-add]');if(add){this.active=+add.dataset.add;this.menu(add,'add');return;}
       const menu=e.target.closest('[data-block-menu]');if(menu){this.active=+menu.dataset.blockMenu;this.menu(menu,'edit');return;}
+      const chooseClue=e.target.closest('[data-select-clue]');if(chooseClue)this.options.onRequestClue?.(+chooseClue.dataset.selectClue);const showClue=e.target.closest('[data-preview-clue]');if(showClue)this.options.onClue?.(this.blocks[+showClue.dataset.previewClue]);
       const preview=e.target.closest('[data-preview-cue]');if(preview)this.options.onCue(this.blocks[+preview.dataset.previewCue].triggerId);
       const action=e.target.closest('[data-table-action]');if(action)this.tableAction(+action.dataset.table,action.dataset.tableAction);
     };
@@ -77,8 +79,8 @@ export class BlockEditor {
     if(e.key===' '&&parts.collapsed&&!parts.after){const shortcuts={'#':'h1','##':'h2','###':'h3','-':'list','*':'list','1.':'numbered','[]':'todo','[ ]':'todo','>':'quote','---':'divider'},type=shortcuts[field.textContent];if(type){e.preventDefault();b.text='';this.setType(type);}}
   }
   plainLength(markdown){const box=document.createElement('div');box.innerHTML=inlineHTML(markdown,this.options.pages);return box.textContent.length;}
-  add(index,type='paragraph'){this.blocks.splice(index,0,newBlock(type,this.options.triggers));this.active=index;this.changed();this.render({index,offset:0});}
-  setType(type){const prior=this.blocks[this.active];if(!prior||!BLOCK_TYPES[type])return;if(type==='table'&&prior.type!=='table'){this.blocks[this.active]=newBlock(type);if(prior.text)this.blocks[this.active].rows[0][0]=prior.text;}else if(prior.type==='table'&&type!=='table')this.blocks[this.active]={...newBlock(type,this.options.triggers),text:[prior.headers,...prior.rows].map(r=>r.join(' · ')).join('\n')};else this.blocks[this.active]={...newBlock(type,this.options.triggers),...prior,type};this.changed();this.render({index:this.active,offset:0});}
+  add(index,type='paragraph'){this.blocks.splice(index,0,newBlock(type,this.options.triggers));this.active=index;this.changed();this.render({index,offset:0});if(type==='clue')this.options.onRequestClue?.(index);}
+  setType(type){const prior=this.blocks[this.active];if(!prior||!BLOCK_TYPES[type])return;if(type==='table'&&prior.type!=='table'){this.blocks[this.active]=newBlock(type);if(prior.text)this.blocks[this.active].rows[0][0]=prior.text;}else if(prior.type==='table'&&type!=='table')this.blocks[this.active]={...newBlock(type,this.options.triggers),text:[prior.headers,...prior.rows].map(r=>r.join(' · ')).join('\n')};else this.blocks[this.active]={...newBlock(type,this.options.triggers),...prior,type};this.changed();this.render({index:this.active,offset:0});if(type==='clue')this.options.onRequestClue?.(this.active);}
   undo(direction){const entry=this.history.move(direction);if(!entry)return;this.blocks=entry.blocks;this.active=entry.active;this.options.onChange(this.serialize());this.render({index:this.active});}
   captureSelection(){const s=getSelection();if(s.rangeCount&&this.el.contains(s.anchorNode))this.range=s.getRangeAt(0).cloneRange();}
   format(command){
@@ -86,6 +88,12 @@ export class BlockEditor {
     const s=getSelection();if(!s.rangeCount||!this.el.contains(s.anchorNode))return;
     if(command==='code'){const range=s.getRangeAt(0);if(range.collapsed||this.fieldFor(range.startContainer)!==this.fieldFor(range.endContainer))return;const code=document.createElement('code');code.textContent=range.toString();range.deleteContents();range.insertNode(code);range.selectNodeContents(code);s.removeAllRanges();s.addRange(range);}else document.execCommand(command,false);
     this.syncDOM();this.changed();this.captureSelection();
+  }
+  setClueBlock(index,block){this.syncDOM();this.blocks[index]=block;this.active=index;this.changed();this.render({index});}
+  insertClueBlock(block){
+    this.syncDOM();if(this.range&&this.el.contains(this.range.startContainer)){const selection=getSelection(),range=this.range.cloneRange();range.collapse(false);selection.removeAllRanges();selection.addRange(range);}else this.focus({index:this.active});
+    const parts=this.selectionParts();if(!parts||isCell(parts.startField)){const index=this.active+1;this.blocks.splice(index,0,block);this.active=index;}else{const insert=[];if(parts.before)insert.push({...this.blocks[parts.start],text:parts.before});insert.push(block);if(parts.after)insert.push({...this.blocks[parts.end],text:parts.after});this.blocks.splice(parts.start,parts.end-parts.start+1,...insert);this.active=parts.start+(parts.before?1:0);}
+    this.changed();this.render({index:this.active});
   }
   insertLink(page){
     if(this.range&&this.el.contains(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}else this.focus({index:this.active});
@@ -105,7 +113,7 @@ export class BlockEditor {
   }
   menu(anchor,mode){
     document.getElementById('blockPopover')?.remove();const menu=document.createElement('div');menu.id='blockPopover';menu.className='block-popover searchable-block-menu';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Inserir ou transformar bloco');menu.innerHTML='<label class="block-menu-search">'+icon('search')+'<input type="search" placeholder="Buscar bloco…" aria-label="Buscar tipo de bloco"></label><div class="block-menu-results"></div>'+(mode==='edit'?'<hr><button type="button" data-move="-1">↑ Mover para cima</button><button type="button" data-move="1">↓ Mover para baixo</button><button type="button" data-duplicate>Duplicar bloco</button><button type="button" class="danger-text" data-remove>Excluir bloco</button>':'');document.body.append(menu);
-    const results=menu.querySelector('.block-menu-results'),search=menu.querySelector('input');const update=()=>{results.innerHTML=Object.entries(BLOCK_TYPES).filter(([type,label])=>(label+' '+type).toLocaleLowerCase().includes(search.value.toLocaleLowerCase())).map(([type,label])=>`<button type="button" data-type="${type}"><b>${({paragraph:'T',h1:'H₁',h2:'H₂',h3:'H₃',quote:'❞',note:'✦',list:'•',numbered:'1.',todo:'☑',table:'▦',cue:'♫',divider:'—'})[type]}</b>${label}</button>`).join('')||'<p>Nenhum bloco encontrado.</p>';};update();search.oninput=update;
+    const results=menu.querySelector('.block-menu-results'),search=menu.querySelector('input');const update=()=>{results.innerHTML=Object.entries(BLOCK_TYPES).filter(([type,label])=>(label+' '+type).toLocaleLowerCase().includes(search.value.toLocaleLowerCase())).map(([type,label])=>`<button type="button" data-type="${type}"><b>${({paragraph:'T',h1:'H₁',h2:'H₂',h3:'H₃',quote:'❞',note:'✦',list:'•',numbered:'1.',todo:'☑',table:'▦',cue:'♫',clue:'◇',divider:'—'})[type]}</b>${label}</button>`).join('')||'<p>Nenhum bloco encontrado.</p>';};update();search.oninput=update;
     const rect=anchor.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(rect.left,innerWidth-250))+'px';menu.style.top=Math.max(8,Math.min(rect.bottom+6,innerHeight-430))+'px';
     menu.onclick=e=>{const button=e.target.closest('button');if(!button)return;const type=button.dataset.type;if(type)mode==='add'?this.add(this.active+1,type):this.setType(type);if(button.dataset.move){const target=this.active+Number(button.dataset.move);if(target>=0&&target<this.blocks.length){[this.blocks[this.active],this.blocks[target]]=[this.blocks[target],this.blocks[this.active]];this.active=target;this.changed();this.render({index:target});}}if(button.hasAttribute('data-duplicate')){this.blocks.splice(this.active+1,0,structuredClone(this.blocks[this.active]));this.active++;this.changed();this.render({index:this.active});}if(button.hasAttribute('data-remove')){this.blocks.splice(this.active,1);if(!this.blocks.length)this.blocks=[newBlock()];this.active=Math.max(0,this.active-1);this.changed();this.render({index:this.active});}menu.remove();};
     menu.onkeydown=e=>{const buttons=[...results.querySelectorAll('button')];if(e.key==='Escape'){e.preventDefault();menu.remove();this.focus({index:this.active});}if(['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();const i=buttons.indexOf(document.activeElement);buttons[(i+(e.key==='ArrowDown'?1:buttons.length-1)+buttons.length)%buttons.length]?.focus();}if(e.key==='Enter'&&e.target===search){e.preventDefault();buttons[0]?.click();}};
