@@ -56,7 +56,7 @@ export class SpotifyPlayer extends EventTarget{
   metadata(uri){const parsed=parseSpotify(uri);return this.api('/'+(parsed.type==='track'?'tracks':'playlists')+'/'+parsed.id);}
   activate(){if(this.player)this.player.activateElement().catch(()=>{});}
   async ensure(){
-    if(!this.auth.connected)throw Error('Conecte sua conta em Biblioteca → Spotify.');
+    if(!this.auth.connected)throw Error('Conecte sua conta pelo botão Spotify da lateral.');
     if(this.deviceId)return this.deviceId;
     if(this.initializing)return this.initializing;
     const generation=this.connectionGeneration||0;
@@ -129,6 +129,14 @@ export class SpotifyPlayer extends EventTarget{
     return this.enqueue(async()=>{if(operation!==this.operation)return false;this.acceptPlayback=true;this.state=null;if(offset<0)await this.player?.previousTrack();else await this.player?.nextTrack();if(operation===this.operation){this.beginFadeIn(fadeIn,operation);await this.refreshState(operation);}});
   }
   async refreshState(operation){if(this.player?.getCurrentState){const state=await this.player.getCurrentState();if(operation===this.operation&&state)this.receiveState(state);}}
+  async seek(position,{fadeIn=.7,fadeOut=.5}={}){
+    if(!this.player||!this.deviceId)throw Error('Ative o player Spotify pela lateral.');
+    const operation=++this.operation,wasPlaying=this.audible,duration=Number(this.state?.duration||this.track?.duration_ms)||Infinity;
+    const target=Math.max(0,Math.min(duration-1,Math.floor(Number(position)||0)));this.cancelFade();this.pausing=false;this.activate();
+    if(wasPlaying&&this.level>0&&!await this.envelope.fade(0,fadeOut,()=>operation===this.operation))return false;
+    if(operation!==this.operation)return false;this.level=0;await this.writeVolume();
+    return this.enqueue(async()=>{if(operation!==this.operation)return false;this.state=null;await this.player.seek(target);if(operation!==this.operation)return false;this.positionAnchor=target;this.positionUpdatedAt=this.now();if(wasPlaying)this.beginFadeIn(fadeIn,operation);await this.refreshState(operation);this.emit();return true;});
+  }
   async privateSession(){const state=await this.api('/me/player');return this.deviceId&&state?.device?.id===this.deviceId&&typeof state.device.is_private_session==='boolean'?state.device.is_private_session:null;}
   setRepeatMode(mode){
     if(!['off','context','track'].includes(mode))return Promise.reject(Error('Modo de repetição inválido.'));

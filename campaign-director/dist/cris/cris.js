@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function showSystem(agent, key) {
+  function showSystem(agent, key, restored=false) {
     window.CRIS_IDENTITY=agent;
     fichaLoadFromCloud().catch(e=>fichaFeedbackMessage('FALHA NA NUVEM // '+e.message));
     const director=document.getElementById('director-link');if(director){director.hidden=!agent.isMaster;director.href=CRISBridge.directorURL;}
@@ -86,14 +86,14 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       } catch (e) {}
-    }, 650);
+    }, restored?0:250);
   }
 
   async function authenticate() {
     const username=document.getElementById('username').value.trim();button.disabled=true;error.textContent='CONECTANDO…';
     try{const agent=await CRISBridge.login(username,input.value);input.value='';error.textContent='';showSystem(agent,agent.userId);}catch(e){error.textContent=e.message;}finally{button.disabled=false;}
   }
-  CRISBridge.restore().then(agent=>{if(agent)showSystem(agent,agent.userId);}).catch(()=>{error.textContent='Não foi possível restaurar a sessão. Entre novamente.';});
+  CRISBridge.restore().then(agent=>{if(agent)showSystem(agent,agent.userId,true);}).catch(()=>{error.textContent='Não foi possível restaurar a sessão. Confira sua conexão e tente novamente.';}).finally(()=>setTimeout(()=>document.body.classList.remove('auth-pending'),0));
   button.addEventListener('click',authenticate);
   for(const el of [input,document.getElementById('username')])el.addEventListener('keydown',e=>{if(e.key==='Enter')authenticate();});
 

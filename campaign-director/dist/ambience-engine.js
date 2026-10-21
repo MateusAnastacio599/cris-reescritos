@@ -8,6 +8,7 @@ export class AmbienceBus {
   get isPlaying(){return !this.paused&&(this.tracks.size>0||this.jobs.size>0||this.sequences.size>0||this.ownsMusic);}
   cancelJobs(){for(const job of this.jobs.values())clearTimeout(job.timer);this.jobs.clear();}
   async apply(preset,{fade}={}){
+    this.engine.softStopToken=null;
     if(!preset)throw new Error('Escolha um ambiente salvo.');
     const generation=++this.generation;await this.engine.init();if(generation!==this.generation)return;
     this.cancelJobs();const old=this.tracks,oldSequences=this.sequences;this.tracks=new Map();this.sequences=new Map();

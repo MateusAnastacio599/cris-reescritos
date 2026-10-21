@@ -105,12 +105,12 @@ export function validateState(s) {
   s.settings = {...initialDefaults(),...s.settings};
   for(const key of ['master','music','ambience','sfx','spotifyVolume']) s.settings[key] = Math.max(0,Math.min(1,Number(s.settings[key])||0));
   s.settings.crossfade = Math.max(0,Math.min(12,Number(s.settings.crossfade)||0));
-  for(const key of ['musicFadeIn','musicFadeOut','spotifyFadeIn','spotifyFadeOut'])s.settings[key]=Math.max(0,Math.min(30,Number(s.settings[key])||0));
+  for(const key of ['musicFadeIn','musicFadeOut','spotifyFadeIn','spotifyFadeOut','effectFadeIn','effectFadeOut','ambientFadeIn','ambientFadeOut','stopFade'])s.settings[key]=Math.max(0,Math.min(30,Number(s.settings[key])||0));
   s.settings.autoAdvance=s.settings.autoAdvance!==false;
   s.settings.youtubeCompact=s.settings.youtubeCompact!==false;
   s.ui = s.ui || {}; return s;
 }
-function initialDefaults(){return {master:.8,music:.7,ambience:.85,sfx:.85,crossfade:1.8,musicFadeIn:2.5,musicFadeOut:2.5,spotifyVolume:1,spotifyFadeIn:.7,spotifyFadeOut:.5,autoAdvance:true,youtubeCompact:true};}
+function initialDefaults(){return {master:.8,music:.7,ambience:.85,sfx:.85,crossfade:1.8,musicFadeIn:2.5,musicFadeOut:2.5,spotifyVolume:1,spotifyFadeIn:.7,spotifyFadeOut:.5,effectFadeIn:.06,effectFadeOut:.25,ambientFadeIn:.2,ambientFadeOut:.45,stopFade:.8,autoAdvance:true,youtubeCompact:true};}
 export function loadState() {
   try {const raw=localStorage.getItem(STORAGE_KEY);if(raw){const state=validateState(JSON.parse(raw));if(applySceneTextUpdate(state)){localStorage.setItem(STORAGE_KEY+':before-scene-update',raw);saveState(state);}return state;}} catch(error){console.warn('CRIS: dados salvos precisam de recuperação.',error);throw error;}
   return initialState();
