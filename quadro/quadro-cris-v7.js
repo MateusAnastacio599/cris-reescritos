@@ -117,6 +117,7 @@
                 }
                 )
             }
+            const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.CRIS_IDENTITY.userId;
             let saveT = 0;
             let lensCT = 0;
             function save() {
@@ -134,7 +135,8 @@
                             imgs[i.audioId] = IMG[i.audioId]
                     }
                     );
-                    await kvSet("board", {state:S,imgs});
+                    await kvSet(crisBoardStorageKey(), {state:S,imgs});
+                    dispatchEvent(new Event("cris-board-change"));
 
                 }
                 , 500)
@@ -4830,6 +4832,8 @@
             let BUS = null
               , OUTB = null;
             function actx() {
+                return null; // Quadro sem motor sonoro; áudio no Director.
+
                 if (!AC) {
                     try {
                         AC = new (window.AudioContext || window.webkitAudioContext)()
@@ -8256,7 +8260,7 @@
                         }
                         play("key");
                         if (a.paused) {
-                            a.play().catch( () => {}
+                            Promise.resolve().catch( () => {}
                             )
                         } else
                             a.pause();
@@ -9500,7 +9504,7 @@
                     }
                 }
             });
-            const DEV_ORDER = ["luminaria", "pager", "celular", "gravador", "radio", "antigo", "bussola", "frasco", "vela", "isqueiro", "fosforo", "chave"];
+            const DEV_ORDER = ["luminaria", "pager", "celular", "bussola", "frasco", "vela", "isqueiro", "fosforo", "chave"];
             CONT_ORDER.push("kit", "cofre", "carta", "mapa");
             ["booster", "envelope", "caixa"].forEach(k => {
                 CONT[k].click = true;
@@ -9651,7 +9655,7 @@
                             AUD.set(it.id, a)
                         }
                         a.currentTime = 0;
-                        a.play().catch( () => {}
+                        Promise.resolve().catch( () => {}
                         )
                     }
                 }
@@ -16191,9 +16195,7 @@
                 }
                 let st;
                 try {
-                    st = await navigator.mediaDevices.getUserMedia({
-                        audio: true
-                    })
+                    (()=>{throw Error('Use o Director / SoundPad para áudios e gravações.');})()
                 } catch (e) {
                     toast("Sem acesso ao microfone");
                     return
@@ -31779,7 +31781,7 @@
                     try {
                         a.currentTime = Math.min(elapsed(dev), (a.duration || 1e9) - .2)
                     } catch (e) {}
-                    a.play().catch( () => {}
+                    Promise.resolve().catch( () => {}
                     )
                 }
                 ;
@@ -34957,6 +34959,7 @@
 
             /* ================= v3: ligações ================= */
             function applySound() {
+                S.sound=false;
                 const b = $("#sndBtn");
                 b.classList.toggle("off", S.sound === false);
                 b.querySelector(".w").style.display = S.sound === false ? "none" : "";
@@ -35054,125 +35057,8 @@
             }
             )();
 
-            /* ================= C.R.I.S.: painel rápido de efeitos =================
-               Coloque arquivos em quadro/audios/ para substituir os efeitos.
-               Sem arquivo, o motor usa um fallback interno e continua funcionando.
-            */
-            const CRIS_CUES = {
-                porta: { label: "Porta abrindo", file: "audios/porta.mp3", fallback: "sfx_porta" },
-                sussurro: { label: "Sussurro", file: "audios/sussurro.mp3", fallback: "sfx_sussurro" },
-                queda: { label: "Algo caindo", file: "audios/queda.mp3", fallback: "drop" },
-                tensao: { label: "Tensão", file: "audios/tensao.mp3", fallback: "cris_tensao_sintetica" }
-            };
-            const CRIS_CUE_ACTIVE = new Set();
-            const crisPlayBase = play;
-
-            function crisCueFallback(name) {
-                if (name === "cris_tensao_sintetica") {
-                    if (S.sound === false) return;
-                    const ac = actx();
-                    if (!ac) return;
-                    const out = BUS ? BUS.e : ac.destination;
-                    const t = ac.currentTime + .01;
-                    const master = ac.createGain();
-                    master.gain.setValueAtTime(0, t);
-                    master.gain.linearRampToValueAtTime(.18, t + .35);
-                    master.gain.setValueAtTime(.18, t + 2.6);
-                    master.gain.exponentialRampToValueAtTime(.0001, t + 4.2);
-                    master.connect(out);
-                    [46, 55, 69.3, 92.5].forEach((f, i) => {
-                        const o = ac.createOscillator();
-                        const g = ac.createGain();
-                        o.type = i % 2 ? "sawtooth" : "triangle";
-                        o.frequency.value = f;
-                        g.gain.value = .13 / (i + 1);
-                        o.connect(g).connect(master);
-                        o.start(t);
-                        o.stop(t + 4.3);
-                    });
-                    return;
-                }
-                const before = NET.echo;
-                NET.echo = true;
-                try { crisPlayBase(name); }
-                finally { NET.echo = before; }
-            }
-
-            function crisStopCues() {
-                CRIS_CUE_ACTIVE.forEach(a => {
-                    try { a.pause(); a.currentTime = 0; } catch (e) {}
-                    try { AUD.delete(a._crisAudKey); } catch (e) {}
-                });
-                CRIS_CUE_ACTIVE.clear();
-            }
-
-            play = function(k, ...args) {
-                if (k === "cris_stop") {
-                    if (!NET.echo && typeof shareSend === "function") shareSend({ t: "snd", k });
-                    crisStopCues();
-                    return;
-                }
-                if (!String(k || "").startsWith("cris_")) return crisPlayBase(k, ...args);
-                const key = String(k).slice(5);
-                const cue = CRIS_CUES[key];
-                if (!cue) return crisPlayBase(k, ...args);
-                if (S.sound === false) return;
-                if (!NET.echo && typeof shareSend === "function") shareSend({ t: "snd", k });
-
-                const a = new Audio(cue.file);
-                const v = Object.assign({}, typeof VOLDEF !== "undefined" ? VOLDEF : { g: .8, v: 1 }, S.vol || {});
-                a.volume = clamp((v.g ?? .8) * (v.v ?? 1), 0, 1);
-                a.preload = "auto";
-                a._crisAudKey = "cris-cue-" + key + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
-                let usedFallback = false;
-                const fallback = () => {
-                    if (usedFallback) return;
-                    usedFallback = true;
-                    try { a.pause(); } catch (e) {}
-                    CRIS_CUE_ACTIVE.delete(a);
-                    try { AUD.delete(a._crisAudKey); } catch (e) {}
-                    crisCueFallback(cue.fallback);
-                };
-                a.addEventListener("error", fallback, { once: true });
-                a.addEventListener("ended", () => {
-                    CRIS_CUE_ACTIVE.delete(a);
-                    try { AUD.delete(a._crisAudKey); } catch (e) {}
-                }, { once: true });
-                CRIS_CUE_ACTIVE.add(a);
-                try { AUD.set(a._crisAudKey, a); } catch (e) {}
-                const p = a.play();
-                if (p && typeof p.catch === "function") p.catch(fallback);
-            };
-
-            function crisSoundboardUI() {
-                if (!IS_MASTER || $("#crisFxBtn")) return;
-                const anchor = $("#sndBtn") || $("#hideBtn");
-                if (!anchor) return;
-                const b = document.createElement("button");
-                b.className = "b cris-fx-btn";
-                b.id = "crisFxBtn";
-                b.type = "button";
-                b.title = "Efeitos rápidos da sessão";
-                b.innerHTML = '<span aria-hidden="true">♫</span><span class="cris-fx-label">Efeitos</span>';
-                anchor.after(b);
-
-                const P = document.createElement("div");
-                P.id = "crisFxPanel";
-                P.className = "panel cris-fx-panel";
-                P.innerHTML = `<div class="fl-h">EFEITOS DA SESSÃO</div>
-                    <div class="cris-fx-grid">${Object.entries(CRIS_CUES).map(([k,c]) => `<button class="b" type="button" data-cris-cue="${k}">${c.label}</button>`).join("")}</div>
-                    <div class="cris-fx-actions"><button class="b red" type="button" id="crisFxStop">PARAR ÁUDIOS</button></div>
-                    <div class="hint">Troque os sons substituindo os arquivos em <b>quadro/audios/</b>. Se o arquivo não existir, o C.R.I.S. usa um efeito interno.</div>`;
-                document.body.appendChild(P);
-                b.onclick = e => { e.stopPropagation(); P.classList.toggle("open"); };
-                P.addEventListener("pointerdown", e => e.stopPropagation());
-                P.querySelectorAll("[data-cris-cue]").forEach(x => x.onclick = () => play("cris_" + x.dataset.crisCue));
-                $("#crisFxStop").onclick = () => play("cris_stop");
-                addEventListener("pointerdown", e => {
-                    if (!e.target.closest("#crisFxPanel,#crisFxBtn")) P.classList.remove("open");
-                }, true);
-            }
-            setTimeout(crisSoundboardUI, 500);
+            // Áudio da mesa pertence ao Director / SoundPad.
+            play = function() {};
 
             /* ---------------- início ---------------- */
             (async function init() {
@@ -35189,16 +35075,28 @@
                     startViewer();
                     return
                 }
-                window.CRIS_BOARD_API={save:async()=>{const imgs={};for(const i of S.items)for(const k of ['imgId','audioId'])if(i[k]&&IMG[i[k]])imgs[i[k]]=IMG[i[k]];return window.CRISBridge.saveBoard({state:JSON.parse(JSON.stringify(S)),imgs});}};
+                const snapshot=()=>{const imgs={};for(const i of S.items)for(const k of ['imgId','audioId'])if(i[k]&&IMG[i[k]])imgs[i[k]]=IMG[i[k]];return {state:JSON.parse(JSON.stringify(S)),imgs};};
+                window.CRIS_BOARD_API={snapshot,persistLocal:value=>new Promise((resolve,reject)=>{if(!db){reject(Error('Não foi possível guardar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));return;}try{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(value,crisBoardStorageKey());tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(Error('Não foi possível salvar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));}catch(error){reject(error);}}),save:()=>window.CRISBridge.saveBoard(snapshot()),visibility:async(id,visible)=>{
+                    const it=itemById(id);if(!it||it.hand){const error=Error('Pista não encontrada neste quadro: '+id);error.code='CLUE_MISSING';throw error;}
+                    if(visible){if(it.gm)revealItem(it);}else if(!it.gm){snap();it.gm=true;buildItem(it);save();netFlush();}
+                }};
                 await idb();
-                const cloudSaved = await window.CRISBridge.loadBoard().catch(()=>null);
-                const saved = await kvGet("board") || cloudSaved;
+                const session=window.CRIS_BOARD_SESSION;
+                const cloudSaved = await window.CRISBridge.loadBoard().catch(error=>{if(session)session.error=error;return null;});
+                let localSaved=await kvGet(crisBoardStorageKey());
+                const legacyOwner=localStorage.getItem('cris:board:legacy-owner');
+                if(!localSaved&&(!legacyOwner||legacyOwner===window.CRIS_IDENTITY.userId)){localSaved=await kvGet("board");localStorage.setItem('cris:board:legacy-owner',window.CRIS_IDENTITY.userId);}
+                if(localSaved)await kvSet(crisBoardStorageKey()+":before-cloud-load",localSaved);
+                const saved = session?await session.choose(localSaved,cloudSaved):localSaved||cloudSaved;
                 if (saved && saved.state) {
                     Object.assign(IMG, saved.imgs || {});
                     S = migrate(Object.assign(DEF(), saved.state))
                 } else
                     sampleBoard();
                 await rebuildAll();
+                S.sound=false;
+                if(session)session.ready(window.CRIS_BOARD_API);
+                save();
                 if (!saved) {
                     sampleAttach();
                     fitAll();

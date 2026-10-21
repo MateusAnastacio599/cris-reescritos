@@ -556,3 +556,7 @@ test('parar tudo inicia saída, cancela ações pendentes e só descarta arquivo
 test('um novo som durante encerramento não é cortado pelo término do fade anterior',async()=>{
  const {state,engine}=fixture(),id=state.audioAssets.find(a=>a.kind==='sfx');await engine.oneShot(id);const first=[...engine.effects][0],ending=engine.stopSoft(.06);await engine.oneShot(id);const next=[...engine.effects][0];await ending;assert.equal(first.disposed,true);assert.equal(next.disposed,false);
 });
+
+test('cue de pista emite comando sem tocar áudio e parar cancela revelação ainda atrasada',async()=>{
+ const {engine}=fixture(),commands=[];engine.addEventListener('board-action',event=>commands.push(event.detail));engine.fireCue({id:'pista',name:'Carta',actions:[{type:'board-reveal',itemId:'a',boardCampaignId:'campaign',delay:0},{type:'board-hide',itemId:'a',boardCampaignId:'campaign',delay:.1}]});assert.deepEqual(commands,[{itemId:'a',campaignId:'campaign',action:'reveal'}]);engine.stop();await new Promise(r=>setTimeout(r,130));assert.equal(commands.length,1);assert.equal(engine.effects.size,0);
+});

@@ -20,7 +20,7 @@ export function makePage(title = 'Nova página', folder = 'Sessão 01') {
   return {id:uid('page'),title,folder,tags:[],icon:'file',scenes:[makeScene('Anotações')]};
 }
 export function defaultAmbiences(){return [{id:'ambience-sao-martinho',name:'Casa São Martinho · Noite de chuva',description:'Chuva na janela e madeira antiga. Adicione trovões ocasionais ou outros arquivos para compor sua versão.',layers:[{id:'amb-rain',assetId:'asset-rain',name:'Chuva na janela',mode:'loop',volume:.42,enabled:true},{id:'amb-room',assetId:'asset-room',name:'Madeira antiga',mode:'loop',volume:.11,enabled:true}],pads:['asset-bell','asset-thunder','asset-door','asset-riser']}];}
-export const CUE_ACTIONS=['play','fade','stop','music-play','music-stop','music-volume','ambience','ambience-stop','mix','message','navigate'];
+export const CUE_ACTIONS=['board-reveal','board-hide','play','fade','stop','music-play','music-stop','music-volume','ambience','ambience-stop','mix','message','navigate'];
 export function initialState() {
   const campaign = clone(originalCampaign);
   campaign.title = 'Reescritos'; campaign.description = 'Paris, 2026 · Ordem Paranormal';
@@ -70,6 +70,7 @@ export function validateState(s) {
         for(const cue of x.cues||[]) {
           if(typeof cue.id!=='string'||typeof cue.name!=='string'||!Array.isArray(cue.actions)) throw new Error('Cue inválida.');
           for(const a of cue.actions) if(!CUE_ACTIONS.includes(a.type)||!Number.isFinite(a.delay)||a.delay<0) throw new Error('Ação de cue inválida.');
+          for(const a of cue.actions)if(['board-reveal','board-hide'].includes(a.type)&&(typeof a.itemId!=='string'||!a.itemId.trim()||a.itemId.length>180||!/^[-a-f0-9]{36}$/i.test(a.boardCampaignId||'')))throw Error('Pista do quadro inválida na cue.');
           cue.actions.forEach(fades);
           cue.actions.forEach(musicLoop);
         }

@@ -1,0 +1,420 @@
+/* Estilos de painel compatíveis fornecidos pelo usuário (Alpha 0.31).
+   Os módulos Halloween dependem dos JavaScripts ainda não fornecidos. */
+
+
+/* interface com um tom mais frio/roxo nos painéis */
+body.hw .panel,body.hw #props.pp2 {
+    background-image: linear-gradient(180deg,rgba(80,30,90,.07),rgba(0,0,0,0) 40%)
+}
+
+
+/* caixinha vira chave liga/desliga */
+#props.pp2 label.chk {
+    font-size: 12.5px;
+    line-height: 1.25;
+    margin-bottom: 5px;
+    gap: 8px;
+    align-items: center
+}
+
+
+#props.pp2 label.chk>input[type=checkbox] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 28px;
+    height: 16px;
+    margin: 0;
+    border-radius: 9px;
+    background: #3a3226;
+    border: 1px solid #5b4d36;
+    position: relative;
+    cursor: var(--cP);
+    transition: background .15s
+}
+
+
+#props.pp2 label.chk>input[type=checkbox]::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #bfb29a;
+    transition: transform .15s,background .15s
+}
+
+
+#props.pp2 label.chk>input[type=checkbox]:checked {
+    background: #6b5520;
+    border-color: var(--gold,#ffd678)
+}
+
+
+#props.pp2 label.chk>input[type=checkbox]:checked::after {
+    transform: translateX(12px);
+    background: var(--gold,#ffd678)
+}
+
+
+#props.pp2 label.chk>input[type=checkbox]:focus-visible {
+    outline: 2px solid var(--gold,#ffd678);
+    outline-offset: 2px
+}
+
+
+#props.pp2 .pp-tip {
+    text-decoration: underline dotted rgba(var(--goldrgb,255,214,120),.35);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px
+}
+
+
+#props.pp2 .pp-tip::after {
+    content: "";
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    margin-left: 5px;
+    vertical-align: -1px;
+    opacity: .6;
+    background: currentColor;
+    -webkit-mask: var(--qi-info) center/contain no-repeat;
+    mask: var(--qi-info) center/contain no-repeat;
+    color: var(--gold,var(--gold,#ffd678))
+}
+
+
+/* painéis: mesmo fundo, borda, canto e sombra */
+#props.pp2,#fxPanel,#hwPanel,#objMenu,.flyout,.qi-more,#help,#mini,#tools,#top {
+    border-radius: var(--r-p);
+    box-shadow: var(--pn-sh)
+}
+
+
+/* títulos de seção: um estilo só */
+.fl-h,#props.pp2 details.flat>summary,#hwPanel h4,#hwPanel .hwp-h,#objMenu .om-h {
+    font: 600 var(--fs-1) var(--f-ui);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--gold,var(--gold,#ffd678))
+}
+
+
+/* texto corrido, notas e dicas */
+#fxPanel .fxnote,#hwPanel p,#hwPanel .hint,#props.pp2 .hint,.flyout .hint {
+    font: 400 var(--fs-2)/1.4 var(--f-txt);
+    color: var(--ui-mut)
+}
+
+
+/* campos: fonte do sistema (a condensada fica só em título, rótulo e botão) */
+#props.pp2 :is(input[type=text],input:not([type]),input[type=number],select,textarea), #hwPanel :is(input[type=text],input:not([type]),input[type=number],select,textarea), #objMenu input,.flyout :is(input[type=text],input:not([type]),input[type=number],select,textarea),#fxPanel .fxnum {
+    font: 400 var(--fs-3) var(--f-txt);
+    border-radius: var(--r-c)
+}
+
+
+/* botões dos painéis: altura e canto iguais */
+#props.pp2 .b:not(.pp-b),#hwPanel .b,#fxPanel .b,.flyout .b {
+    border-radius: var(--r-c);
+    font-family: var(--f-ui);
+    letter-spacing: .03em
+}
+
+
+/* ---------- títulos: placa de pergaminho com corte torto ---------- */
+body :is(.flyout,.qi-more,#markMenu,#fitaMenu)>.fl-h:first-of-type, body :is(#puz,#tuneUI,#lockUI,#dialUI,#shChoose,#sharePanel) .lt, body #props.pp2 .pp-head h3 {
+    display: block;
+    width: fit-content;
+    max-width: calc(100% - 44px);
+    box-sizing: border-box;
+    margin: 0 0 12px!important;
+    padding: 8px 18px 11px 14px!important;
+    background: var(--k-plateBg)!important;
+    color: var(--k-plateT)!important;
+    clip-path: var(--k-cTorn);
+    box-shadow: inset 0 0 14px rgba(90,50,15,.45);
+    font: 400 19px/1.05 var(--k-tit)!important;
+    letter-spacing: .03em!important;
+    text-transform: uppercase;
+    transform: rotate(-1.5deg);
+    transform-origin: left center;
+    border: 0!important
+}
+
+
+body #props.pp2 .pp-head h3 {
+    font-size: 24px!important;
+    padding: 10px 20px 14px 14px!important;
+    flex: 0 1 auto!important;
+    white-space: normal
+}
+
+
+body #props.pp2 .pp-head {
+    border-bottom: 0!important;
+    padding: 14px 12px 4px!important
+}
+
+
+/* seções: latão com tracejado */
+body :is(.flyout,.qi-more,#markMenu,#fitaMenu,#objMenu)>.fl-h:not(:first-of-type),body .flyout .fl-h~.fl-h, body #props.pp2 details.flat>summary,body #hwPanel h4,body #objMenu .om-h,body .dmenu .fl-h {
+    display: flex!important;
+    align-items: center;
+    gap: 8px;
+    font: 800 12.5px/1 var(--k-body)!important;
+    letter-spacing: .12em!important;
+    text-transform: uppercase;
+    color: var(--k-acc)!important;
+    border-bottom: 0!important
+}
+
+
+body :is(.flyout,.qi-more)>.fl-h:not(:first-of-type)::after,body .flyout .fl-h~.fl-h::after,body #props.pp2 details.flat>summary::after,body #hwPanel h4::after {
+    content: ""!important;
+    display: block!important;
+    flex: 1;
+    border-top: 2px dashed var(--k-line)
+}
+
+
+body #props.pp2 details.flat>summary .qic {
+    color: var(--k-acc)
+}
+
+
+/* botões de ícone (barra de cima, cabeçalho do painel) sem caixa */
+body #top .b.ico,body #top #sndBtn,body #top #shareBtn,body #top #zIn,body #top #zOut,body #props.pp2 .pp-b,body .qi-more .qi-mrow .b.ico {
+    background: transparent;
+    box-shadow: none;
+    color: var(--k-txt)
+}
+
+
+body #top .b.ico:hover,body #top #sndBtn:hover,body #top #shareBtn:hover,body #props.pp2 .pp-b:hover {
+    background: var(--k-fld);
+    filter: none
+}
+
+
+body #props.pp2 .pp-b.danger,body #props.pp2 #pDel {
+    background: transparent!important;
+    color: var(--k-red)!important
+}
+
+
+/* texto dos itens de papel no painel: máquina de escrever */
+body #props.pp2 #pText,body #props.pp2 #pVerso {
+    font-family: Typewriter,'Special Elite',monospace!important
+}
+
+
+/* chave liga/desliga (painel do item) */
+body #props.pp2 label.chk>input[type=checkbox] {
+    width: 38px;
+    height: 21px;
+    border-radius: 0;
+    border: 0;
+    background: var(--k-fld);
+    box-shadow: inset 0 0 0 2px var(--k-line),inset 0 2px 0 rgba(0,0,0,.4);
+    clip-path: var(--k-cS)
+}
+
+
+body #props.pp2 label.chk>input[type=checkbox]::after {
+    left: 4px;
+    top: 4px;
+    width: 13px;
+    height: 13px;
+    border-radius: 0;
+    background: var(--k-mut);
+    clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%)
+}
+
+
+body #props.pp2 label.chk>input[type=checkbox]:checked {
+    background: var(--k-acc);
+    border: 0
+}
+
+
+body #props.pp2 label.chk>input[type=checkbox]:checked::after {
+    transform: translateX(17px);
+    background: var(--k-onacc)
+}
+
+
+body #props.pp2 .pp-tip {
+    text-decoration-color: rgba(201,162,74,.35)
+}
+
+
+/* ---------- abas ---------- */
+body #props.pp2 .pp-tabs,body .ab-tabs {
+    gap: 4px;
+    padding: 4px!important;
+    margin: 6px 12px 2px;
+    background: var(--k-deep);
+    border: 0!important;
+    clip-path: var(--k-cS)
+}
+
+
+body #props.pp2 .pp-tabs button,body .ab-tabs button {
+    border: 0!important;
+    color: var(--k-mut);
+    font: 800 13.5px/1 var(--k-body)!important;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 9px 4px!important;
+    background: transparent
+}
+
+
+body #props.pp2 .pp-tabs button.on,body .ab-tabs button.on,body .ab-tabs button[aria-selected=true] {
+    background: var(--k-plateBg)!important;
+    color: var(--k-plateT)!important;
+    clip-path: var(--k-cTab);
+    transform: rotate(-1.5deg)
+}
+
+
+body #props.pp2 .pp-body {
+    scrollbar-color: var(--k-line) transparent
+}
+
+
+body #props.pp2 .row>.lbl,body .flyout .lbl {
+    font: 700 12px/1.2 var(--k-body)!important;
+    letter-spacing: .06em!important;
+    text-transform: uppercase;
+    color: var(--k-mut)
+}
+
+
+body #props.pp2 .att,body #props.pp2 .acbox {
+    background: var(--k-deep);
+    border: 0!important;
+    border-radius: 0;
+    clip-path: var(--k-cS);
+    box-shadow: inset 0 0 0 2px var(--k-line)
+}
+
+
+/* ---------- ajustes da 1ª olhada ---------- */
+body #props.pp2 .pp-body {
+    padding-left: 15px!important;
+    padding-right: 14px!important
+}
+
+
+body #props.pp2 .pp-ic {
+    padding: 0 4px
+}
+
+
+/* ===== n92 · painel de propriedades: caixas de texto, respiro da moldura, gatilhos ===== */
+/* campos de texto longo: rótulo em cima, área larga embaixo */
+#props .row.n92col {
+    display: flex!important;
+    flex-direction: column!important;
+    align-items: stretch!important;
+    gap: 5px;
+    height: auto
+}
+
+
+#props .row.n92col>.lbl {
+    width: auto!important;
+    max-width: none!important;
+    flex: none!important;
+    white-space: normal!important;
+    overflow: visible!important;
+    text-overflow: clip!important
+}
+
+
+#props .n92src {
+    display: none!important
+}
+
+
+#props textarea.n92ta {
+    display: block;
+    width: 100%!important;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 58px;
+    resize: vertical;
+    overflow-y: auto;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    flex: none
+}
+
+
+#props textarea.n92ta.n92one {
+    min-height: 40px
+}
+
+
+/* moldura: a área que rola fica por dentro da borda (nada encosta nem vaza por cima/baixo) */
+body #props.pp2 .pp-body {
+    margin: 2px 5px 8px!important;
+    padding-left: 10px!important;
+    padding-right: 10px!important;
+    padding-bottom: 12px!important;
+    -webkit-mask-image: linear-gradient(180deg,transparent 0,#000 7px,#000 calc(100% - 9px),transparent 100%);
+    mask-image: linear-gradient(180deg,transparent 0,#000 7px,#000 calc(100% - 9px),transparent 100%)
+}
+
+
+body #props.pp2 .acbox {
+    padding: 8px 10px 10px;
+    margin: 8px 0 10px
+}
+
+
+body #props.pp2 .acbox>.lbl {
+    padding: 0 2px
+}
+
+
+body #props.pp2 .pp-pane details.psec>summary {
+    padding-right: 4px;
+    margin-right: 0;
+    overflow: hidden
+}
+
+
+body #props.pp2 .pp-pane details.psec>.psb {
+    padding-left: 2px;
+    padding-right: 2px
+}
+
+
+body #props.pp2 .pp-pane>*:last-child {
+    margin-bottom: 4px
+}
+
+
+#props .pp-sub.n92sub {
+    margin-top: 8px
+}
+
+
+body #props :is(.row2,.pp-duo):has(>.n92col) {
+    display: block!important;
+    grid-template-columns: none!important
+}
+
+
+body #props :is(.row2,.pp-duo):has(>.n92col)>.row {
+    width: auto!important;
+    margin-bottom: 8px
+}
+@media(pointer:coarse){#top .b.ico,#top .b,#sharePanel .b{min-width:40px;min-height:40px}}

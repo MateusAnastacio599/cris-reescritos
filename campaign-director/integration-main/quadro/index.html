@@ -5,6 +5,8 @@
         <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="cris-board-engine" content="C.R.I.S. Quadro Investigativo">
         <title>C.R.I.S. // Quadro Investigativo</title>
         <link rel="stylesheet" href="quadro-cris-v7.css">
+        <link rel="stylesheet" href="board-integration.css">
+        <link rel="stylesheet" href="board-polish.css">
     </head>
     <body class="ui">
         <div id="view">
@@ -418,9 +420,10 @@
         <input type="file" id="fileInto" accept="image/*" multiple hidden>
         <script type="module">
         import {CRISBridge} from '../integration-bridge.js';
+        import {mountBoardSession} from './board-session.js';
         window.CRISBridge=CRISBridge;
-        try{const id=await CRISBridge.requireIdentity();if(id){window.CRIS_IDENTITY=id;const script=document.createElement('script');script.src='quadro-cris-v7.js';document.body.appendChild(script);const tools=document.createElement('div');tools.style.cssText='position:fixed;right:12px;bottom:12px;z-index:99999;display:flex;gap:8px';tools.innerHTML=(id.isMaster&&!new URLSearchParams(location.search).has('sala')?'<button type="button" id="save-cloud-board">SALVAR NA NUVEM</button>':'')+'<button type="button" id="open-own-sheet">MINHA FICHA</button><a href="../">CRIS</a>';document.body.appendChild(tools);document.getElementById('save-cloud-board')?.addEventListener('click',async()=>{const b=document.getElementById('save-cloud-board');b.disabled=true;try{if(!window.CRIS_BOARD_API)throw Error('Aguarde o quadro carregar.');await window.CRIS_BOARD_API.save();b.textContent='QUADRO SALVO';}catch(e){b.textContent='FALHA AO SALVAR · TENTAR NOVAMENTE';b.title=e.message;}finally{b.disabled=false;}});document.getElementById('open-own-sheet').onclick=()=>{const d=document.createElement('dialog');d.style.cssText='width:min(960px,94vw);height:85vh;background:#100d19;color:white;border:1px solid #76618d';const close=document.createElement('button');close.textContent='Fechar ficha';close.onclick=()=>d.remove();d.appendChild(close);const frame=document.createElement('iframe');frame.title='Minha ficha CRIS';frame.src='../?sheet=1#fichas';frame.style.cssText='width:100%;height:calc(100% - 40px);border:0';d.appendChild(frame);document.body.appendChild(d);d.showModal();};}}
-        catch(e){document.body.textContent='Não foi possível confirmar o acesso. Volte ao CRIS e entre novamente.';}
+        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js';document.body.append(script);}}
+        catch(error){document.body.textContent='Não foi possível confirmar o acesso. Volte ao CRIS e entre novamente.';}
         </script>
     </body>
 </html>

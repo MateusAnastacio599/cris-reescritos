@@ -1,0 +1,17 @@
+import {$,$$,esc,openForm,field,toast} from './ui.js';
+import {uid} from './storage.js';
+import {crisHome} from './hub-links.js';
+export function attachClue(scene,item,campaignId){
+ const cue={id:uid('cue'),name:'Revelar · '+item.title,actions:[{type:'board-reveal',itemId:item.id,boardCampaignId:campaignId,delay:0}]},trigger={id:uid('trigger'),name:cue.name,cue:true,cueId:cue.id,key:''};scene.cues??=[];scene.cues.push(cue);scene.triggers.push(trigger);scene.markdown+='\n\n[[cue:'+trigger.id+'|'+cue.name.replace(/[\[\]|\n]/g,' ')+']]';return trigger;
+}
+export async function openBoardClues(ctx,link){
+ try{await link.refresh();}catch(error){toast(error.message,true);return;}
+ const target=ctx.scene(),campaign=link.campaign();let filter='';
+ openForm({title:'Pistas do quadro · '+target.title,wide:true,body:`<p class="dialog-description">Prepare os documentos no quadro e marque “Só mestre” para mantê-los ocultos. Vincule uma pista ao roteiro: o botão inserido envia o comando de revelação ao quadro do mestre. A mesa precisa estar ao vivo para os jogadores receberem a mudança.</p><div class="board-link-tools"><a class="btn outline" href="${new URL('quadro/',crisHome()).href}" target="_blank" rel="noopener">Abrir quadro em outra tela ↗</a><button type="button" class="btn outline" id="refreshBoardClues">Atualizar pistas</button></div><label class="search-field"><input type="search" id="boardClueSearch" placeholder="Buscar pista…" aria-label="Buscar pista do quadro"></label><div id="boardClueRows" class="board-clue-rows"></div>`,onReady:root=>{
+  const render=()=>{$('#boardClueRows',root).innerHTML=link.items.filter(i=>i.title.toLocaleLowerCase().includes(filter)).map(i=>`<article class="board-clue-row"><div><strong>${esc(i.title)}</strong><small>${i.hidden?'Oculta · só mestre':'Visível na mesa'} · ${esc(i.type)} · ${esc(i.id.slice(-6))}</small></div><button type="button" class="btn outline small" data-link-clue="${esc(i.id)}">Vincular ao roteiro</button><button type="button" class="btn primary small" data-reveal-clue="${esc(i.id)}">Revelar agora</button></article>`).join('')||'<p class="empty-small">Nenhuma pista encontrada. Prepare o quadro e aguarde o indicador de salvamento na conta; depois atualize esta lista.</p>';
+   $$('[data-link-clue]',root).forEach(b=>b.onclick=()=>{const item=link.items.find(i=>i.id===b.dataset.linkClue);attachClue(target,item,campaign);ctx.commit();toast('Botão de revelação adicionado ao fim desta cena. Você pode movê-lo no editor.');});
+   $$('[data-reveal-clue]',root).forEach(b=>b.onclick=async()=>{b.disabled=true;try{await link.send(b.dataset.revealClue,'reveal',campaign);toast('Pedido de revelação enviado. O quadro do mestre aplicará a mudança.');}catch(error){toast(error.message,true);}finally{b.disabled=false;}});
+  };
+  $('#boardClueSearch',root).oninput=e=>{filter=e.target.value.toLocaleLowerCase();render();};$('#refreshBoardClues',root).onclick=async e=>{const b=e.currentTarget;b.disabled=true;try{await link.refresh();if($('#boardClueRows',root))render();}catch(error){toast(error.message,true);}finally{b.disabled=false;}};render();
+ }});
+}
