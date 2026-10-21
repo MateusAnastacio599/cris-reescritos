@@ -17,7 +17,7 @@ export const musicMethods={
     const asset=this.asset(music.assetId);return this.playMusic(asset,asset?.shuffle?{...music,youtubeIndex:undefined}:music);
   },
   async playMusic(asset,options={}){
-    if(!asset)throw new Error('Escolha uma faixa na biblioteca.');
+    this.softStopToken=null;if(!asset)throw new Error('Escolha uma faixa na biblioteca.');
     if(asset.provider==='spotify')this.spotify.activate();
     const opts=this.musicOptions(options),generation=++this.musicEpoch,isCurrent=()=>generation===this.musicEpoch&&!this.removedAssets.has(asset.id)&&(opts.ambienceMusicToken===undefined||this.ambiences.active?.id===opts.ambienceOwnerId&&this.ambiences.musicToken===opts.ambienceMusicToken);
     if(asset.provider==='spotify'){opts.fadeIn=options.fadeIn??this.getState().settings.spotifyFadeIn;opts.fadeOut=options.fadeOut??this.getState().settings.spotifyFadeOut;}
@@ -37,7 +37,7 @@ export const musicMethods={
       // A faixa local só sai quando o novo vídeo realmente começar a tocar.
       if(this.music&&this.ytPendingFade)this.ytPendingFade.retireMusic=this.music;
     }else{
-      const track=await this.createTrack(asset,{group:'music',loop:opts.loop&&!opts.playlist,volume:opts.volume,fade:opts.fadeIn,epoch:this.epoch,startSeconds:opts.startSeconds??asset.start??0});
+      const track=await this.createTrack(asset,{group:'music',loop:opts.loop&&!opts.playlist,volume:opts.volume,fade:opts.fadeIn,epoch:this.epoch,startSeconds:opts.startSeconds??asset.start??0,effectFades:{fadeIn:0,fadeOut:opts.loop&&!opts.playlist?0:opts.fadeOut}});
       if(!track)return;if(!isCurrent()){this.dispose(track);return;}
       if(this.music)this.retire(this.music,opts.fadeOut);this.music=track;
       if(this.ytReady&&this.ytPlaying){this.ytEnvelope.fade(0,opts.fadeOut,isCurrent).then(done=>{if(done&&isCurrent()){this.yt.stopVideo();this.ytPlaying=false;this.emit();}});}

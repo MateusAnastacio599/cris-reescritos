@@ -74,6 +74,8 @@ export class AudioEngine extends EventTarget {
     const source=this.context.createMediaElementSource(audio),gain=this.context.createGain(),boostGain=this.context.createGain(),boost=clamp(asset.boost??1,1,4);gain.gain.value=fade?0:clamp(volume);boostGain.gain.value=boost;
     source.connect(boostGain);boostGain.connect(gain);
     const track={audio,source,gain,boostGain,boost,assetId:asset.id,name:asset.name,volume:clamp(volume),group,loop,disposed:false};
+    const defaults=this.getState().settings;
+    effectFades??={fadeIn:asset.fadeIn??(group==='sfx'?defaults.effectFadeIn:defaults.ambientFadeIn)??.06,fadeOut:asset.fadeOut??(group==='sfx'?defaults.effectFadeOut:defaults.ambientFadeOut)??.25};
     if(effectFades&&(effectFades.fadeIn||effectFades.fadeOut)){
       track.envelopeGain=this.context.createGain();gain.connect(track.envelopeGain);track.envelopeGain.connect(this.groups[group]||this.groups.sfx);
       track.effectFades=new EffectFades(audio,this.context,track.envelopeGain.gain,effectFades.fadeIn,effectFades.fadeOut);
@@ -84,6 +86,7 @@ export class AudioEngine extends EventTarget {
     track.effectFades?.sync();if(fade)this.ramp(track,volume,fade);return track;
   }
   async startScene(scene,location) {
+    this.softStopToken=null;
     if(this.active?.key===location.key) {
       if(this.running){this.pause();return;}
       if(this.paused){await this.resume();return;}
@@ -123,10 +126,11 @@ export class AudioEngine extends EventTarget {
     this.emit();
   }
   async oneShot(asset,volume=.8,{group='sfx',owner=null,fadeIn,fadeOut}={}) {
+    this.softStopToken=null;
     if(!asset)throw new Error('Este efeito não está na biblioteca.');
     if(['youtube','spotify'].includes(asset.provider))throw new Error('Use um arquivo de áudio para efeitos; links de streaming ficam no canal de música.');
     const epoch=this.epoch;await this.init();if(epoch!==this.epoch)return;
-    const fades={fadeIn:fadeSeconds(fadeIn??asset.fadeIn),fadeOut:fadeSeconds(fadeOut??asset.fadeOut)};
+    const fades={fadeIn:fadeSeconds(fadeIn??asset.fadeIn??this.getState().settings.effectFadeIn),fadeOut:fadeSeconds(fadeOut??asset.fadeOut??this.getState().settings.effectFadeOut)};
     const track=await this.createTrack(asset,{volume,group,epoch,effectFades:fades});if(!track)return;
     track.fadeOut=fadeOut??asset.fadeOut;
     track.owner=owner;this.effects.add(track);track.audio.onended=()=>{const after=track.afterEnd;this.dispose(track);this.emit();after?.();};this.emit();return track;
@@ -173,6 +177,7 @@ export class AudioEngine extends EventTarget {
     if(this.active){this.running=true;this.startedAt=performance.now();}this.paused=false;this.emit();
   }
   stop() {
+    this.softStopToken=null;
     this.spotify.pause().catch(error=>this.error(error.message));this.youtubePreviewOnly=false;this.ytRampInfo=null;this.youtubeHardStopped=true;this.ytEnvelope.cancel();for(const env of Object.values(this.mixEnvelopes||{}))env.cancel();this.ytPendingFade=null;this.inspectEpoch++;this.ambiences.stop(0);this.clearPreload();
     this.epoch++;this.musicEpoch++;this.clearDelays();this.removedAssets.clear();this.active=null;this.running=false;this.paused=false;this.elapsed=0;this.fired.clear();this.pendingCue=null;
     for(const t of [...this.tracks.values(),...this.effects,...this.retiring])this.dispose(t);this.tracks.clear();this.effects.clear();this.retiring.clear();
@@ -180,6 +185,17 @@ export class AudioEngine extends EventTarget {
     if(this.ytReady)this.yt.stopVideo();this.ytPlaying=false;this.ytLastVideoId=null;this.ytEndFadeKey=null;this.musicAdvancePending=null;this.emit('silence');this.emit();
   }
   silence(){this.stop();}
+  async stopSoft(seconds=this.getState().settings.stopFade??.8){
+    seconds=fadeSeconds(seconds);if(!seconds){this.stop();return;}
+    const token={};this.softStopToken=token;this.epoch++;this.musicEpoch++;this.clearDelays();this.clearPreload();this.ytEnvelope.cancel();
+    this.running=false;this.paused=false;this.active=null;this.pendingCue=null;this.fired.clear();
+    const tracks=new Set([...this.tracks.values(),...this.effects,...this.retiring,...this.ambiences.tracks.values(),...(this.music?[this.music]:[])]);
+    this.ambiences.musicConfigKey=null;this.ambiences.musicToken++;if(this.musicFadeOptions)delete this.musicFadeOptions.ambienceOwnerId;
+    this.ambiences.stop(seconds);for(const track of tracks)this.retire(track,seconds);this.tracks.clear();this.effects.clear();this.music=null;
+    this.spotify.pause({fadeOut:seconds}).catch(error=>this.error(error.message));if(this.ytReady)this.ytEnvelope.fade(0,seconds,()=>this.softStopToken===token);
+    this.emit();await new Promise(resolve=>setTimeout(resolve,(seconds+.06)*1000));
+    if(this.softStopToken===token)this.stop();
+  }
   async removeAsset(assetId){
     this.removedAssets.add(assetId);
     if(this.musicAsset?.id===assetId)await this.stopMusic(0);
@@ -198,6 +214,7 @@ export class AudioEngine extends EventTarget {
   }
   setLayerVolume(id,volume){const t=this.tracks.get(id);if(t)this.ramp(t,volume,.08);this.emit();}
   async toggleLibraryLayer(asset) {
+    this.softStopToken=null;
     const key=`library:${asset.id}`;const active=this.tracks.get(key);
     if(active){this.retire(active,asset.fadeOut??.35);this.tracks.delete(key);this.emit();return;}
     const epoch=this.epoch;await this.init();if(epoch!==this.epoch)return;

@@ -14,7 +14,8 @@
   <link rel="stylesheet" href="editor-tools.css">
   <link rel="stylesheet" href="cloud.css">
 </head>
-<body>
+<body class="account-pending">
+  <div class="account-loading" role="status">Abrindo sua sessão CRIS…</div>
   <div class="sidebar-scrim" id="sidebarScrim"></div>
   <aside class="sidebar" id="sidebar" aria-label="Campanhas e páginas">
     <a class="brand" href="#" id="homeBrand"><span class="brand-mark">C<span>·</span></span><span><strong>C.R.I.S.</strong><small>CAMPAIGN DIRECTOR <b>V3</b></small></span></a>
@@ -23,11 +24,12 @@
     <button class="nav-item" id="openSearch"></button>
     <button class="nav-item" id="openLibrary"></button>
     <button class="nav-item" id="openAmbiences"></button>
+    <section class="spotify-sidebar" aria-label="Conexão Spotify"><div><button class="nav-item" id="spotifyConnection"></button><button class="icon-btn" id="spotifySidebarSettings" aria-label="Ajustes do Spotify" title="Ajustes do Spotify">⋯</button></div><small id="spotifyPrivateReminder" hidden>Lembrete: ative a sessão particular no Spotify antes de jogar.</small></section>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">PÁGINAS DA CAMPANHA <button class="icon-btn" id="newPage" title="Nova página" aria-label="Nova página"></button></div>
     <nav class="page-tree" id="pageTree" aria-label="Páginas"></nav>
     <button class="new-page-button" id="newPageBottom"></button>
-    <div class="sidebar-bottom"><div class="save-status" id="saveStatus"><i></i><span>Todas as alterações salvas</span></div><button id="openCloud" class="nav-item" aria-label="Conta e nuvem"></button><button id="openBackups" class="nav-item"></button><small>Seu universo. Sob seu controle.</small></div>
+    <div class="sidebar-bottom"><div class="save-status" id="saveStatus"><i></i><span>Todas as alterações salvas</span></div><button id="openCloud" class="nav-item" aria-label="Conta e nuvem"></button><a id="returnCris" class="nav-item" href="cris/">← Voltar ao CRIS</a><small>Seu universo. Sob seu controle.</small></div>
   </aside>
   <div class="main-shell">
     <header class="topbar">
@@ -40,6 +42,7 @@
     <div class="dock-track"><div class="track-art" id="dockArtwork"></div><div class="dock-track-text"><small id="dockContext">A MESA ESTÁ PRONTA</small><strong id="dockTitle">Dê vida à sua próxima cena</strong><span id="dockSubtitle">Áudio permanece ativo durante a navegação</span></div></div>
     <div class="dock-transport"><button class="icon-btn" id="dockPrevious" aria-label="Faixa anterior" title="Faixa anterior"></button><button class="transport-play" id="dockPlay" aria-label="Reproduzir cena" title="Reproduzir ou pausar"></button><button class="icon-btn" id="dockNext" aria-label="Próxima faixa" title="Próxima faixa"></button><span class="dock-time" id="dockTime">00:00</span><button class="icon-btn dock-stop" id="dockStop" aria-label="Parar todo o áudio" title="Parar todo o áudio"></button></div>
     <div class="dock-right"><div class="spotify-volume" id="spotifyVolumeControl" hidden><img src="assets/spotify-icon.png" alt="Spotify" width="16" height="16"><input id="spotifyVolume" type="range" min="0" max="100" value="100" aria-label="Volume exclusivo do Spotify"><output id="spotifyVolumeValue">100%</output><button type="button" class="icon-btn spotify-repeat" id="spotifyRepeat" aria-label="Repetição desativada" aria-pressed="false" title="Repetição desativada"></button><button type="button" class="icon-btn" id="spotifyFadeSettings" aria-label="Configurar fades do Spotify" title="Fades do Spotify">⋯</button></div><span class="engine-badge"><i></i> PERSISTENTE</span><div class="master-volume"><span id="volumeIcon"></span><input type="range" id="masterVolume" min="0" max="100" value="80" aria-label="Volume geral"></div><button class="btn mixer-open" id="openMixer"></button></div>
+    <div class="spotify-progress" id="spotifyProgress" hidden><button type="button" class="icon-btn" id="spotifyRestart" aria-label="Recomeçar música com fade" title="Recomeçar com fade">↶</button><time id="spotifyElapsed">0:00</time><input id="spotifySeek" type="range" min="0" max="1" value="0" step="0.1" aria-label="Posição da música no Spotify"><time id="spotifyDuration">0:00</time></div>
   </footer>
   <aside id="youtubePanel" class="youtube-panel" hidden aria-label="Player do YouTube"><header><button type="button" class="youtube-drag-handle" aria-label="Mover player do YouTube. Arraste ou use as setas do teclado." title="Arraste para mover · setas para ajustar"><span aria-hidden="true">⠿</span> YouTube</button><div class="youtube-window-actions"><button id="moveYoutube" class="icon-btn" title="Mover player para o outro lado" aria-label="Mover player para o outro lado">↔</button><button id="sizeYoutube" class="icon-btn" title="Alternar tamanho compacto" aria-label="Alternar tamanho compacto">↗</button><button id="closeYoutube" class="icon-btn" aria-label="Parar e fechar YouTube">×</button></div></header><div id="youtubePlayer"></div><small class="youtube-hint">Arraste pelo topo · controles na barra inferior</small></aside>
   <dialog id="appDialog" class="app-dialog"><form id="modalForm"><header class="dialog-head"><h2 id="dialogTitle"></h2><button type="button" id="closeDialog" class="icon-btn" aria-label="Fechar">×</button></header><div class="dialog-body" id="dialogBody"></div><div id="dialogError" class="form-error" role="alert" hidden></div><footer class="dialog-footer" id="dialogFooter"></footer></form></dialog>

@@ -83,7 +83,7 @@ test('backup aceita Spotify somente no canal musical e não incorpora credenciai
   const state=initialState();state.audioAssets.push({id:'spotify-test',name:'Teste',provider:'spotify',kind:'music',spotifyUri:URI});assert.doesNotThrow(()=>validateState(state));
   state.audioAssets.at(-1).kind='sfx';assert.throws(()=>validateState(state),/Spotify/);
   const callback=readFileSync(new URL('../dist/spotify-callback.js',import.meta.url),'utf8');assert.ok(callback.indexOf('history.replaceState')<callback.indexOf('await new SpotifyAuth().complete'));
-  const authSource=readFileSync(new URL('../dist/spotify-auth.js',import.meta.url),'utf8');assert.equal(authSource.includes('localStorage'),false);assert.equal(authSource.includes('client_secret:'),false);
+  const authSource=readFileSync(new URL('../dist/spotify-auth.js',import.meta.url),'utf8');assert.equal(authSource.includes('localStorage'),true);assert.equal(authSource.includes('client_secret:'),false);
 });
 
 test('preparação simultânea reutiliza um SDK player e desconectar ignora ready atrasado',async()=>{
@@ -176,4 +176,14 @@ test('uma cue nova mantém o fade de saída mesmo ao substituir uma pausa em and
   const pause=player.pause({fadeOut:.3});await wait(45);const replacing=player.play({spotifyUri:'spotify:track:4zk4CEKBTw5n5J7wSd4Zf8'},{fadeIn:.07,fadeOut:.14});await wait(40);
   assert.equal(calls.some(c=>c?.path?.includes('/play?')),false);assert.equal(await pause,false);
   await replacing;assert.ok(calls.some(c=>c?.path?.includes('/play?')));await player.pause();
+});
+
+test('autorização migra da aba para armazenamento persistente sem entrar no backup',()=>{
+ const persistent=storage(),pending=storage(),token={access_token:'access',refresh_token:'refresh',expires_at:999999};pending.setItem('cris:spotify:session:v1',JSON.stringify(token));const auth=new SpotifyAuth({storage:persistent,pendingStorage:pending});assert.equal(auth.connected,true);assert.equal(pending.getItem('cris:spotify:session:v1'),null);const reopened=new SpotifyAuth({storage:persistent,pendingStorage:storage()});assert.equal(reopened.connected,true);assert.equal(JSON.stringify(initialState()).includes('refresh_token'),false);reopened.disconnect();assert.equal(reopened.connected,false);
+});
+test('seek durante reprodução abaixa volume antes de mover e recupera o volume depois',async()=>{
+ const {player,calls}=readyPlayer();player.acceptPlayback=true;player.playing=true;player.state={...trackState(),duration:60000};player.player.seek=async position=>calls.push(['seek',position]);player.player.getCurrentState=async()=>({...trackState(),position:15000,duration:60000});await player.seek(15000,{fadeOut:.06,fadeIn:.06});await wait(100);const index=calls.findIndex(c=>Array.isArray(c)&&c[0]==='seek');assert.ok(index>0);assert.ok(calls.slice(0,index).some(c=>Array.isArray(c)&&c[0]==='volume'&&c[1]===0));assert.equal(player.level,1);assert.equal(player.playing,true);await player.pause();
+});
+test('recomeçar música pausada não dispara play e o próximo play recupera volume',async()=>{
+ const {player,calls}=readyPlayer();player.state={...trackState(),paused:true,duration:60000};player.playing=false;player.acceptPlayback=false;player.player.seek=async position=>calls.push(['seek',position]);await player.seek(0);assert.ok(calls.some(c=>Array.isArray(c)&&c[0]==='seek'&&c[1]===0));assert.equal(calls.includes('resume'),false);assert.equal(player.position(),0);player.player.getCurrentState=async()=>({...trackState(),position:0,duration:60000});await player.resume({fadeIn:0});assert.equal(player.level,1);await player.pause();
 });

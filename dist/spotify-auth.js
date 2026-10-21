@@ -15,20 +15,20 @@ export function parseSpotify(value){
   return {type:match[1],id:match[2],uri:`spotify:${match[1]}:${match[2]}`,url:`https://open.spotify.com/${match[1]}/${match[2]}`};
 }
 export class SpotifyAuth{
-  constructor({storage=globalThis.sessionStorage,fetcher=(...args)=>fetch(...args),now=()=>Date.now(),cryptoProvider=globalThis.crypto}={}){Object.assign(this,{storage,fetcher,now,cryptoProvider});this.generation=0;}
-  read(){try{const value=JSON.parse(this.storage.getItem(TOKEN_KEY));return value?.access_token&&value?.refresh_token?value:null;}catch{return null;}}
+  constructor({storage=globalThis.localStorage??globalThis.sessionStorage,pendingStorage=globalThis.sessionStorage??storage,fetcher=(...args)=>fetch(...args),now=()=>Date.now(),cryptoProvider=globalThis.crypto}={}){Object.assign(this,{storage,pendingStorage,fetcher,now,cryptoProvider});this.generation=0;}
+  read(){try{let raw=this.storage.getItem(TOKEN_KEY);if(!raw&&this.pendingStorage!==this.storage){raw=this.pendingStorage?.getItem(TOKEN_KEY);if(raw){this.storage.setItem(TOKEN_KEY,raw);this.pendingStorage.removeItem(TOKEN_KEY);}}const value=JSON.parse(raw);return value?.access_token&&value?.refresh_token?value:null;}catch{return null;}}
   get connected(){return !!this.read();}
   async begin(currentURL=globalThis.location.href){
     if(new URL(currentURL).origin!==new URL(SPOTIFY_HOME).origin)throw Error('Para conectar o Spotify, abra o Director no endereço original do CRIS.');
     const verifier=encode(this.cryptoProvider.getRandomValues(new Uint8Array(64))),state=encode(this.cryptoProvider.getRandomValues(new Uint8Array(32)));
     const challenge=encode(new Uint8Array(await this.cryptoProvider.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));
-    this.storage.setItem(PENDING_KEY,JSON.stringify({verifier,state,createdAt:this.now()}));
+    this.pendingStorage.setItem(PENDING_KEY,JSON.stringify({verifier,state,createdAt:this.now()}));
     const params=new URLSearchParams({client_id:SPOTIFY_CLIENT_ID,response_type:'code',redirect_uri:SPOTIFY_REDIRECT,scope:SCOPES,state,code_challenge_method:'S256',code_challenge:challenge});
     return 'https://accounts.spotify.com/authorize?'+params;
   }
   async complete(params){
-    let pending;try{pending=JSON.parse(this.storage.getItem(PENDING_KEY));}catch{}
-    this.storage.removeItem(PENDING_KEY);
+    let pending;try{pending=JSON.parse(this.pendingStorage.getItem(PENDING_KEY));}catch{}
+    this.pendingStorage.removeItem(PENDING_KEY);
     if(!pending||typeof pending.verifier!=='string'||typeof pending.state!=='string'||!Number.isFinite(pending.createdAt)||!params.get('state')||params.get('state')!==pending.state||this.now()-pending.createdAt>600000||this.now()<pending.createdAt)throw Error('A autorização expirou ou não pertence a esta aba. Volte ao CRIS e conecte novamente.');
     if(params.get('error'))throw Error('A conexão foi cancelada no Spotify. Você pode tentar novamente.');
     if(!params.get('code'))throw Error('O Spotify não retornou o código de autorização.');
@@ -44,10 +44,10 @@ export class SpotifyAuth{
     const token={access_token:data.access_token,refresh_token:refresh,expires_at:this.now()+data.expires_in*1000};this.storage.setItem(TOKEN_KEY,JSON.stringify(token));return token.access_token;
   }
   async token(force=false){
-    const token=this.read();if(!token)throw Error('Conecte sua conta em Biblioteca → Spotify.');
+    const token=this.read();if(!token)throw Error('Conecte sua conta no botão Spotify da lateral.');
     if(!force&&token.expires_at>this.now()+60000)return token.access_token;
     if(!this.refreshing)this.refreshing=this.exchange({grant_type:'refresh_token',refresh_token:token.refresh_token}).finally(()=>{this.refreshing=null;});
     return this.refreshing;
   }
-  disconnect(){this.generation++;this.storage.removeItem(TOKEN_KEY);this.storage.removeItem(PENDING_KEY);}
+  disconnect(){this.generation++;this.storage.removeItem(TOKEN_KEY);this.pendingStorage?.removeItem(TOKEN_KEY);this.pendingStorage.removeItem(PENDING_KEY);}
 }

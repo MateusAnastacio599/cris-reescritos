@@ -16,10 +16,14 @@ export class DirectorAccount extends EventTarget{
     if(data?.code){const e=new Error('Falha no serviço de contas.');e.code=data.code;throw e;}return data;
   }
   async init(){
-    const c=await this.clientProvider();if(!this.subscription){const {data}=c.auth.onAuthStateChange((event,session)=>{if(this.user?.id!==session?.user?.id)this.profile=null;this.user=session?.user||null;setTimeout(()=>this.dispatchEvent(new Event('change')),0);});this.subscription=data.subscription;}
-    const {data,error}=await c.auth.getSession();if(error)throw error;this.user=data.session?.user||null;if(this.user)this.profile=(await this.call('me')).account;return this.user;
+    if(this.initializing)return this.initializing;this.initializing=this.restoreSession().finally(()=>{this.initializing=null;});return this.initializing;
   }
-  async signIn(username,password){const c=await this.clientProvider();const data=await this.call('login',{username:normalizeLoginUsername(username),password});const {data:session,error}=await c.auth.setSession(data.session);if(error)throw error;this.user=session.user;this.profile=data.account;return session;}
+  notify(){this.dispatchEvent(new Event('change'));}
+  async restoreSession(){
+    const c=await this.clientProvider();if(!this.subscription){const {data}=c.auth.onAuthStateChange((event,session)=>{if(this.user?.id!==session?.user?.id)this.profile=null;this.user=session?.user||null;setTimeout(()=>this.dispatchEvent(new Event('change')),0);});this.subscription=data.subscription;}
+    const {data,error}=await c.auth.getSession();if(error)throw error;this.user=data.session?.user||null;if(this.user){const userId=this.user.id;if(!this.profile){try{this.profile=JSON.parse(globalThis.localStorage?.getItem('cris:profile:'+userId)||'null');}catch{}try{const result=await this.call('me');if(this.user?.id===userId){this.profile=result.account;globalThis.localStorage?.setItem('cris:profile:'+userId,JSON.stringify(this.profile));}}catch(error){if(!this.profile)throw error;}}}this.notify();return this.user;
+  }
+  async signIn(username,password){const c=await this.clientProvider();const data=await this.call('login',{username:normalizeLoginUsername(username),password});const {data:session,error}=await c.auth.setSession(data.session);if(error)throw error;this.user=session.user;this.profile=data.account;globalThis.localStorage?.setItem('cris:profile:'+this.user.id,JSON.stringify(this.profile));this.notify();return session;}
   async listAccounts(){return (await this.call('list')).accounts;}
   async createAccount(username,password){return this.call('create',{username:normalizeLoginUsername(username),password});}
   async resetPassword(userId,password){return this.call('reset',{userId,password});}

@@ -546,3 +546,13 @@ test('Spotify não é aceito como efeito ou arquivo de ambiência',async()=>{
   const {engine}=fixture(),asset={id:'spotify',provider:'spotify',spotifyUri:'spotify:track:16GSp3rIcIIPrhoTlUxee3'};
   await assert.rejects(()=>engine.oneShot(asset),/canal de música/);
 });
+
+test('efeito sem ajuste recebe fades leves e zero explícito mantém o ataque original',async()=>{
+ const {state,engine}=fixture();const a=state.audioAssets.find(a=>a.kind==='sfx');await engine.oneShot(a);let shot=[...engine.effects][0];assert.equal(shot.effectFades.fadeIn,.06);assert.equal(shot.effectFades.fadeOut,.25);await engine.oneShot(a,.8,{fadeIn:0,fadeOut:0});shot=[...engine.effects].at(-1);assert.equal(shot.effectFades,undefined);
+});
+test('parar tudo inicia saída, cancela ações pendentes e só descarta arquivos após o fade',async()=>{
+ const {state,engine}=fixture();await engine.oneShot(state.audioAssets.find(a=>a.kind==='sfx'));const shot=[...engine.effects][0];const ending=engine.stopSoft(.05);assert.equal(shot.disposed,false);assert.equal(engine.delays.size,0);await ending;assert.equal(shot.disposed,true);assert.equal(engine.musicAsset,null);assert.equal(engine.running,false);
+});
+test('um novo som durante encerramento não é cortado pelo término do fade anterior',async()=>{
+ const {state,engine}=fixture(),id=state.audioAssets.find(a=>a.kind==='sfx');await engine.oneShot(id);const first=[...engine.effects][0],ending=engine.stopSoft(.06);await engine.oneShot(id);const next=[...engine.effects][0];await ending;assert.equal(first.disposed,true);assert.equal(next.disposed,false);
+});

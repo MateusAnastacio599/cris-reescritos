@@ -4,6 +4,8 @@ export const sha256=async blob=>Array.from(new Uint8Array(await crypto.subtle.di
 export class CloudWorkspace{
  constructor({client=getCloudClient,readMedia=getMedia,writeMedia=putMedia,release=releaseAsset}={}){Object.assign(this,{client,readMedia,writeMedia,release});this.binding=null;this.busy=false;}
  async list(){const c=await this.client();const r=await c.from('director_workspaces').select('id,campaign_id,revision,updated_at').order('updated_at',{ascending:false});if(r.error)throw r.error;return r.data||[];}
+ async peek(id){const c=await this.client(),r=await c.from('director_workspaces').select('*').eq('id',id).single();if(r.error)throw r.error;return r.data;}
+ bind(row){this.binding={id:row.id,revision:row.revision,campaignId:row.campaign_id,media:row.media,ownerId:row.owner_id};}
  async load(id,onProgress=()=>{}){
   if(this.busy)throw Error('Outra operação da nuvem está em andamento.');this.busy=true;
   try{
