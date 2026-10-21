@@ -19,7 +19,7 @@ test('confirmação de revelação só ocorre depois de salvar o snapshot, e rep
 });
 test('falha na nuvem mantém comando pendente; pista removida recebe erro definitivo',async()=>{
  let acked=false;await assert.rejects(()=>applyBoardCommands({commands:[{id:'cmd',item_id:'clue',action:'reveal'}],api:{visibility:async()=>{}},flush:async()=>{throw Error('offline');},ack:async()=>acked=true}),/offline/);assert.equal(acked,false);
- await assert.rejects(()=>applyBoardCommands({commands:[{id:'cmd',item_id:'missing',action:'reveal'}],api:{visibility:async()=>{throw Object.assign(Error('missing'),{code:'CLUE_MISSING'});}},flush:async()=>{},ack:async()=>acked=true}),/missing/);assert.equal(acked,true);
+ await applyBoardCommands({commands:[{id:'cmd',item_id:'missing',action:'reveal'}],api:{visibility:async()=>{throw Object.assign(Error('missing'),{code:'CLUE_MISSING'});}},flush:async()=>{},ack:async()=>acked=true});assert.equal(acked,true);
 });
 test('quadro escolhe cópia segura ao trocar de computador e pede revisão quando ambos mudaram',()=>{
  const local={state:{items:[{id:'a',gm:true}]},imgs:{}},remote=structuredClone(local),base=boardStamp(local);assert.equal(chooseBoardVersion(local,remote,base),'remote');local.state.items[0].gm=false;assert.equal(chooseBoardVersion(local,remote,base),'local');remote.state.items.push({id:'b'});assert.equal(chooseBoardVersion(local,remote,base),'review');assert.equal(chooseBoardVersion(null,remote,null),'remote');assert.equal(chooseBoardVersion(local,null,null),'local');
@@ -39,4 +39,13 @@ test('snapshot é preservado no aparelho antes de confirmar a nuvem e não confi
 test('nomes do roteiro ficam vinculados ao ID e decoração e inventário não viram pistas',()=>{
  const rows=clueCatalog([{id:'photo',type:'img',crisClueName:'Desenho molhado · verso',crisClue:true,gm:true},{id:'decor',kind:'vela',type:'cont'},{id:'trigger',type:'cont',kind:'ativador',crisClue:true},{id:'pocket',hand:'player',crisClue:true}]);
  assert.deepEqual(rows.map(r=>[r.id,r.title,r.named]),[['photo','Desenho molhado · verso',true],['decor','Vela',false]]);
+});
+
+for(const stage of ['save','ack'])test('repetir '+stage+' não reexecuta revelação nem desfaz ocultação manual',async()=>{
+ let visible=false,fail=true,applied=0;const journal=new Map(),commands=[{id:'once',item_id:'a',action:'reveal'}];const options={commands,journal,api:{visibility:async(id,v)=>{visible=v;applied++;}},flush:async()=>{if(fail&&stage==='save')throw Error('offline');},ack:async()=>{if(fail&&stage==='ack')throw Error('offline');}};
+ await assert.rejects(()=>applyBoardCommands(options),/offline/);visible=false;fail=false;
+ const restored=new Map(JSON.parse(JSON.stringify([...journal])));await applyBoardCommands({...options,journal:restored});assert.equal(visible,false);assert.equal(applied,1);
+});
+test('comando antigo expira e pista inexistente não bloqueia os próximos itens',async()=>{
+ const ack=[],applied=[];await applyBoardCommands({commands:[{id:'old',created_at:'2026-10-21T00:00:00Z'},{id:'missing',item_id:'missing'},{id:'next',item_id:'next',action:'reveal'}],now:Date.parse('2026-10-21T01:00:00Z'),api:{visibility:async(id)=>{if(id==='missing')throw Object.assign(Error('missing'),{code:'CLUE_MISSING'});applied.push(id);}},flush:async()=>{},ack:async(id,error)=>ack.push([id,error])});assert.deepEqual(applied,['next']);assert.match(ack[0][1],/expirado/);assert.equal(ack[1][1],'missing');assert.deepEqual(ack[2],['next',null]);
 });
