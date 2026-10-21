@@ -75,7 +75,7 @@ function renderDocument(){
   $$('[data-mobile-pane]').forEach(button=>button.onclick=()=>{const director=button.dataset.mobilePane==='director';$('.stage-layout').classList.toggle('mobile-director-view',director);$$('[data-mobile-pane]').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-pressed',String(b===button));});});
   renderDirector();
   if(editing){
-    editor=new BlockEditor($('#documentBody'),{markdown:blocksToMarkdown(sceneClueBlocks(s)),pages:campaign().pages,triggers:s.triggers.filter(t=>!standaloneClueAction(s,t)),onRequestClue:index=>pickBoardClue(index),onClue:revealBoardClue,onChange:md=>{s.markdown=md;autosave();},onCue:fireTrigger,onRequestLink:insertPageLink,onActive:type=>{$('#blockType').value=type;}});
+    editor=new BlockEditor($('#documentBody'),{markdown:blocksToMarkdown(sceneClueBlocks(s)),pages:campaign().pages,triggers:s.triggers.filter(t=>!standaloneClueAction(s,t)),onRequestClue:index=>pickBoardClue(index),onClue:revealBoardClue,onChange:md=>{const previousClues=JSON.stringify(sceneClues(s));s.markdown=md;autosave();if(previousClues!==JSON.stringify(sceneClues(s)))renderDirector();},onCue:fireTrigger,onRequestLink:insertPageLink,onActive:type=>{$('#blockType').value=type;}});
     $('#blockType').onchange=e=>editor.setType(e.target.value);$('#editorUndo').onclick=()=>editor.undo(-1);$('#editorRedo').onclick=()=>editor.undo(1);
     for(const [id,command] of [['formatBold','bold'],['formatItalic','italic']]){const b=$('#'+id);b.onpointerdown=e=>{editor.captureSelection();e.preventDefault();};b.onclick=()=>editor.format(command);}
     $('#insertPageLink').onpointerdown=()=>editor.captureSelection();$('#insertPageLink').onclick=insertPageLink;
