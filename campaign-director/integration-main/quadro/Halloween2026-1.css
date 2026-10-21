@@ -1,0 +1,4796 @@
+/*@@QI:Halloween2026-1@@*/
+/* ===== Halloween: tema ===== */
+body.hw {
+    --gold: #ff9a3c;
+    --goldrgb: 255,154,60;
+    --cP: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%3E%3Cpath%20d%3D%22M4%203%20L4%2023%20L9%2018.3%20L12.6%2026%20L16%2024.5%20L12.5%2016.8%20L19.3%2016.8%20Z%22%20transform%3D%22translate%281.6%201.8%29%22%20fill%3D%22rgba%280%2C0%2C0%2C.22%29%22%2F%3E%3Cpath%20d%3D%22M4%203%20L4%2023%20L9%2018.3%20L12.6%2026%20L16%2024.5%20L12.5%2016.8%20L19.3%2016.8%20Z%22%20fill%3D%22%23ff9a3c%22%20stroke%3D%22%232a1e14%22%20stroke-width%3D%221.6%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22M6%207.5%20L6%2017%22%20stroke%3D%22%23fff%22%20stroke-opacity%3D%22.55%22%20stroke-width%3D%221.4%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E") 4 3,pointer
+}
+
+#hwBtn .hw-l {
+    display: none
+}
+
+#hwBtn svg {
+    animation: none
+}
+
+body.hw #hwBtn .hw-eye {
+    fill: #ffd36b
+}
+
+body.hw #hwBtn svg {
+    filter: drop-shadow(0 0 5px rgba(255,140,40,.6))
+}
+
+/* painel */
+#hwPanel {
+    position: fixed;
+    z-index: 70;
+    width: 300px;
+    max-width: calc(100vw - 16px);
+    background: radial-gradient(ellipse at 20% 0%,rgba(236,122,35,.14),transparent 55%),#16110d;
+    border: 1px solid #4a3220;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.6);
+    color: #efe6cf;
+    padding: 12px 12px 8px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px);
+    transition: opacity .15s,transform .15s,visibility 0s .15s
+}
+
+#hwPanel.show {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity .15s,transform .15s
+}
+
+.hwp-h {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px
+}
+
+.hwp-h svg {
+    width: 30px;
+    height: 30px
+}
+
+.hwp-h .hw-eye {
+    fill: #ffd36b
+}
+
+.hwp-h b {
+    display: block;
+    font: 700 15px var(--f-ui);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #ff9a3c
+}
+
+.hwp-h span {
+    font-size: 11.5px;
+    color: #8a7c64
+}
+
+.hwp-x {
+    margin-left: auto;
+    background: none;
+    border: 0;
+    color: #bfb29a;
+    font-size: 15px;
+    cursor: var(--cP);
+    padding: 4px 6px
+}
+
+.hwp-r {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 2px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    cursor: var(--cP)
+}
+
+.hwp-r div {
+    flex: 1
+}
+
+.hwp-r b {
+    display: block;
+    font: 600 13px var(--f-ui);
+    letter-spacing: .04em
+}
+
+.hwp-r span {
+    font-size: 11.5px;
+    color: #9a8c72
+}
+
+.hwp-r input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none
+}
+
+.hwp-r .sw {
+    flex: none;
+    width: 34px;
+    height: 19px;
+    border-radius: 12px;
+    background: #2c241c;
+    border: 1px solid #4a3b2c;
+    position: relative;
+    transition: background .15s
+}
+
+.hwp-r .sw::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #8a7c64;
+    transition: transform .15s,background .15s
+}
+
+.hwp-r input:checked+.sw {
+    background: rgba(236,122,35,.35);
+    border-color: #a8581c
+}
+
+.hwp-r input:checked+.sw::after {
+    transform: translateX(15px);
+    background: #ff9a3c
+}
+
+/* luz ambiente: cantos mais escuros e quentes, um toque roxo */
+#hwAmb {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+    display: none;
+    background: radial-gradient(ellipse 85% 80% at 50% 45%,rgba(255,150,70,.05) 0,rgba(0,0,0,0) 50%,rgba(28,8,30,.32) 85%,rgba(10,2,12,.5) 100%)
+}
+
+body.hw #hwAmb {
+    display: block
+}
+
+body.hw #ambientL {
+    opacity: .4
+}
+
+/* névoa */
+#hwFog {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 40%;
+    pointer-events: none;
+    z-index: 5;
+    display: none;
+    overflow: hidden;
+    opacity: .5
+}
+
+body.hw-fog #hwFog {
+    display: block
+}
+
+#hwFog i {
+    position: absolute;
+    bottom: -20%;
+    left: -30%;
+    width: 160%;
+    height: 110%;
+    background: radial-gradient(ellipse 22% 38% at 20% 70%,rgba(200,195,210,.28),transparent 70%),radial-gradient(ellipse 25% 30% at 55% 80%,rgba(190,185,205,.24),transparent 70%),radial-gradient(ellipse 20% 34% at 85% 65%,rgba(210,205,220,.22),transparent 70%);
+    animation: hwFogA 48s linear infinite alternate;
+    will-change: transform
+}
+
+#hwFog i:nth-child(2) {
+    animation-duration: 70s;
+    animation-direction: alternate-reverse;
+    opacity: .8;
+    bottom: -35%
+}
+
+#hwFog i:nth-child(3) {
+    display: none
+}
+
+@keyframes hwFogA {
+    from {
+        transform: translateX(-12%)
+    }
+
+    to {
+        transform: translateX(12%)
+    }
+}
+
+/* partículas */
+#hwFx {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6
+}
+
+/* teia */
+#hwWeb {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 150px;
+    height: 150px;
+    pointer-events: none;
+    z-index: 19;
+    display: none;
+    opacity: .55
+}
+
+body.hw #hwWeb {
+    display: block
+}
+
+body.hw-arac #hwWeb {
+    display: none!important
+}
+
+#hwAsh {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 6;
+    display: none;
+    overflow: hidden
+}
+
+body.hw.hw-part #hwAsh {
+    display: block
+}
+
+#hwAsh i {
+    position: absolute;
+    border-radius: 50%;
+    background: #d8cec2;
+    animation: hwAshA linear infinite;
+    will-change: transform
+}
+
+@keyframes hwAshA {
+    0% {
+        transform: translate(0,0)
+    }
+
+    25% {
+        transform: translate(6vw,-5vh)
+    }
+
+    50% {
+        transform: translate(10vw,-12vh)
+    }
+
+    75% {
+        transform: translate(15vw,-16vh)
+    }
+
+    100% {
+        transform: translate(22vw,-24vh)
+    }
+}
+
+body.a11y-rm #hwFog i,body.a11y-rm #hwAsh {
+    animation: none;
+    display: none
+}
+
+body.noui #hwWeb {
+    display: none
+}
+
+@media (max-width: 760px) {
+    #hwWeb {
+        width:90px;
+        height: 90px;
+        top: 56px
+    }
+}
+
+/* morcego */
+.hwbat {
+    position: fixed;
+    left: -80px;
+    z-index: 18;
+    pointer-events: none;
+    width: 46px;
+    animation: hwBatX 7s linear forwards
+}
+
+.hwbat.rtl {
+    left: auto;
+    right: -80px;
+    animation-name: hwBatXr
+}
+
+.hwbat svg {
+    width: 100%;
+    animation: hwFlap .18s ease-in-out infinite alternate;
+    transform-origin: 50% 50%
+}
+
+@keyframes hwBatX {
+    0% {
+        transform: translate(0,0)
+    }
+
+    30% {
+        transform: translate(32vw,4vh)
+    }
+
+    60% {
+        transform: translate(64vw,-3vh)
+    }
+
+    100% {
+        transform: translate(calc(100vw + 160px),3vh)
+    }
+}
+
+@keyframes hwBatXr {
+    0% {
+        transform: translate(0,0) scaleX(-1)
+    }
+
+    30% {
+        transform: translate(-32vw,4vh) scaleX(-1)
+    }
+
+    60% {
+        transform: translate(-64vw,-3vh) scaleX(-1)
+    }
+
+    100% {
+        transform: translate(calc(-100vw - 160px),3vh) scaleX(-1)
+    }
+}
+
+@keyframes hwFlap {
+    to {
+        transform: scaleY(.45)
+    }
+}
+
+/* interface com um tom mais frio/roxo nos painéis */
+body.hw .panel,body.hw #props.pp2 {
+    background-image: linear-gradient(180deg,rgba(80,30,90,.07),rgba(0,0,0,0) 40%)
+}
+
+.hwp-fx {
+    display: block;
+    width: 100%;
+    margin: 6px 0 4px;
+    text-align: left
+}
+
+/* caldeirão */
+.hwbub {
+    position: absolute;
+    left: 17%;
+    width: 66%;
+    height: 8%;
+    transform: translateY(-50%);
+    pointer-events: none
+}
+
+.hwbub i {
+    position: absolute;
+    bottom: 20%;
+    width: 7%;
+    padding-top: 7%;
+    border-radius: 50%;
+    opacity: 0;
+    animation: hwBub 2.4s ease-in infinite
+}
+
+.hwbub.stir i {
+    animation-duration: .7s
+}
+
+@keyframes hwBub {
+    0% {
+        transform: translateY(40%) scale(.3);
+        opacity: 0
+    }
+
+    30% {
+        opacity: .9
+    }
+
+    80% {
+        transform: translateY(-40%) scale(1);
+        opacity: .85
+    }
+
+    100% {
+        transform: translateY(-60%) scale(1.3);
+        opacity: 0
+    }
+}
+
+.hwglow {
+    position: absolute;
+    left: 5%;
+    width: 90%;
+    height: 30%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: .8
+}
+
+.hwsteam {
+    position: absolute;
+    left: 30%;
+    width: 40%;
+    height: 40%;
+    transform: translateY(-100%);
+    pointer-events: none
+}
+
+.hwsteam i {
+    position: absolute;
+    bottom: 0;
+    left: 30%;
+    width: 40%;
+    height: 60%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse,rgba(230,230,240,.25),transparent 70%);
+    animation: hwSteam 4s ease-out infinite;
+    opacity: 0
+}
+
+.hwsteam i+i {
+    left: 10%;
+    animation-delay: -2s
+}
+
+@keyframes hwSteam {
+    0% {
+        transform: translateY(20%) scale(.6);
+        opacity: 0
+    }
+
+    30% {
+        opacity: .8
+    }
+
+    100% {
+        transform: translateY(-80%) scale(1.4);
+        opacity: 0
+    }
+}
+
+/* bola de cristal */
+.hwmist {
+    position: absolute;
+    left: 10%;
+    top: 4.5%;
+    width: 80%;
+    height: 73%;
+    border-radius: 50%;
+    overflow: hidden;
+    pointer-events: none
+}
+
+.hwmist i {
+    position: absolute;
+    inset: -20%;
+    background: radial-gradient(ellipse 40% 30% at 35% 40%,color-mix(in srgb,var(--mc) 60%,#fff) ,transparent 70%),radial-gradient(ellipse 35% 25% at 65% 62%,color-mix(in srgb,var(--mc) 50%,#fff),transparent 70%);
+    opacity: .7;
+    animation: hwSwirl 9s linear infinite;
+    transition: opacity .8s
+}
+
+.hwmist i+i {
+    animation-duration: 13s;
+    animation-direction: reverse;
+    opacity: .5
+}
+
+.hwmist.open i {
+    opacity: .12
+}
+
+@keyframes hwSwirl {
+    to {
+        transform: rotate(360deg)
+    }
+}
+
+.hwmist b {
+    position: absolute;
+    inset: 18%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font: 400 1em Typewriter,monospace;
+    font-size: var(--fz,11px);
+    color: #f3eaff;
+    text-shadow: 0 0 8px var(--mc),0 0 2px #fff;
+    opacity: 0;
+    transition: opacity 1.2s .3s;
+    line-height: 1.2;
+    white-space: pre-wrap
+}
+
+.hwmist.open b {
+    opacity: 1
+}
+
+/* gato: olhos brilham no escuro */
+.hweyes i {
+    position: absolute;
+    width: 12%;
+    height: 6%;
+    transform: translate(-50%,-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse,var(--ec) 0,var(--ec) 40%,transparent 72%);
+    opacity: 0;
+    transition: opacity .6s;
+    box-shadow: 0 0 14px 4px color-mix(in srgb,var(--ec) 60%,transparent)
+}
+
+.it.hwdark .hweyes i {
+    opacity: 1;
+    animation: hwBlink 6s infinite
+}
+
+@keyframes hwBlink {
+    0%,92%,100% {
+        transform: translate(-50%,-50%) scaleY(1)
+    }
+
+    95% {
+        transform: translate(-50%,-50%) scaleY(.1)
+    }
+}
+
+/* espelho */
+.hwmirror {
+    position: absolute;
+    left: 14%;
+    top: 9%;
+    width: 72%;
+    height: 72%;
+    border-radius: 50%;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.4s
+}
+
+.hwmirror.on {
+    opacity: 1
+}
+
+.hwmirror .vul {
+    position: absolute;
+    left: 30%;
+    bottom: -4%;
+    width: 40%;
+    opacity: .5;
+    filter: blur(1.5px)
+}
+
+.hwmirror b {
+    position: absolute;
+    inset: 20% 8% auto;
+    text-align: center;
+    transform: scaleX(-1);
+    font: 700 1em Hand,cursive;
+    color: #e8eef2;
+    text-shadow: 0 0 6px rgba(255,200,120,.6);
+    white-space: pre-wrap;
+    line-height: 1.15
+}
+
+.hwlcd {
+    position: absolute;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    color: #a8ff7a;
+    font-family: Typewriter,monospace;
+    text-shadow: 0 0 6px rgba(140,255,100,.6);
+    white-space: nowrap;
+    pointer-events: none
+}
+
+.hwlcd span {
+    display: inline-block;
+    padding-left: 100%;
+    animation: hwMarq 18s linear infinite
+}
+
+@keyframes hwMarq {
+    to {
+        transform: translateX(-100%)
+    }
+}
+
+body.hw-arac .mark.teia {
+    display: none
+}
+
+.mark.maoterra .mt-h {
+    transform-origin: 60px 88px;
+    animation: hwHand 7s ease-in-out infinite
+}
+
+@keyframes hwHand {
+    0%,80%,100% {
+        transform: rotate(0)
+    }
+
+    84% {
+        transform: rotate(-6deg)
+    }
+
+    88% {
+        transform: rotate(5deg)
+    }
+
+    92% {
+        transform: rotate(-3deg)
+    }
+}
+
+body.a11y-rm .mark.maoterra .mt-h,body.a11y-rm .hwlcd span {
+    animation: none
+}
+
+@keyframes hwGrab {
+    0%,100% {
+        transform: none
+    }
+
+    20% {
+        transform: scale(1.04,.96) rotate(-2deg)
+    }
+
+    45% {
+        transform: scale(.97,1.05) rotate(2deg)
+    }
+
+    70% {
+        transform: scale(1.02,.98) rotate(-1deg)
+    }
+}
+
+.hwgrab .inner {
+    animation: hwGrab .6s ease-in-out;
+    transform-origin: 50% 85%
+}
+
+#view.hwquake {
+    animation: hwQuake 1.4s cubic-bezier(.36,.07,.19,.97) both
+}
+
+@keyframes hwQuake {
+    10%,90% {
+        transform: translate(-2px,1px)
+    }
+
+    20%,80% {
+        transform: translate(4px,-2px)
+    }
+
+    30%,50%,70% {
+        transform: translate(-7px,3px)
+    }
+
+    40%,60% {
+        transform: translate(7px,-3px)
+    }
+}
+
+.it.hwpos .inner {
+    animation: hwPos .16s linear infinite
+}
+
+@keyframes hwPos {
+    0% {
+        transform: translate(0,0) rotate(0)
+    }
+
+    25% {
+        transform: translate(1.5px,-1px) rotate(.6deg)
+    }
+
+    50% {
+        transform: translate(-1px,1.5px) rotate(-.5deg)
+    }
+
+    75% {
+        transform: translate(-1.5px,-.5px) rotate(.3deg)
+    }
+}
+
+body.a11y-rm .it.hwpos .inner,body.a11y-rm #view.hwquake {
+    animation: none
+}
+
+body.hw-blackout #top,body.hw-blackout #tools {
+    opacity: .35
+}
+
+#hwClock {
+    position: fixed;
+    left: 50%;
+    top: 70px;
+    transform: translate(-50%,-10px);
+    z-index: 60;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s,transform .3s,visibility 0s .3s;
+    text-align: center;
+    background: rgba(14,10,12,.9);
+    border: 1px solid #5a2a2a;
+    border-radius: 12px;
+    padding: 8px 18px 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    pointer-events: none
+}
+
+#hwClock.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%,0);
+    transition: opacity .3s,transform .3s
+}
+
+#hwClock i {
+    display: block;
+    font: 600 10px var(--f-ui);
+    letter-spacing: .3em;
+    color: #c45a4a;
+    font-style: normal
+}
+
+#hwClock b {
+    display: block;
+    font: 700 34px var(--f-ui);
+    color: #ffcf8a;
+    letter-spacing: .06em;
+    line-height: 1.1
+}
+
+#hwClock.last b {
+    color: #ff5a4e;
+    animation: hwPulse 1s infinite
+}
+
+#hwClock.zero b {
+    color: #fff;
+    text-shadow: 0 0 18px #ff3a2a
+}
+
+@keyframes hwPulse {
+    50% {
+        transform: scale(1.08)
+    }
+}
+
+.hwwhisper {
+    position: fixed;
+    z-index: 70;
+    pointer-events: none;
+    transform: translate(-50%,-140%);
+    font: italic 400 17px News,serif;
+    color: rgba(235,225,255,.92);
+    text-shadow: 0 0 10px rgba(150,110,255,.8),0 2px 4px #000;
+    white-space: nowrap;
+    animation: hwWh 3.8s ease forwards
+}
+
+@keyframes hwWh {
+    0% {
+        opacity: 0;
+        filter: blur(4px)
+    }
+
+    20% {
+        opacity: 1;
+        filter: blur(0)
+    }
+
+    75% {
+        opacity: .85
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%,-220%);
+        filter: blur(3px)
+    }
+}
+
+.hwp-s {
+    font: 600 10.5px var(--f-ui);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #a8581c;
+    margin: 10px 2px 6px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    padding-top: 9px
+}
+
+.hwp-bt {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px
+}
+
+.hwp-bt .b {
+    flex: 1
+}
+
+.hwp-mn {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px
+}
+
+.hwp-mn input[type=number] {
+    width: 56px
+}
+
+.hwp-mn input[type=text],.hwp-mn select {
+    flex: 1;
+    min-width: 0
+}
+
+.hwp-mn span {
+    font-size: 12px;
+    color: #9a8c72
+}
+
+#hwPanel {
+    max-height: calc(100vh - 90px);
+    overflow: auto
+}
+
+#hwPanel input,#hwPanel select {
+    background: #0f0b08;
+    border: 1px solid #3a2a1c;
+    color: #efe6cf;
+    border-radius: 6px;
+    padding: 5px 7px;
+    font: 13px var(--f-ui)
+}
+
+/* acetato */
+.acz {
+    position: absolute;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: 3px
+}
+
+.acz>img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill
+}
+
+.acz>.acr {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: #f4efe3;
+    clip-path: polygon(0 0,0 0,0 0)
+}
+
+.acz>.acr span {
+    font: 700 clamp(8px,1.1em,40px)/1.15 var(--f-type,Typewriter),monospace;
+    color: #16141d;
+    letter-spacing: .04em;
+    padding: 4%
+}
+
+.acbox {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0
+}
+
+.acbox textarea {
+    width: 100%;
+    resize: vertical;
+    background: rgba(0,0,0,.25);
+    color: inherit;
+    border: 1px solid var(--ui-line,#4a4036);
+    border-radius: 6px;
+    padding: 6px;
+    font: 13px system-ui,sans-serif
+}
+
+/* luz negra em imagem */
+.it .uvink {
+    display: none!important
+}
+
+.uvclone.uvtxtc img.main {
+    opacity: 0
+}
+
+.it.uvclone.uvtxtc .uvink {
+    display: block!important;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 3px #6ffcff) drop-shadow(0 0 10px #19e6ff)
+}
+
+.uvclone:not(.uvtxtc) img.main {
+    filter: drop-shadow(0 0 6px rgba(120,255,240,.7))
+}
+
+.uvbox {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0
+}
+
+.uvbox .chk span {
+    font-size: 12.5px;
+    line-height: 1.35
+}
+
+/* termômetros */
+.tdisp.lcd {
+    position: absolute;
+    white-space: nowrap;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 700 2.2em/1 "DS-Digital",Cond,monospace;
+    color: #1d2a1e;
+    letter-spacing: .02em;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums
+}
+
+.tube {
+    position: absolute;
+    pointer-events: none;
+    display: flex;
+    align-items: flex-end
+}
+
+.tube>.tcol {
+    display: block;
+    width: 100%;
+    height: 20%;
+    background: linear-gradient(90deg,#8e0f14,#d8262c 45%,#9a1116);
+    border-radius: 4px 4px 0 0;
+    transition: height .15s linear
+}
+
+/* vapor da xícara */
+.cfst {
+    position: absolute;
+    width: 56%;
+    height: 90%;
+    transform: translate(-50%,-100%);
+    pointer-events: none
+}
+
+.cfst i {
+    position: absolute;
+    bottom: 0;
+    left: 40%;
+    width: 22%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse 50% 50% at 50% 60%,rgba(255,255,255,.85),rgba(255,255,255,0) 72%);
+    filter: blur(2px);
+    opacity: 0;
+    animation: cfUp 3.2s ease-out infinite
+}
+
+.cfst i:nth-child(2) {
+    left: 18%;
+    animation-delay: -1.1s;
+    animation-duration: 3.6s
+}
+
+.cfst i:nth-child(3) {
+    left: 62%;
+    animation-delay: -2.2s;
+    animation-duration: 3s
+}
+
+@keyframes cfUp {
+    0% {
+        transform: translateY(30%) scale(.6,.5) skewX(0);
+        opacity: 0
+    }
+
+    25% {
+        opacity: .95
+    }
+
+    60% {
+        transform: translateY(-25%) scale(1.1,1) skewX(12deg);
+        opacity: .6
+    }
+
+    100% {
+        transform: translateY(-70%) scale(1.3,1.2) skewX(-10deg);
+        opacity: 0
+    }
+}
+
+body.a11y-rm .cfst i {
+    animation: none;
+    opacity: .3
+}
+
+body.fx-fl .cfst {
+    display: none
+}
+
+#fxPanel .fxnum {
+    width: 64px;
+    flex: none;
+    text-align: center;
+    background: rgba(0,0,0,.3);
+    color: var(--ui-fg,#eee);
+    border: 1px solid var(--ui-line,#4a4036);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font: 600 13px system-ui,sans-serif
+}
+
+#qiVerTag {
+    position: fixed;
+    left: 14px;
+    bottom: 62px;
+    z-index: 21;
+    pointer-events: none;
+    font: 600 11px/1 var(--f-ui,system-ui),sans-serif;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ui-fg,#eee);
+    opacity: .32;
+    white-space: nowrap
+}
+
+body.noui #qiVerTag {
+    display: none
+}
+
+#emCv {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6
+}
+
+.ritOn .inner .body {
+    filter: drop-shadow(0 0 6px var(--rc,#fff)) drop-shadow(0 0 18px var(--rc,#fff));
+    animation: ritPulse 2.4s ease-in-out infinite
+}
+
+.ritglow {
+    position: absolute;
+    inset: 6%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle,color-mix(in srgb,var(--rc) 35%,transparent) 0,transparent 70%);
+    animation: ritPulse 2.4s ease-in-out infinite
+}
+
+@keyframes ritPulse {
+    0%,100% {
+        opacity: .75
+    }
+
+    50% {
+        opacity: 1
+    }
+}
+
+.gneedle {
+    position: absolute;
+    width: 2.4%;
+    background: #b3161c;
+    transform-origin: 50% 100%;
+    transform: translateX(-50%) rotate(-58deg);
+    translate: 0 -100%;
+    border-radius: 2px;
+    pointer-events: none;
+    transition: transform .12s linear
+}
+
+.glcd {
+    color: #7dff9a!important
+}
+
+#emLiq {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6;
+    opacity: .92
+}
+
+.emimgs {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0
+}
+
+.emth {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px
+}
+
+.emth img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    background: rgba(255,255,255,.06);
+    border-radius: 6px;
+    cursor: var(--cP);
+    padding: 3px
+}
+
+.rolotag {
+    position: absolute;
+    right: 4%;
+    bottom: 4%;
+    font: 700 12px var(--f-ui,system-ui);
+    color: var(--gold,#ffd678);
+    background: rgba(0,0,0,.55);
+    padding: 2px 6px;
+    border-radius: 6px;
+    pointer-events: none
+}
+
+/* efeitos de tela (poções, vodu, sustos numa pessoa) */
+.qfov {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60
+}
+
+.qf-turva {
+    -webkit-backdrop-filter: blur(3.5px) saturate(.85);
+    backdrop-filter: blur(3.5px) saturate(.85);
+    animation: qfTurva var(--d) ease forwards
+}
+
+@keyframes qfTurva {
+    0% {
+        opacity: 0
+    }
+
+    8% {
+        opacity: 1
+    }
+
+    30% {
+        opacity: .55
+    }
+
+    50% {
+        opacity: 1
+    }
+
+    70% {
+        opacity: .7
+    }
+
+    88% {
+        opacity: .9
+    }
+
+    100% {
+        opacity: 0
+    }
+}
+
+.qf-sono {
+    background: #000;
+    animation: qfSono var(--d) ease forwards
+}
+
+@keyframes qfSono {
+    0% {
+        opacity: 0
+    }
+
+    14% {
+        opacity: .85
+    }
+
+    22% {
+        opacity: .2
+    }
+
+    40% {
+        opacity: .92
+    }
+
+    48% {
+        opacity: .35
+    }
+
+    70% {
+        opacity: .97
+    }
+
+    100% {
+        opacity: 0
+    }
+}
+
+.qf-veneno {
+    -webkit-backdrop-filter: hue-rotate(75deg) saturate(1.6);
+    backdrop-filter: hue-rotate(75deg) saturate(1.6);
+    background: radial-gradient(ellipse at center,transparent 40%,rgba(40,160,30,.45));
+    animation: qfVen var(--d) ease forwards
+}
+
+@keyframes qfVen {
+    0% {
+        opacity: 0
+    }
+
+    10% {
+        opacity: 1
+    }
+
+    45% {
+        opacity: .7
+    }
+
+    80% {
+        opacity: 1
+    }
+
+    100% {
+        opacity: 0
+    }
+}
+
+.qf-verdade {
+    background: radial-gradient(ellipse at center,rgba(255,230,150,.35),transparent 65%);
+    animation: qfVen var(--d) ease forwards
+}
+
+body.a11y-rm .qfov {
+    animation-timing-function: steps(1,end)
+}
+
+/* bola de cristal com imagem */
+.hwmist img.hwvimg {
+    position: absolute;
+    left: 12%;
+    top: 12%;
+    width: 76%;
+    height: 76%;
+    object-fit: contain;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 1.2s .2s;
+    filter: drop-shadow(0 0 8px var(--mc))
+}
+
+.hwmist.open img.hwvimg {
+    opacity: .92
+}
+
+/* visão grande (espelho negro) */
+#qiVis {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center,rgba(10,6,16,.55),rgba(0,0,0,.93));
+    opacity: 0;
+    transition: opacity .7s;
+    cursor: var(--cP,pointer)
+}
+
+#qiVis.show {
+    opacity: 1
+}
+
+.qv-m {
+    position: relative;
+    width: min(64vmin,520px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    background: radial-gradient(circle at 40% 35%,#2a2234,#08060c 70%);
+    box-shadow: 0 0 0 10px #241610,0 0 0 14px #b08a3e,0 0 70px rgba(150,110,255,.35)
+}
+
+.qv-m i {
+    position: absolute;
+    inset: -20%;
+    background: radial-gradient(ellipse 40% 30% at 35% 40%,rgba(200,190,255,.32),transparent 70%),radial-gradient(ellipse 35% 25% at 65% 62%,rgba(180,160,255,.28),transparent 70%);
+    animation: hwSwirl 9s linear infinite
+}
+
+.qv-m i+i {
+    animation-duration: 13s;
+    animation-direction: reverse
+}
+
+.qv-m img {
+    position: absolute;
+    left: 10%;
+    top: 10%;
+    width: 80%;
+    height: 80%;
+    object-fit: contain;
+    opacity: 0;
+    animation: qvIn 2.2s .4s ease forwards;
+    filter: drop-shadow(0 0 12px rgba(170,140,255,.7))
+}
+
+.qv-m b {
+    position: absolute;
+    inset: 16%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font: 400 clamp(16px,3.4vmin,30px)/1.25 Typewriter,monospace;
+    color: #f3eaff;
+    text-shadow: 0 0 12px #8a6bd6,0 0 2px #fff;
+    opacity: 0;
+    animation: qvIn 2s 1s ease forwards;
+    white-space: pre-wrap
+}
+
+.qv-m.im b {
+    inset: auto 12% 9% 12%;
+    align-items: flex-end
+}
+
+@keyframes qvIn {
+    from {
+        opacity: 0;
+        filter: blur(8px)
+    }
+
+    to {
+        opacity: 1;
+        filter: blur(0)
+    }
+}
+
+.qv-x {
+    margin-top: 18px;
+    font: 13px system-ui,sans-serif;
+    color: rgba(255,255,255,.5)
+}
+
+body.a11y-rm .qv-m i {
+    animation: none
+}
+
+/* cheiro do saquinho */
+.qfsmell {
+    position: fixed;
+    z-index: 70;
+    pointer-events: none;
+    transform: translate(-50%,-150%);
+    font: italic 400 16px News,serif;
+    color: #e8ffd8;
+    text-shadow: 0 0 10px rgba(110,200,90,.85),0 2px 4px #000;
+    white-space: nowrap;
+    animation: qfSm 3.6s ease forwards
+}
+
+@keyframes qfSm {
+    0% {
+        opacity: 0;
+        transform: translate(-50%,-120%)
+    }
+
+    15% {
+        opacity: 1
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%,-260%)
+    }
+}
+
+/* tarô: posição da tiragem */
+.tpos {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    margin-top: .25em;
+    text-align: center;
+    font: 700 1em News,serif;
+    color: #f1e3b0;
+    text-shadow: 0 1px 3px #000;
+    pointer-events: none;
+    letter-spacing: .06em;
+    text-transform: uppercase
+}
+
+/* sanidade */
+.hwp-san {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 110px 30px;
+    gap: 8px;
+    align-items: center;
+    margin: 4px 0
+}
+
+.hwp-san span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 600 12.5px system-ui,sans-serif
+}
+
+.hwp-san b {
+    font: 700 12.5px system-ui,sans-serif;
+    text-align: right
+}
+
+.hwp-note {
+    font: 12px/1.35 system-ui,sans-serif;
+    opacity: .75;
+    margin: 4px 0 6px
+}
+
+#qiSan {
+    position: fixed;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 58;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 6px;
+    border-radius: 10px;
+    background: rgba(10,8,14,.75);
+    border: 1px solid rgba(255,255,255,.12);
+    font: 700 10px system-ui,sans-serif;
+    color: #d8cdb8;
+    pointer-events: none
+}
+
+#qiSan i {
+    font-style: normal;
+    letter-spacing: .08em
+}
+
+#qiSan s {
+    display: block;
+    position: relative;
+    width: 8px;
+    height: 90px;
+    border-radius: 4px;
+    background: #2a2430;
+    overflow: hidden;
+    text-decoration: none
+}
+
+#qiSan u {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(#7fd0ff,#3a6ad8);
+    text-decoration: none;
+    transition: height .4s
+}
+
+#qiSan.low u {
+    background: linear-gradient(#ff7a6a,#a01818)
+}
+
+#qiSan b {
+    font-size: 13px
+}
+
+#qiSanOv {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 57
+}
+
+#qiSanOv.s1 {
+    box-shadow: inset 0 0 140px 30px rgba(0,0,0,.55);
+    animation: qsP 4s ease-in-out infinite
+}
+
+#qiSanOv.s2 {
+    box-shadow: inset 0 0 180px 60px rgba(40,0,0,.6);
+    -webkit-backdrop-filter: saturate(.45) contrast(1.12);
+    backdrop-filter: saturate(.45) contrast(1.12);
+    animation: qsP 2.6s ease-in-out infinite
+}
+
+#qiSanOv.s3 {
+    box-shadow: inset 0 0 220px 90px rgba(60,0,0,.7);
+    -webkit-backdrop-filter: saturate(.3) contrast(1.25) blur(.6px);
+    backdrop-filter: saturate(.3) contrast(1.25) blur(.6px);
+    animation: qsP 1.4s ease-in-out infinite,qsG 7s steps(1) infinite
+}
+
+@keyframes qsP {
+    0%,100% {
+        opacity: .75
+    }
+
+    50% {
+        opacity: 1
+    }
+}
+
+@keyframes qsG {
+    0%,93%,100% {
+        -webkit-backdrop-filter: saturate(.3) contrast(1.25) blur(.6px);
+        backdrop-filter: saturate(.3) contrast(1.25) blur(.6px)
+    }
+
+    94% {
+        -webkit-backdrop-filter: saturate(.3) hue-rotate(160deg) blur(1.5px);
+        backdrop-filter: saturate(.3) hue-rotate(160deg) blur(1.5px)
+    }
+
+    96% {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none
+    }
+
+    97% {
+        -webkit-backdrop-filter: hue-rotate(-90deg) contrast(1.5);
+        backdrop-filter: hue-rotate(-90deg) contrast(1.5)
+    }
+}
+
+body.a11y-rm #qiSanOv {
+    animation: none
+}
+
+.qisombra {
+    position: fixed;
+    top: 18%;
+    width: 24vmin;
+    height: 62vh;
+    z-index: 58;
+    pointer-events: none;
+    background: radial-gradient(ellipse 50% 50% at 50% 22%,rgba(0,0,0,.95) 30%,transparent 70%),radial-gradient(ellipse 45% 60% at 50% 72%,rgba(0,0,0,.9) 35%,transparent 72%);
+    filter: blur(4px);
+    animation: qsSh .7s ease forwards
+}
+
+@keyframes qsSh {
+    0% {
+        opacity: 0
+    }
+
+    20% {
+        opacity: .85
+    }
+
+    100% {
+        opacity: 0
+    }
+}
+
+.tpos.inv {
+    top: auto;
+    bottom: 100%;
+    margin: 0 0 .25em;
+    transform: rotate(180deg)
+}
+
+/* painel lateral */
+#props .pp-sub {
+    font: 700 11px/1 Cond,system-ui,sans-serif;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #ffb35c;
+    margin: 14px 0 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,.08)
+}
+
+#props .pp-pane>.pp-sub:first-child {
+    margin-top: 2px;
+    padding-top: 0;
+    border-top: 0
+}
+
+#props .lbl .rv {
+    float: right;
+    font: 700 11.5px system-ui,sans-serif;
+    letter-spacing: 0;
+    color: var(--ui-fg,#eee);
+    opacity: .85;
+    text-transform: none
+}
+
+.hwp-san.off span {
+    opacity: .55;
+    font-style: italic
+}
+
+.hwp-san input[type=range] {
+    width: 100%;
+    margin: 0
+}
+
+#props details.psec .pp-sub {
+    color: var(--ui-mut,#b9ad98)
+}
+
+/* seletor de mesa com prévias */
+#top .sfg-wrap #surfSel,#top .sfg-wrap .lbl {
+    display: none!important
+}
+
+#surfPanel {
+    width: min(460px,calc(100vw - 16px));
+    max-height: 70vh;
+    overflow: auto
+}
+
+#surfPanel .sfg {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(128px,1fr));
+    gap: 8px
+}
+
+#surfPanel .sft {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    border-radius: 9px;
+    border: 1px solid var(--ui-line);
+    background: rgba(255,255,255,.03);
+    color: var(--ui-fg);
+    cursor: var(--cP);
+    text-align: left;
+    font: 12px/1.2 system-ui,sans-serif
+}
+
+#surfPanel .sft:hover {
+    border-color: rgba(255,190,90,.6);
+    background: rgba(255,190,90,.07)
+}
+
+#surfPanel .sft.on {
+    border-color: #ffb347;
+    box-shadow: 0 0 0 2px rgba(255,179,71,.35)
+}
+
+#surfPanel .sfi {
+    display: block;
+    height: 74px;
+    border-radius: 6px;
+    background: #2a2420 center/cover no-repeat;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.4),inset 0 -14px 20px rgba(0,0,0,.25)
+}
+
+#surfPanel .sfi.chk {
+    background: repeating-conic-gradient(#3a3a3a 0 25%,#262626 0 50%) 0 0/18px 18px
+}
+
+#surfPanel .sft b {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis
+}
+
+/* barra de sanidade: preenche até o fim quando está cheia */
+#hwPanel .hwp-san input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    padding: 0;
+    border: 0;
+    box-sizing: border-box;
+    border-radius: 99px;
+    background: linear-gradient(90deg,#ffb347 0%,#ffb347 calc(var(--v,100)*1%),rgba(255,255,255,.16) calc(var(--v,100)*1%),rgba(255,255,255,.16) 100%);
+    outline: none;
+    cursor: var(--cP)
+}
+
+.hwp-san input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffd08a;
+    border: 2px solid #7a4a10;
+    box-shadow: 0 1px 3px rgba(0,0,0,.5)
+}
+
+.hwp-san input[type=range]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffd08a;
+    border: 2px solid #7a4a10
+}
+
+.hwp-san input[type=range]::-moz-range-track {
+    background: transparent
+}
+
+/* crânio que fala */
+.crfala {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    transform: translate(-50%,-6px) scale(.6);
+    opacity: 0;
+    transition: opacity .25s,transform .25s;
+    pointer-events: none;
+    background: #f3ead4;
+    color: #1a1208;
+    font: 700 15px/1.25 Typewriter,monospace;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 3px solid #1a1208;
+    box-shadow: 0 4px 0 #1a1208;
+    width: max-content;
+    max-width: 260px;
+    text-align: center;
+    white-space: pre-wrap;
+    z-index: 5
+}
+
+.crfala::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    border: 9px solid transparent;
+    border-top-color: #1a1208
+}
+
+.crfala.show {
+    opacity: 1;
+    transform: translate(-50%,-10px) scale(1)
+}
+
+/* rádio de emergência */
+.hwrdial {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 700 1em Cond,sans-serif;
+    color: #1d1b18;
+    pointer-events: none;
+    background: none!important;
+    box-shadow: none!important
+}
+
+.hwstat {
+    opacity: .55;
+    font-weight: 400;
+    letter-spacing: .2em
+}
+
+/* 03/10: barrinha da seleção múltipla */
+#qaMulti {
+    position: fixed;
+    z-index: 58;
+    display: none;
+    gap: 4px;
+    padding: 5px;
+    background: rgba(23,19,15,.96);
+    border: 1px solid var(--ui-line);
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.45)
+}
+
+#qaMulti button {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ui-fg);
+    cursor: var(--cP)
+}
+
+#qaMulti button:hover {
+    background: rgba(255,190,90,.14)
+}
+
+#qaMulti button.on {
+    background: #d8641a;
+    color: #fff
+}
+
+/* 06/10: girar pelos cantos */
+@media (pointer: fine) {
+    .it .h.ro {
+        display:none!important
+    }
+}
+
+@media (pointer: coarse) {
+    .it .h.ro {
+        top:auto!important;
+        bottom: -44px
+    }
+}
+
+#view.qi-girar,#view.qi-girar * {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="%23000" stroke-width="4"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></g><g stroke="%23fff" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></g></svg>') 13 13,alias!important
+}
+
+#h30Env {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 7
+}
+
+#h30Fx {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 59;
+    display: none
+}
+
+canvas.h30crk {
+    position: absolute;
+    pointer-events: none;
+    z-index: 6;
+    overflow: hidden
+}
+
+.pjbadge {
+    position: absolute;
+    right: 6%;
+    bottom: 6%;
+    width: 15%;
+    pointer-events: none;
+    z-index: 3;
+    filter: drop-shadow(0 1px 0 #000) drop-shadow(0 0 4px var(--pj,#fc5));
+    animation: pjb 2.4s ease-in-out infinite
+}
+
+.pjbadge svg {
+    width: 100%;
+    display: block
+}
+
+.pjbadge rect {
+    fill: none;
+    stroke: var(--pj,#fc5);
+    stroke-width: 4
+}
+
+.pjbadge.off {
+    opacity: .45;
+    animation: none
+}
+
+@keyframes pjb {
+    50% {
+        transform: scale(1.12)
+    }
+}
+
+body.a11y-rm .pjbadge {
+    animation: none
+}
+
+#pjLine {
+    position: fixed;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    z-index: 40
+}
+
+/* ===== Laboratório B ===== */
+/* papel queimando */
+.it.bnOn .body>*,.it.bnOn .ov {
+    -webkit-mask-image: var(--bn);
+    mask-image: var(--bn);
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat
+}
+
+.it .bnF {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none
+}
+
+.it .bnS {
+    position: absolute;
+    left: -20%;
+    top: -120%;
+    width: 140%;
+    height: 220%;
+    pointer-events: none
+}
+
+/* efeitos WebGL dentro do item */
+.it .lbc {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none
+}
+
+.it.lbon.lbhide .body img.main,.it.lbon.lbhide .body img.relief {
+    opacity: 0
+}
+
+/* painel */
+#props .lbp {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 8px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    background: rgba(0,0,0,.18)
+}
+
+#props .lbp .lbp-a {
+    grid-column: 1/3;
+    display: flex;
+    gap: 6px
+}
+
+#props .lbp input[type=text] {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0
+}
+
+#props .lbp .lbp-x {
+    grid-column: 1/3;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: space-between
+}
+
+#props .lbp .lbp-t {
+    width: 44px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,.2)
+}
+
+body.lbpick,body.lbpick #view,body.lbpick .it {
+    cursor: crosshair!important
+}
+
+#lbPickBar {
+    position: fixed;
+    left: 50%;
+    top: 70px;
+    transform: translateX(-50%);
+    z-index: 90;
+    background: rgba(20,16,12,.92);
+    color: #ffd9a0;
+    border: 1px solid #ffb35c;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font: 700 13px Cond,system-ui,sans-serif;
+    letter-spacing: .05em
+}
+
+.h30sir {
+    position: absolute;
+    inset: 0;
+    pointer-events: none
+}
+
+.h30l {
+    position: absolute;
+    opacity: 0;
+    border-radius: 50% 50% 6% 6%/60% 60% 4% 4%;
+    animation: h30f 1s steps(1,end) infinite;
+    background: var(--c);
+    box-shadow: 0 0 0 6px var(--g1),0 0 0 14px var(--g2)
+}
+
+.h30l.r {
+    --c: #ff4a3f;
+    --g1: rgba(255,60,50,.4);
+    --g2: rgba(255,60,50,.18)
+}
+
+.h30l.b {
+    --c: #4d86ff;
+    --g1: rgba(60,110,255,.4);
+    --g2: rgba(60,110,255,.18)
+}
+
+.h30l b {
+    position: absolute;
+    left: 18%;
+    top: 20%;
+    width: 22%;
+    height: 30%;
+    border-radius: 50%;
+    background: rgba(255,255,255,.85);
+    transform: rotate(30deg)
+}
+
+@keyframes h30f {
+    0% {
+        opacity: 1
+    }
+
+    8% {
+        opacity: 0
+    }
+
+    12% {
+        opacity: 1
+    }
+
+    20% {
+        opacity: 0
+    }
+
+    24% {
+        opacity: 1
+    }
+
+    32% {
+        opacity: 0
+    }
+
+    100% {
+        opacity: 0
+    }
+}
+
+body.a11y-rm .h30l {
+    animation: none;
+    opacity: .8
+}
+
+body.a11y-rm .h30l.b {
+    opacity: 0
+}
+
+.lcecto {
+    --ec: #62f03a;
+    --e1: color-mix(in srgb,var(--ec) 24%,transparent);
+    --e2: color-mix(in srgb,var(--ec) 12%,transparent);
+    --e3: color-mix(in srgb,var(--ec) 28%,transparent);
+    --e4: color-mix(in srgb,var(--ec) 10%,transparent);
+    position: absolute;
+    left: 14.2%;
+    top: 24.7%;
+    width: 73.3%;
+    height: 68%;
+    pointer-events: none;
+    border-radius: 6% 6% 12% 12%;
+    box-shadow: 0 0 0 5px var(--e1),0 0 0 12px var(--e2);
+    animation: lcEc 2.4s steps(2) infinite
+}
+
+.lcecto i {
+    display: none
+}
+
+.lcecto.sm {
+    left: 22%;
+    top: 22%;
+    width: 56%;
+    height: 72%;
+    border-radius: 30%;
+    box-shadow: 0 0 0 3px var(--e1),0 0 0 8px var(--e2)
+}
+
+@keyframes lcEc {
+    0% {
+        box-shadow: 0 0 0 5px var(--e1),0 0 0 12px var(--e2)
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px var(--e3),0 0 0 17px var(--e4)
+    }
+}
+
+body.a11y-rm .lcecto {
+    animation: none
+}
+
+/* fumaça de incenso (substitui o vapor antigo da xícara e a fumaça da vela apagada) */
+body.lc-inc .cfst {
+    display: none!important
+}
+
+.lcc {
+    pointer-events: none
+}
+
+.it.lcpeg .body>img,.it.lcpeg .body>canvas {
+    opacity: 0!important
+}
+
+.it.lcpeg .body {
+    filter: none!important
+}
+
+.it.lcreag>.inner::after {
+    content: "🧪";
+    position: absolute;
+    right: -2%;
+    top: -2%;
+    font-size: min(22px,18%);
+    pointer-events: none;
+    filter: drop-shadow(0 0 2px #000)
+}
+
+/* VHS nas TVs */
+.lcw {
+    position: absolute;
+    z-index: 6;
+    overflow: hidden;
+    pointer-events: none;
+    border-radius: 9%/11%
+}
+
+.lcw canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated
+}
+
+.lcw .vp {
+    position: absolute;
+    left: 7%;
+    top: 8%;
+    color: #fff;
+    font: 700 1em/1 "Courier New",monospace;
+    letter-spacing: .05em;
+    -webkit-text-stroke: .06em #111;
+    paint-order: stroke fill;
+    text-shadow: .07em .07em 0 #e5262e,-.07em 0 0 #2a6cff;
+    animation: lcBl 1s steps(1) infinite
+}
+
+.lcw .vp.off {
+    display: none
+}
+
+@keyframes lcBl {
+    0% {
+        opacity: 1
+    }
+
+    55% {
+        opacity: 0
+    }
+}
+
+body.a11y-rm .lcw .vp {
+    animation: none
+}
+
+/* painel do item enxuto (07/10) */
+@media not ((max-width: 760px) or (max-height:520px)) {
+    #props.pp2 {
+        width:292px
+    }
+
+    #props.pp2 .pp-head {
+        padding: 9px 10px 7px
+    }
+
+    #props.pp2 .pp-tabs {
+        padding: 4px 10px 0
+    }
+
+    #props.pp2 .pp-tabs button {
+        padding: 5px 4px 6px
+    }
+
+    #props.pp2 .pp-body {
+        padding: 9px 10px 12px
+    }
+
+    /* rótulo e campo na mesma linha */
+    #props.pp2 .row {
+        grid-template-columns: minmax(0,44%) minmax(0,1fr);
+        align-items: center;
+        column-gap: 8px;
+        row-gap: 3px;
+        margin-bottom: 6px
+    }
+
+    #props.pp2 .row:has(textarea),#props.pp2 .row:has(.lbl:only-child),#props.pp2 .row:not(:has(>.lbl)) {
+        grid-template-columns: 1fr
+    }
+
+    #props.pp2 .row>.lbl {
+        font: 600 11.5px var(--f-ui);
+        letter-spacing: .02em;
+        text-transform: none;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis
+    }
+
+    #props.pp2 .row>input[type=range] {
+        width: 100%
+    }
+
+    #props.pp2 input[type=text],#props.pp2 input:not([type]),#props.pp2 input[type=number],#props.pp2 select,#props.pp2 textarea {
+        padding: 5px 7px;
+        font-size: 12.5px;
+        min-height: 0
+    }
+
+    #props.pp2 input[type=color] {
+        height: 26px;
+        width: 100%
+    }
+
+    #props.pp2 details.flat {
+        margin: 0 0 10px
+    }
+
+    #props.pp2 details.flat>summary {
+        margin: 0 0 6px;
+        padding: 0 0 4px
+    }
+
+    #props.pp2 .qolrow,#props.pp2 .att {
+        margin-bottom: 8px
+    }
+
+    #props.pp2 .hint:not(.pp-hint) {
+        font-size: 11px;
+        line-height: 1.3;
+        margin: 2px 0 6px!important;
+        opacity: .8
+    }
+
+    #props.pp2 .b:not(.pp-b) {
+        padding: 5px 9px;
+        font-size: 11.5px
+    }
+
+    #props.pp2 .btns {
+        gap: 5px
+    }
+}
+
+/* caixinha vira chave liga/desliga */
+#props.pp2 label.chk {
+    font-size: 12.5px;
+    line-height: 1.25;
+    margin-bottom: 5px;
+    gap: 8px;
+    align-items: center
+}
+
+#props.pp2 label.chk>input[type=checkbox] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 28px;
+    height: 16px;
+    margin: 0;
+    border-radius: 9px;
+    background: #3a3226;
+    border: 1px solid #5b4d36;
+    position: relative;
+    cursor: var(--cP);
+    transition: background .15s
+}
+
+#props.pp2 label.chk>input[type=checkbox]::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #bfb29a;
+    transition: transform .15s,background .15s
+}
+
+#props.pp2 label.chk>input[type=checkbox]:checked {
+    background: #6b5520;
+    border-color: var(--gold,#ffd678)
+}
+
+#props.pp2 label.chk>input[type=checkbox]:checked::after {
+    transform: translateX(12px);
+    background: var(--gold,#ffd678)
+}
+
+#props.pp2 label.chk>input[type=checkbox]:focus-visible {
+    outline: 2px solid var(--gold,#ffd678);
+    outline-offset: 2px
+}
+
+#props.pp2 .pp-tip {
+    text-decoration: underline dotted rgba(var(--goldrgb,255,214,120),.35);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px
+}
+
+#props.pp2 .pp-tip::after {
+    content: "";
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    margin-left: 5px;
+    vertical-align: -1px;
+    opacity: .6;
+    background: currentColor;
+    -webkit-mask: var(--qi-info) center/contain no-repeat;
+    mask: var(--qi-info) center/contain no-repeat;
+    color: var(--gold,var(--gold,#ffd678))
+}
+
+.qic {
+    display: inline-block;
+    flex: none;
+    vertical-align: middle
+}
+
+.qic-in {
+    width: 1.15em;
+    height: 1.15em;
+    margin: -2px .4em 0 0
+}
+
+:root {
+    --qi-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v6M12 7.5v.5'/%3E%3C/svg%3E")
+}
+
+#fxPanel.fxi {
+    width: 318px
+}
+
+#fxPanel.fxi .fxi-hid {
+    display: none!important
+}
+
+#fxPanel .fxi-leg {
+    display: flex;
+    gap: 12px;
+    font: 11px system-ui,sans-serif;
+    color: var(--ui-mut,#b9ad98);
+    margin: 0 0 8px
+}
+
+#fxPanel .fxi-leg span {
+    display: flex;
+    align-items: center;
+    gap: 5px
+}
+
+#fxPanel .fxi-leg b {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    display: inline-block
+}
+
+#fxPanel .fxi-leg .g0,#fxPanel .fxi-t.lv0 {
+    --c: #6d6352
+}
+
+#fxPanel .fxi-leg .g1,#fxPanel .fxi-t.lv1 {
+    --c: #46c35a
+}
+
+#fxPanel .fxi-leg .g2,#fxPanel .fxi-t.lv2 {
+    --c: #ff5a44
+}
+
+#fxPanel .fxi-leg b {
+    background: var(--c)
+}
+
+#fxPanel .fxi-est {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 6px;
+    margin: 0 0 8px
+}
+
+#fxPanel .fxi-e {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 4px;
+    border-radius: 9px;
+    border: 1px solid var(--ui-line,#4a4036);
+    background: rgba(0,0,0,.25);
+    color: var(--ui-mut,#b9ad98);
+    font: 600 11.5px system-ui,sans-serif;
+    cursor: var(--cP)
+}
+
+#fxPanel .fxi-e .qic {
+    width: 16px;
+    height: 16px;
+    flex: none
+}
+
+#fxPanel .fxi-e.on {
+    border-color: var(--gold,#ffd678);
+    color: var(--gold,#ffd678);
+    background: rgba(var(--goldrgb,255,214,120),.1)
+}
+
+#fxPanel .fxi-grid {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 6px;
+    margin: 0 0 10px
+}
+
+#fxPanel .fxi-t {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 7px 2px 6px;
+    border-radius: 10px;
+    border: 1.5px solid var(--c);
+    background: color-mix(in srgb,var(--c) 14%,rgba(0,0,0,.3));
+    color: #efe6cf;
+    cursor: var(--cP);
+    font: 600 10.5px system-ui,sans-serif;
+    min-width: 0;
+    transition: transform .1s
+}
+
+#fxPanel .fxi-t:hover:not(:disabled) {
+    transform: translateY(-1px)
+}
+
+#fxPanel .fxi-t:disabled {
+    cursor: default;
+    opacity: .75
+}
+
+#fxPanel .fxi-t .qic {
+    width: 22px;
+    height: 22px;
+    margin-bottom: 1px;
+    color: var(--c)
+}
+
+#fxPanel .fxi-t.lv0 .qic {
+    color: var(--ui-mut,#9b907c);
+    opacity: .7
+}
+
+#fxPanel .fxi-t.lv0 {
+    color: var(--ui-mut,#9b907c)
+}
+
+#fxPanel .fxi-t span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+#fxPanel .fxi-t em {
+    display: flex;
+    gap: 3px;
+    margin-top: 1px
+}
+
+#fxPanel .fxi-t em b {
+    width: 9px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,.18)
+}
+
+#fxPanel .fxi-t em b.f {
+    background: var(--c)
+}
+
+#fxPanel.fxi .fl-h {
+    margin-top: 4px
+}
+
+#fxPanel .fxr.fxi-cmp .fxt span {
+    display: none
+}
+
+#fxPanel .fxr.fxi-cmp {
+    padding: 4px 0
+}
+
+/* ===== h38: pixel art nos efeitos novos (corpo do mecanismo em h38_pixel.js) ===== */
+body.fx-pix #h30Env,body.fx-pix #h30Fx, body.fx-pix .lcc,body.fx-pix .lbc,body.fx-pix .bnF,body.fx-pix .bnS,body.fx-pix canvas.h30crk,body.fx-pix .lcw canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated
+}
+
+/* VHS: sem arredondar, texto do PLAY em bloco */
+body.fx-pix .lcw {
+    border-radius: 0
+}
+
+body.fx-pix .lcw .vp {
+    text-shadow: 2px 2px 0 #e5262e,-2px 0 0 #2a6cff;
+    -webkit-text-stroke: 0;
+    font-weight: 900
+}
+
+/* ectoplasma: brilho em degraus quadrados (sem cantos redondos) */
+body.fx-pix .lcecto {
+    border-radius: 0;
+    box-shadow: 0 0 0 4px var(--e1),0 0 0 8px var(--e2);
+    animation-name: lcEcPx;
+    animation-timing-function: steps(1,end)
+}
+
+body.fx-pix .lcecto.sm {
+    border-radius: 0;
+    box-shadow: 0 0 0 4px var(--e1),0 0 0 8px var(--e2)
+}
+
+@keyframes lcEcPx {
+    0% {
+        box-shadow: 0 0 0 4px var(--e1),0 0 0 8px var(--e2)
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px var(--e3),0 0 0 12px var(--e4)
+    }
+}
+
+body.fx-pix .hwbub i {
+    border-radius: 0
+}
+
+/* sirene: cúpula de luz em degraus, brilho quadrado */
+body.fx-pix .h30l {
+    border-radius: 0;
+    box-shadow: none;
+    background: none
+}
+
+body.fx-pix .h30l::before,body.fx-pix .h30l::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    clip-path: polygon(0 100%,0 42%,8% 42%,8% 24%,18% 24%,18% 12%,32% 12%,32% 0,68% 0,68% 12%,82% 12%,82% 24%,92% 24%,92% 42%,100% 42%,100% 100%)
+}
+
+body.fx-pix .h30l::before {
+    inset: -10% -12% 0 -12%;
+    background: var(--g1)
+}
+
+body.fx-pix .h30l::after {
+    inset: 0;
+    background: var(--c)
+}
+
+body.fx-pix .h30l b {
+    z-index: 1;
+    border-radius: 0;
+    transform: none;
+    background: #fff;
+    width: 14%;
+    height: 18%;
+    left: 20%;
+    top: 26%
+}
+
+body.a11y-rm.fx-pix .h30l.b {
+    opacity: 0
+}
+
+/* texto da resposta da bacia: resolução média (legível) */
+body.fx-pix .lbc.lbans {
+    image-rendering: auto
+}
+
+/* ================= SISTEMA VISUAL DA INTERFACE (07/10) =================
+   Uma escala só pra todos os painéis do Halloween:
+   - fonte de TÍTULO/RÓTULO/BOTÃO: --f-ui (condensada) · fonte de TEXTO e CAMPOS: --f-txt (sistema)
+   - tamanhos: --fs-1 11px (rótulo em caixa alta) · --fs-2 12.5px (texto/dica) · --fs-3 13.5px (campo/texto principal) · --fs-4 15px (título)
+   - espaço: 4 · 8 · 12 · 16 px · cantos: 8 (controles) e 12 (painéis) */
+:root {
+    --f-txt: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --fs-1: 11px;
+    --fs-2: 12.5px;
+    --fs-3: 13.5px;
+    --fs-4: 15px;
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --r-c: 8px;
+    --r-p: 12px;
+    --pn-bg: rgba(23,19,15,.97);
+    --pn-sh: 0 12px 32px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.25)
+}
+
+/* painéis: mesmo fundo, borda, canto e sombra */
+#props.pp2,#fxPanel,#hwPanel,#objMenu,.flyout,.qi-more,#help,#mini,#tools,#top {
+    border-radius: var(--r-p);
+    box-shadow: var(--pn-sh)
+}
+
+#fxPanel,#hwPanel,.flyout,.qi-more {
+    background: var(--pn-bg);
+    border: 1px solid var(--ui-line)
+}
+
+#fxPanel,.flyout {
+    padding: var(--sp-3)
+}
+
+/* títulos de seção: um estilo só */
+.fl-h,#props.pp2 details.flat>summary,#hwPanel h4,#hwPanel .hwp-h,#objMenu .om-h {
+    font: 600 var(--fs-1) var(--f-ui);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--gold,var(--gold,#ffd678))
+}
+
+/* texto corrido, notas e dicas */
+#fxPanel .fxnote,#hwPanel p,#hwPanel .hint,#props.pp2 .hint,.flyout .hint {
+    font: 400 var(--fs-2)/1.4 var(--f-txt);
+    color: var(--ui-mut)
+}
+
+#fxPanel .fxt b {
+    font: 600 var(--fs-3) var(--f-txt)
+}
+
+#fxPanel .fxt span {
+    font: 400 var(--fs-2)/1.3 var(--f-txt)
+}
+
+/* campos: fonte do sistema (a condensada fica só em título, rótulo e botão) */
+#props.pp2 :is(input[type=text],input:not([type]),input[type=number],select,textarea), #hwPanel :is(input[type=text],input:not([type]),input[type=number],select,textarea), #objMenu input,.flyout :is(input[type=text],input:not([type]),input[type=number],select,textarea),#fxPanel .fxnum {
+    font: 400 var(--fs-3) var(--f-txt);
+    border-radius: var(--r-c)
+}
+
+#hwPanel :is(input[type=text],input:not([type]),input[type=number],select) {
+    padding: 6px 9px;
+    min-height: 32px;
+    box-sizing: border-box
+}
+
+/* botões dos painéis: altura e canto iguais */
+#props.pp2 .b:not(.pp-b),#hwPanel .b,#fxPanel .b,.flyout .b {
+    border-radius: var(--r-c);
+    font-family: var(--f-ui);
+    letter-spacing: .03em
+}
+
+#hwPanel .b {
+    min-height: 32px
+}
+
+/* espaçamento dos blocos */
+#hwPanel .hwp-sec,#hwPanel section {
+    margin-top: var(--sp-3)
+}
+
+#hwPanel p,#hwPanel .hint {
+    margin: var(--sp-1) 0 var(--sp-2)
+}
+
+/* barra de cima: grupos com o mesmo respiro */
+#top.qi-top2 {
+    gap: var(--sp-1)
+}
+
+#top.qi-top2 .qi-g {
+    display: flex;
+    align-items: center;
+    gap: 2px
+}
+
+#top.qi-top2 .sep {
+    height: 22px;
+    margin: 0 var(--sp-1);
+    opacity: .8
+}
+
+#top.qi-top2 .b.ico {
+    min-width: 34px;
+    height: 34px;
+    border-radius: var(--r-c)
+}
+
+#qiMoreBtn.on {
+    color: var(--gold,var(--gold,#ffd678));
+    box-shadow: inset 0 0 0 1px rgba(var(--goldrgb,255,214,120),.5)
+}
+
+/* "Mais" */
+.qi-more {
+    position: fixed;
+    z-index: 60;
+    display: none;
+    min-width: 210px;
+    padding: 6px
+}
+
+.qi-more.open {
+    display: block;
+    animation: pop .14s ease
+}
+
+.qi-more .qi-mrow {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 3px 8px 3px 3px;
+    border-radius: var(--r-c);
+    cursor: var(--cP,pointer);
+    font: 400 var(--fs-3) var(--f-txt);
+    color: var(--ui-fg)
+}
+
+.qi-more .qi-mrow:hover {
+    background: rgba(var(--goldrgb,255,214,120),.08)
+}
+
+.qi-more .qi-mrow>.b,.qi-more .qi-mrow>.g {
+    flex: none
+}
+
+.qi-more .qi-mrow .b.ico {
+    min-width: 34px;
+    height: 34px;
+    border-color: transparent;
+    background: transparent
+}
+
+.qi-more .sfg-wrap {
+    display: flex
+}
+
+/* menu de objetos: abas numa linha só, sem o X por cima da última */
+#objMenu .pn-x {
+    z-index: 2
+}
+
+.qi-more #surfSel {
+    display: none
+}
+
+.qi-more .b.ico svg {
+    width: 19px;
+    height: 19px
+}
+
+.qi-more .b.ico .cnt {
+    position: absolute;
+    top: 2px;
+    right: 2px
+}
+
+.qi-more .qi-mrow>* {
+    position: relative
+}
+
+/* celular: a barra rola de lado, então o "Mais" vem logo depois do menu */
+@media (max-width: 760px),(max-height:520px) {
+    #top.qi-top2>#gearBtn {
+        order:-2
+    }
+
+    #top.qi-top2>#qiMoreBtn {
+        order: -1
+    }
+}
+
+/* X das caixas: flutua no canto de cima e o texto contorna (não cobre nada) */
+.qi-x {
+    float: right;
+    position: relative;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    margin: -4px -4px 4px 8px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ui-mut,#a89a82);
+    cursor: var(--cP,pointer)
+}
+
+.qi-x svg {
+    width: 16px;
+    height: 16px
+}
+
+.qi-x:hover {
+    color: var(--gold,var(--gold,#ffd678));
+    border-color: var(--ui-line);
+    background: rgba(var(--goldrgb,255,214,120),.07)
+}
+
+@media (pointer: coarse) {
+    .qi-x {
+        width:40px;
+        height: 40px;
+        margin: -8px -8px 4px 8px
+    }
+
+    .qi-x svg {
+        width: 20px;
+        height: 20px
+    }
+}
+
+/* caixa antiga de Comandos: some de vez (os atalhos ficam no "?" › Atalhos). O #tab-help virou o botão de FEEDBACK (v24): fica. */
+#help {
+    display: none!important
+}
+
+/* desktop: o painel do item fica sempre aberto, então o lápis da barrinha não aparece */
+#qa #qaEdit {
+    display: none
+}
+
+#redoBtn.redo-float {
+    position: fixed;
+    right: 12px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    z-index: 24;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(23,19,15,.94);
+    border: 1px solid var(--ui-line);
+    color: var(--ui-fg);
+    box-shadow: 0 6px 16px rgba(0,0,0,.45)
+}
+
+#redoBtn.redo-float svg {
+    width: 22px;
+    height: 22px
+}
+
+.qi-tsheet {
+    display: none
+}
+
+@media (max-width: 760px),(max-height:520px) {
+    /* 1) painel só no modo Editar */ #qa #qaEdit {
+        display:flex;
+        color: var(--gold,var(--gold,#ffd678))
+    }
+
+    body:not(.qi-ed) #props {
+        display: none!important
+    }
+
+    body #props.pp2 {
+        max-height: 52vh!important;
+        bottom: calc(66px + env(safe-area-inset-bottom))!important
+    }
+
+    body.qi-ed #undoBtn.undo-float,body.qi-ed #redoBtn.redo-float,body.qi-ed #qiVerTag,body.qi-ed #hwBtn {
+        display: none!important
+    }
+
+    /* desfazer/refazer no canto direito (o esquerdo é do "?" e da abóbora) */
+    body #undoBtn.undo-float {
+        left: auto;
+        right: 66px
+    }
+
+    #qa {
+        transform: none
+    }
+
+    #qa button {
+        width: 44px;
+        height: 44px
+    }
+
+    #qa button svg {
+        width: 21px;
+        height: 21px
+    }
+
+    /* 2) barra de baixo + folha do ⋯ */
+    #tools {
+        justify-content: space-between
+    }
+
+    #qiToolsMoreBtn {
+        width: 46px;
+        height: 46px;
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        color: var(--ui-fg);
+        font: 600 9.5px var(--f-ui);
+        letter-spacing: .06em;
+        text-transform: uppercase
+    }
+
+    #qiToolsMoreBtn .qic {
+        width: 22px;
+        height: 22px
+    }
+
+    #qiToolsMoreBtn.open,#qiToolsMoreBtn.on {
+        background: var(--accent);
+        border-color: var(--accent)
+    }
+
+    .qi-tsheet {
+        position: fixed;
+        left: 8px;
+        right: 8px;
+        bottom: calc(72px + env(safe-area-inset-bottom));
+        z-index: 26;
+        display: none;
+        grid-template-columns: repeat(5,1fr);
+        gap: 4px;
+        padding: 8px;
+        background: var(--pn-bg,rgba(23,19,15,.97));
+        border: 1px solid var(--ui-line);
+        border-radius: 14px;
+        box-shadow: 0 12px 32px rgba(0,0,0,.5)
+    }
+
+    .qi-tsheet.open {
+        display: grid;
+        animation: pop .14s ease
+    }
+
+    .qi-tsheet>button,.qi-tsheet .mgrp>button {
+        width: 100%;
+        height: 56px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        color: var(--ui-fg);
+        font: 600 9.5px var(--f-ui);
+        letter-spacing: .06em;
+        text-transform: uppercase
+    }
+
+    .qi-tsheet button svg {
+        width: 22px;
+        height: 22px
+    }
+
+    .qi-tsheet button.on,.qi-tsheet button.qi-act {
+        background: var(--accent);
+        border-color: var(--accent)
+    }
+
+    .qi-tsheet .mgrp {
+        display: contents
+    }
+
+    /* 3) barra de cima: alvos de 44 px; zoom é na pinça */
+    #top .b.ico,#top.qi-top2 .b.ico {
+        min-width: 44px;
+        height: 44px
+    }
+
+    #top #zOut,#top #zIn,#top #zoomTxt {
+        display: none
+    }
+
+    #top #shareBtn,#top #sndBtn {
+        min-width: 44px;
+        height: 44px;
+        min-height: 44px
+    }
+
+    .qi-more {
+        max-height: calc(100vh - 80px - env(safe-area-inset-bottom));
+        overflow-y: auto;
+        overscroll-behavior: contain
+    }
+
+    .qi-more .qi-mrow {
+        padding: 4px 10px 4px 4px;
+        font-size: 15px
+    }
+
+    .qi-more .qi-mrow .b.ico {
+        min-width: 44px;
+        height: 44px
+    }
+
+    /* avisos acima da barra de baixo */
+    #toast {
+        bottom: calc(84px + env(safe-area-inset-bottom))!important
+    }
+}
+
+/* paisagem no celular: painel na lateral direita, a mesa fica livre à esquerda */
+@media (max-height: 520px) and (orientation:landscape) {
+    body #props.pp2 {
+        left:auto!important;
+        right: 8px!important;
+        top: calc(66px + env(safe-area-inset-top))!important;
+        bottom: calc(72px + env(safe-area-inset-bottom))!important;
+        width: min(360px,46vw)!important;
+        max-height: none!important;
+        border-radius: 14px!important
+    }
+}
+
+body.player #qaEdit {
+    display: none!important
+}
+
+/* PELE "Arquivo de campo" (Victor 08/10): fontes (OFL, fontsource) e cursores (Phosphor Icons, MIT). Gerado por hw/gera_recursos.py — não editar à mão. */
+
+
+
+
+
+
+
+
+:root {
+    --kseta: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3Cg%20id%3D%22i%22%3E%3Cg%20transform%3D%22translate%282%202%29%20scale%28.109%29%22%3E%3Cpath%20d%3D%22M220.49%2C207.8%2C207.8%2C220.49a12%2C12%2C0%2C0%2C1-17%2C0l-56.57-56.57L115%2C214.08l-.13.33A15.84%2C15.84%2C0%2C0%2C1%2C100.26%2C224l-.78%2C0a15.82%2C15.82%2C0%2C0%2C1-14.41-11L32.8%2C52.92A15.95%2C15.95%2C0%2C0%2C1%2C52.92%2C32.8L213%2C85.07a16%2C16%2C0%2C0%2C1%2C1.41%2C29.8l-.33.13-50.16%2C19.27%2C56.57%2C56.56A12%2C12%2C0%2C0%2C1%2C220.49%2C207.8Z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fdefs%3E%3Cuse%20href%3D%22%23i%22%20transform%3D%22translate%281.2%201.4%29%22%20fill%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%230A0705%22%20stroke%3D%22%230A0705%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%23EBDDB6%22%2F%3E%3C%2Fsvg%3E") 5 6;
+    --kdedo: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3Cg%20id%3D%22i%22%3E%3Cg%20transform%3D%22translate%282%202%29%20scale%28.109%29%22%3E%3Cpath%20d%3D%22M224%2C104v50.93c0%2C46.2-36.85%2C84.55-83%2C85.06A83.71%2C83.71%2C0%2C0%2C1%2C80.6%2C215.4C58.79%2C192.33%2C34.15%2C136%2C34.15%2C136a16%2C16%2C0%2C0%2C1%2C6.53-22.23c7.66-4%2C17.1-.84%2C21.4%2C6.62l21%2C36.44a6.09%2C6.09%2C0%2C0%2C0%2C6%2C3.09l.12%2C0A8.19%2C8.19%2C0%2C0%2C0%2C96%2C151.74V32a16%2C16%2C0%2C0%2C1%2C16.77-16c8.61.4%2C15.23%2C7.82%2C15.23%2C16.43V104a8%2C8%2C0%2C0%2C0%2C8.53%2C8%2C8.17%2C8.17%2C0%2C0%2C0%2C7.47-8.25V88a16%2C16%2C0%2C0%2C1%2C16.77-16c8.61.4%2C15.23%2C7.82%2C15.23%2C16.43V112a8%2C8%2C0%2C0%2C0%2C8.53%2C8%2C8.17%2C8.17%2C0%2C0%2C0%2C7.47-8.25v-7.28c0-8.61%2C6.62-16%2C15.23-16.43A16%2C16%2C0%2C0%2C1%2C224%2C104Z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fdefs%3E%3Cuse%20href%3D%22%23i%22%20transform%3D%22translate%281.2%201.4%29%22%20fill%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%230A0705%22%20stroke%3D%22%230A0705%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%23EBDDB6%22%2F%3E%3C%2Fsvg%3E") 13 3;
+    --kmao: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3Cg%20id%3D%22i%22%3E%3Cg%20transform%3D%22translate%282%202%29%20scale%28.109%29%22%3E%3Cpath%20d%3D%22M216%2C64v90.93c0%2C46.2-36.85%2C84.55-83%2C85.06A83.71%2C83.71%2C0%2C0%2C1%2C72.6%2C215.4C50.79%2C192.33%2C26.15%2C136%2C26.15%2C136a16%2C16%2C0%2C0%2C1%2C6.53-22.23c7.66-4%2C17.1-.84%2C21.4%2C6.62l21%2C36.44a6.09%2C6.09%2C0%2C0%2C0%2C6%2C3.09l.12%2C0A8.19%2C8.19%2C0%2C0%2C0%2C88%2C151.74V48a16%2C16%2C0%2C0%2C1%2C16.77-16c8.61.4%2C15.23%2C7.82%2C15.23%2C16.43V112a8%2C8%2C0%2C0%2C0%2C8.53%2C8%2C8.17%2C8.17%2C0%2C0%2C0%2C7.47-8.25V32a16%2C16%2C0%2C0%2C1%2C16.77-16c8.61.4%2C15.23%2C7.82%2C15.23%2C16.43V120a8%2C8%2C0%2C0%2C0%2C8.53%2C8%2C8.17%2C8.17%2C0%2C0%2C0%2C7.47-8.25V64.45c0-8.61%2C6.62-16%2C15.23-16.43A16%2C16%2C0%2C0%2C1%2C216%2C64Z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fdefs%3E%3Cuse%20href%3D%22%23i%22%20transform%3D%22translate%281.2%201.4%29%22%20fill%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%230A0705%22%20stroke%3D%22%230A0705%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%23EBDDB6%22%2F%3E%3C%2Fsvg%3E") 16 16;
+    --kpunho: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3Cg%20id%3D%22i%22%3E%3Cg%20transform%3D%22translate%282%202%29%20scale%28.109%29%22%3E%3Cpath%20d%3D%22M216%2C104v48a88%2C88%2C0%2C0%2C1-176%2C0V136a16%2C16%2C0%2C0%2C1%2C32%2C0v8a8%2C8%2C0%2C0%2C0%2C16%2C0V88a16%2C16%2C0%2C0%2C1%2C32%2C0v16a8%2C8%2C0%2C0%2C0%2C16%2C0V88a16%2C16%2C0%2C0%2C1%2C32%2C0v16a8%2C8%2C0%2C0%2C0%2C16%2C0%2C16%2C16%2C0%2C0%2C1%2C32%2C0Z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fdefs%3E%3Cuse%20href%3D%22%23i%22%20transform%3D%22translate%281.2%201.4%29%22%20fill%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%230A0705%22%20stroke%3D%22%230A0705%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%23EBDDB6%22%2F%3E%3C%2Fsvg%3E") 16 16;
+    --kmira: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3Cg%20id%3D%22i%22%3E%3Cg%20transform%3D%22translate%282%202%29%20scale%28.109%29%22%3E%3Cpath%20d%3D%22M128%2C20A108%2C108%2C0%2C1%2C0%2C236%2C128%2C108.12%2C108.12%2C0%2C0%2C0%2C128%2C20Zm12%2C191.13V184a12%2C12%2C0%2C0%2C0-24%2C0v27.13A84.18%2C84.18%2C0%2C0%2C1%2C44.87%2C140H72a12%2C12%2C0%2C0%2C0%2C0-24H44.87A84.18%2C84.18%2C0%2C0%2C1%2C116%2C44.87V72a12%2C12%2C0%2C0%2C0%2C24%2C0V44.87A84.18%2C84.18%2C0%2C0%2C1%2C211.13%2C116H184a12%2C12%2C0%2C0%2C0%2C0%2C24h27.13A84.18%2C84.18%2C0%2C0%2C1%2C140%2C211.13Z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fdefs%3E%3Cuse%20href%3D%22%23i%22%20transform%3D%22translate%281.2%201.4%29%22%20fill%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%230A0705%22%20stroke%3D%22%230A0705%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%23EBDDB6%22%2F%3E%3C%2Fsvg%3E") 16 16;
+    --klupa: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3Cg%20id%3D%22i%22%3E%3Cg%20transform%3D%22translate%282%202%29%20scale%28.109%29%22%3E%3Cpath%20d%3D%22M229.66%2C218.34%2C179.6%2C168.28a88.21%2C88.21%2C0%2C1%2C0-11.32%2C11.31l50.06%2C50.07a8%2C8%2C0%2C0%2C0%2C11.32-11.32ZM144%2C120H120v24a8%2C8%2C0%2C0%2C1-16%2C0V120H80a8%2C8%2C0%2C0%2C1%2C0-16h24V80a8%2C8%2C0%2C0%2C1%2C16%2C0v24h24a8%2C8%2C0%2C0%2C1%2C0%2C16Z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fdefs%3E%3Cuse%20href%3D%22%23i%22%20transform%3D%22translate%281.2%201.4%29%22%20fill%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%230A0705%22%20stroke%3D%22%230A0705%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%23EBDDB6%22%2F%3E%3C%2Fsvg%3E") 14 14;
+    --kmais: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3Cg%20id%3D%22i%22%3E%3Cg%20transform%3D%22translate%282%202%29%20scale%28.109%29%22%3E%3Cpath%20d%3D%22M128%2C24A104%2C104%2C0%2C1%2C0%2C232%2C128%2C104.13%2C104.13%2C0%2C0%2C0%2C128%2C24Zm40%2C112H136v32a8%2C8%2C0%2C0%2C1-16%2C0V136H88a8%2C8%2C0%2C0%2C1%2C0-16h32V88a8%2C8%2C0%2C0%2C1%2C16%2C0v32h32a8%2C8%2C0%2C0%2C1%2C0%2C16Z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fdefs%3E%3Cuse%20href%3D%22%23i%22%20transform%3D%22translate%281.2%201.4%29%22%20fill%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%230A0705%22%20stroke%3D%22%230A0705%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%23EBDDB6%22%2F%3E%3C%2Fsvg%3E") 16 16;
+    --ktexto: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cdefs%3E%3Cg%20id%3D%22i%22%3E%3Cg%20transform%3D%22translate%282%202%29%20scale%28.109%29%22%3E%3Cpath%20d%3D%22M188%2C208a12%2C12%2C0%2C0%2C1-12%2C12H160a43.86%2C43.86%2C0%2C0%2C1-32-13.85A43.86%2C43.86%2C0%2C0%2C1%2C96%2C220H80a12%2C12%2C0%2C0%2C1%2C0-24H96a20%2C20%2C0%2C0%2C0%2C20-20V140H104a12%2C12%2C0%2C0%2C1%2C0-24h12V80A20%2C20%2C0%2C0%2C0%2C96%2C60H80a12%2C12%2C0%2C0%2C1%2C0-24H96a43.86%2C43.86%2C0%2C0%2C1%2C32%2C13.85A43.86%2C43.86%2C0%2C0%2C1%2C160%2C36h16a12%2C12%2C0%2C0%2C1%2C0%2C24H160a20%2C20%2C0%2C0%2C0-20%2C20v36h12a12%2C12%2C0%2C0%2C1%2C0%2C24H140v36a20%2C20%2C0%2C0%2C0%2C20%2C20h16A12%2C12%2C0%2C0%2C1%2C188%2C208Z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fdefs%3E%3Cuse%20href%3D%22%23i%22%20transform%3D%22translate%281.2%201.4%29%22%20fill%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke%3D%22rgba%280%2C0%2C0%2C.45%29%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%230A0705%22%20stroke%3D%22%230A0705%22%20stroke-width%3D%2222%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cuse%20href%3D%22%23i%22%20fill%3D%22%23EBDDB6%22%2F%3E%3C%2Fsvg%3E") 16 16
+}
+
+/* ================= PELE "ARQUIVO DE CAMPO" (aprovada pelo Victor em 08/10) =================
+   Couro marrom + latão + pergaminho, contorno de nanquim, chanfro só em 2 cantos (sup. esq. e inf. dir.),
+   títulos em placa de pergaminho com corte torto, hachura de quadrinho só nos cantos.
+   Referência: canvas "Quadro Investigativo — novo visual (aprovação)". Só muda a pele: posições e tamanhos ficam. */
+:root {
+    --ink: #0A0705;
+    --k-pan: #2A1D18;
+    --k-deep: #1B120F;
+    --k-fld: #35261F;
+    --k-line: #5A4033;
+    --k-wear: rgba(233,190,120,.10);
+    --k-txt: #F0E3C8;
+    --k-mut: #B9A285;
+    --k-acc: #C9A24A;
+    --k-onacc: #1E1507;
+    --k-red: #D9663A;
+    --k-onred: #1E0B04;
+    --k-ok: #6E8F4E;
+    --k-onok: #F4F1E6;
+    --k-uv: #B993F2;
+    --k-plate: #E9D9B0;
+    --k-plateT: #2A1A0E;
+    --k-hatch: rgba(233,200,140,.2);
+    --k-tit: 'IM Fell English SC',Georgia,serif;
+    --k-body: 'Alegreya Sans',system-ui,sans-serif;
+    /* tokens antigos apontando pra pele nova */
+    --ui-bg: #2A1D18;
+    --ui-bg2: #35261F;
+    --ui-line: #5A4033;
+    --ui-fg: #F0E3C8;
+    --ui-mut: #B9A285;
+    --gold: #C9A24A;
+    --accent: #C9A24A;
+    --f-ui: var(--k-body);
+    --goldrgb: 201,162,74;
+    --cD: var(--kseta),default;
+    --cP: var(--kdedo),pointer;
+    --cG: var(--kmao),grab;
+    --cGG: var(--kpunho),grabbing;
+    --f-txt: var(--k-body);
+    --pn-bg: #2A1D18;
+    --pn-sh: none;
+    --r-c: 0px;
+    --r-p: 0px;
+    /* formas */
+    --k-cP: polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+    --k-cS: polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+    --k-cBtn: polygon(7px 0,calc(100% - 7px) 0,100% 50%,calc(100% - 7px) 100%,7px 100%,0 50%);
+    --k-cTorn: polygon(0 5px,100% 0,calc(100% - 4px) 86%,2px 100%);
+    --k-cTab: polygon(4px 0,100% 3px,calc(100% - 4px) 100%,0 calc(100% - 2px));
+    /* fundo de couro: diagonais de nanquim nos 2 chanfros + hachura nos cantos + manchas + cor */
+    --k-bg: linear-gradient(135deg,transparent 9.90px,var(--ink) 9.90px 12.40px,var(--k-line) 12.40px 13.90px,transparent 13.90px) 0 0/36px 36px no-repeat, linear-gradient(315deg,transparent 9.90px,var(--ink) 9.90px 12.40px,var(--k-line) 12.40px 13.90px,transparent 13.90px) 100% 100%/36px 36px no-repeat, linear-gradient(var(--ink),var(--ink)) 14px 0/calc(100% - 14px) 2.5px no-repeat, linear-gradient(var(--ink),var(--ink)) 100% 0/2.5px calc(100% - 14px) no-repeat, linear-gradient(var(--ink),var(--ink)) 0 100%/calc(100% - 14px) 2.5px no-repeat, linear-gradient(var(--ink),var(--ink)) 0 14px/2.5px calc(100% - 14px) no-repeat, linear-gradient(var(--k-line),var(--k-line)) 14px 2.5px/calc(100% - 14px - 2.5px) 1.5px no-repeat, linear-gradient(var(--k-line),var(--k-line)) calc(100% - 2.5px) 2.5px/1.5px calc(100% - 14px - 2.5px) no-repeat, linear-gradient(var(--k-line),var(--k-line)) 2.5px calc(100% - 2.5px)/calc(100% - 14px - 2.5px) 1.5px no-repeat, linear-gradient(var(--k-line),var(--k-line)) 2.5px 14px/1.5px calc(100% - 14px - 2.5px) no-repeat, radial-gradient(ellipse at 30% 20%,rgba(255,220,170,.06),transparent 40%), radial-gradient(ellipse at 70% 80%,rgba(0,0,0,.18),transparent 50%), radial-gradient(ellipse 190px 140px at 100% 100%,transparent 25%,var(--k-pan) 100%) right 8px bottom 8px/190px 140px no-repeat, repeating-linear-gradient(45deg,var(--k-hatch) 0 1.4px,transparent 1.4px 5px) right 8px bottom 8px/190px 140px no-repeat, radial-gradient(ellipse 110px 80px at 22px 16px,transparent 20%,var(--k-pan) 100%) 8px 8px/120px 90px no-repeat, repeating-linear-gradient(45deg,var(--k-hatch) 0 1.4px,transparent 1.4px 5px) 8px 8px/120px 90px no-repeat, linear-gradient(135deg,transparent 9.90px,var(--k-pan) 9.90px) 0 0/100% 51% no-repeat, linear-gradient(315deg,transparent 9.90px,var(--k-pan) 9.90px) 0 100%/100% 51% no-repeat;
+    --k-sh: drop-shadow(4px 6px 3px rgba(0,0,0,.42)) drop-shadow(0 12px 22px rgba(0,0,0,.32));
+    --k-bgS: linear-gradient(135deg,transparent 4.24px,var(--ink) 4.24px 6.44px,var(--k-line) 6.44px 6.44px,transparent 6.44px) 0 0/20px 20px no-repeat, linear-gradient(315deg,transparent 4.24px,var(--ink) 4.24px 6.44px,var(--k-line) 6.44px 6.44px,transparent 6.44px) 100% 100%/20px 20px no-repeat, linear-gradient(var(--ink),var(--ink)) 6px 0/calc(100% - 6px) 2.2px no-repeat, linear-gradient(var(--ink),var(--ink)) 100% 0/2.2px calc(100% - 6px) no-repeat, linear-gradient(var(--ink),var(--ink)) 0 100%/calc(100% - 6px) 2.2px no-repeat, linear-gradient(var(--ink),var(--ink)) 0 6px/2.2px calc(100% - 6px) no-repeat, radial-gradient(ellipse at 30% 20%,rgba(255,220,170,.06),transparent 40%), linear-gradient(135deg,transparent 4.24px,var(--k-pan) 4.24px) 0 0/100% 51% no-repeat, linear-gradient(315deg,transparent 4.24px,var(--k-pan) 4.24px) 0 100%/100% 51% no-repeat;
+    --k-shS: drop-shadow(2px 4px 2px rgba(0,0,0,.4)) drop-shadow(0 6px 12px rgba(0,0,0,.28));
+    --k-plateBg: radial-gradient(ellipse at 100% 0,rgba(110,70,20,.22) 0,transparent 30%),radial-gradient(ellipse at 12% 25%,rgba(130,80,30,.35),transparent 40%),radial-gradient(ellipse at 85% 85%,rgba(110,60,20,.35),transparent 45%),var(--k-plate);
+}
+
+/* ---------- cursores ---------- */
+html,body {
+    cursor: var(--kseta),default
+}
+
+body button,body .b,body summary,body select,body label.chk,body [role=button],body a,body .qi-mrow,body .mtab,body input[type=color],body input[type=range],body input[type=checkbox] {
+    cursor: var(--kdedo),pointer
+}
+
+body input[type=text],body input[type=search],body input[type=number],body input:not([type]),body textarea,body [contenteditable=true] {
+    cursor: var(--ktexto),text
+}
+
+body.hover-it #view,body.panning #view,body.space #view,body .pin,body .it .h.ro,body #clk,body #dialUI svg {
+    cursor: var(--kmao),grab
+}
+
+body.grabbing,body.grabbing *,body.panning.grabbing #view {
+    cursor: var(--kpunho),grabbing!important
+}
+
+body.tool-pin #view,body.tool-string #view,body.tool-note #view,body.tool-circle #view,body.tool-arrow #view,body.tool-x #view,body.tool-line #view,body.tool-box #view,body.tool-tape #view,body.tool-scr #view,body.tool-cont #view {
+    cursor: var(--kmira),crosshair
+}
+
+body.picking #view,body.picking .it {
+    cursor: var(--kmais),copy!important
+}
+
+body.click-hover #view {
+    cursor: var(--kdedo),pointer
+}
+
+body.tool-lens #view,body.tool-lupa #view {
+    cursor: var(--klupa),zoom-in
+}
+
+/* ---------- moldura dos painéis ---------- */
+body :is(.panel:not(.mtab):not(#qa),.flyout,.qi-more,#objMenu,#markMenu,#fitaMenu,#puz,#tuneUI,#lockUI,#dialUI,#hwPanel,.ab-card,#objBig .ob-card,#vwJoin .card,#qiToolsMore) {
+    background: var(--k-bg)!important;
+    border: 0!important;
+    border-radius: 0!important;
+    box-shadow: none!important;
+    clip-path: none;
+    filter: var(--k-sh);
+    color: var(--k-txt);
+    font-family: var(--k-body);
+    backdrop-filter: none
+}
+
+body :is(#qa,.mtab,#reactPick,#toast,#vwBar,#hwClock,#qaMulti) {
+    background: var(--k-bgS)!important;
+    border: 0!important;
+    border-radius: 0!important;
+    box-shadow: none!important;
+    clip-path: none;
+    filter: var(--k-shS);
+    color: var(--k-txt)
+}
+
+body.a11y-hc :is(.panel,.flyout) {
+    background: #000!important
+}
+
+/* nada pode ficar pra fora da moldura recortada */
+#mini>.x,.panel>.x {
+    top: 8px!important;
+    right: 8px!important;
+    border-radius: 0!important;
+    clip-path: var(--k-cS);
+    background: var(--k-fld)!important;
+    border: 0!important
+}
+
+body #top.panel,body #tools.panel {
+    padding: 7px 9px
+}
+
+body .flyout,body .qi-more,body #fxPanel {
+    padding: 13px!important
+}
+
+/* ---------- títulos: placa de pergaminho com corte torto ---------- */
+body :is(.flyout,.qi-more,#markMenu,#fitaMenu)>.fl-h:first-of-type, body :is(#puz,#tuneUI,#lockUI,#dialUI,#shChoose,#sharePanel) .lt, body #props.pp2 .pp-head h3 {
+    display: block;
+    width: fit-content;
+    max-width: calc(100% - 44px);
+    box-sizing: border-box;
+    margin: 0 0 12px!important;
+    padding: 8px 18px 11px 14px!important;
+    background: var(--k-plateBg)!important;
+    color: var(--k-plateT)!important;
+    clip-path: var(--k-cTorn);
+    box-shadow: inset 0 0 14px rgba(90,50,15,.45);
+    font: 400 19px/1.05 var(--k-tit)!important;
+    letter-spacing: .03em!important;
+    text-transform: uppercase;
+    transform: rotate(-1.5deg);
+    transform-origin: left center;
+    border: 0!important
+}
+
+body #props.pp2 .pp-head h3 {
+    font-size: 24px!important;
+    padding: 10px 20px 14px 14px!important;
+    flex: 0 1 auto!important;
+    white-space: normal
+}
+
+body #props.pp2 .pp-head {
+    border-bottom: 0!important;
+    padding: 14px 12px 4px!important
+}
+
+/* seções: latão com tracejado */
+body :is(.flyout,.qi-more,#markMenu,#fitaMenu,#objMenu)>.fl-h:not(:first-of-type),body .flyout .fl-h~.fl-h, body #props.pp2 details.flat>summary,body #hwPanel h4,body #objMenu .om-h,body .dmenu .fl-h {
+    display: flex!important;
+    align-items: center;
+    gap: 8px;
+    font: 800 12.5px/1 var(--k-body)!important;
+    letter-spacing: .12em!important;
+    text-transform: uppercase;
+    color: var(--k-acc)!important;
+    border-bottom: 0!important
+}
+
+body :is(.flyout,.qi-more)>.fl-h:not(:first-of-type)::after,body .flyout .fl-h~.fl-h::after,body #props.pp2 details.flat>summary::after,body #hwPanel h4::after {
+    content: ""!important;
+    display: block!important;
+    flex: 1;
+    border-top: 2px dashed var(--k-line)
+}
+
+body #props.pp2 details.flat>summary .qic {
+    color: var(--k-acc)
+}
+
+/* ---------- X: um só, igual em tudo ---------- */
+body :is(.qi-x,.pn-x,.ab-x,.hwp-x,#props .pp-x) {
+    width: 34px!important;
+    height: 34px!important;
+    border: 0!important;
+    border-radius: 0!important;
+    clip-path: var(--k-cS);
+    background: transparent!important;
+    color: var(--k-mut)!important;
+    font: 700 16px/1 var(--k-body)
+}
+
+body :is(.qi-x,.pn-x,.ab-x,.hwp-x,#props .pp-x):hover {
+    background: var(--k-fld)!important;
+    color: var(--k-txt)!important
+}
+
+/* caixa com as duas X (antiga + nova): fica só a nova */
+body #objMenu:has(>.qi-x)>.pn-x {
+    display: none!important
+}
+
+@media (pointer: coarse) {
+    body :is(.qi-x,.pn-x,.ab-x,.hwp-x,#props .pp-x) {
+        width:44px!important;
+        height: 44px!important
+    }
+}
+
+/* ---------- botões ---------- */
+body button.b {
+    background: var(--k-fld);
+    border: 0;
+    border-radius: 0;
+    clip-path: var(--k-cS);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35);
+    color: var(--k-txt);
+    font: 800 12.5px/1.1 var(--k-body);
+    letter-spacing: .05em
+}
+
+body button.b:hover {
+    border-color: transparent;
+    filter: brightness(1.15)
+}
+
+body button.b.gold,body .b.gold {
+    background: radial-gradient(rgba(0,0,0,.07) 1px,transparent 1.3px) 0 0/4px 4px,var(--k-acc)!important;
+    color: var(--k-onacc)!important;
+    clip-path: var(--k-cBtn);
+    padding-left: 16px;
+    padding-right: 16px
+}
+
+body button.b.red,body .b.danger {
+    background: radial-gradient(rgba(0,0,0,.07) 1px,transparent 1.3px) 0 0/4px 4px,var(--k-red)!important;
+    color: var(--k-onred)!important
+}
+
+body button.b.on {
+    background: var(--k-acc);
+    color: var(--k-onacc);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35)
+}
+
+body #uvBtn.on {
+    background: #5E3FA0;
+    color: #F2E9FF
+}
+
+/* botões de ícone (barra de cima, cabeçalho do painel) sem caixa */
+body #top .b.ico,body #top #sndBtn,body #top #shareBtn,body #top #zIn,body #top #zOut,body #props.pp2 .pp-b,body .qi-more .qi-mrow .b.ico {
+    background: transparent;
+    box-shadow: none;
+    color: var(--k-txt)
+}
+
+body #top .b.ico:hover,body #top #sndBtn:hover,body #top #shareBtn:hover,body #props.pp2 .pp-b:hover {
+    background: var(--k-fld);
+    filter: none
+}
+
+body #top .b.on,body #top .b.ico.on,body #qiMoreBtn.on {
+    background: var(--k-acc)!important;
+    color: var(--k-onacc)!important;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35)!important
+}
+
+body #top #lampBtn.on {
+    background: transparent!important;
+    color: var(--k-acc)!important;
+    box-shadow: none!important
+}
+
+body #props.pp2 .pp-b.danger,body #props.pp2 #pDel {
+    background: transparent!important;
+    color: var(--k-red)!important
+}
+
+body #top .sep,body #top.qi-top2 .sep {
+    width: 2px;
+    background: var(--k-line);
+    opacity: 1
+}
+
+body #zoomTxt {
+    font: 800 15px var(--k-body);
+    letter-spacing: .04em
+}
+
+/* ---------- barra de ferramentas ---------- */
+body #tools button,body #markMenu button,body #qiToolsMore button,body #qiToolsMoreBtn {
+    border: 0!important;
+    border-radius: 0;
+    clip-path: var(--k-cS);
+    color: var(--k-txt);
+    font: 800 10px var(--k-body);
+    letter-spacing: .05em
+}
+
+body #tools button:hover,body #markMenu button:hover,body #qiToolsMore button:hover {
+    background: var(--k-fld)
+}
+
+body #tools button.on,body #markMenu button.on,body #qiToolsMore button.on,body #qiToolsMoreBtn.on,body #qiToolsMoreBtn.open {
+    background: radial-gradient(rgba(0,0,0,.07) 1px,transparent 1.3px) 0 0/4px 4px,var(--k-acc)!important;
+    color: var(--k-onacc)!important;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35)
+}
+
+body #tools hr {
+    border: 0;
+    height: 2px;
+    background: var(--k-line);
+    margin: 4px 8px
+}
+
+/* ---------- campos ---------- */
+body :is(.panel,.flyout,#objMenu,#hwPanel,#puz,#tuneUI,#lockUI,#dialUI,.ab-card,#objBig,#vwJoin) :is(input[type=text],input[type=search],input[type=number],input:not([type]),select,textarea) {
+    background: var(--k-fld)!important;
+    color: var(--k-txt)!important;
+    border: 0!important;
+    border-radius: 0!important;
+    clip-path: var(--k-cS);
+    box-shadow: inset 0 2px 0 rgba(0,0,0,.45),inset 0 0 0 1px var(--k-line)!important;
+    font-family: var(--k-body)!important;
+    font-size: 14px
+}
+
+body :is(.panel,.flyout,#objMenu,#hwPanel,#objBig,#vwJoin) :is(input,select,textarea):focus {
+    outline: 0!important;
+    box-shadow: inset 0 2px 0 rgba(0,0,0,.45),inset 0 0 0 2px var(--k-acc)!important
+}
+
+body ::placeholder {
+    color: rgba(185,162,133,.7)
+}
+
+body select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 26px!important;
+    background-image: linear-gradient(45deg,transparent 50%,var(--k-mut) 50%),linear-gradient(135deg,var(--k-mut) 50%,transparent 50%)!important;
+    background-position: calc(100% - 15px) 52%,calc(100% - 10px) 52%!important;
+    background-size: 5px 5px,5px 5px!important;
+    background-repeat: no-repeat!important
+}
+
+body input[type=color] {
+    border: 0!important;
+    border-radius: 0!important;
+    clip-path: var(--k-cS);
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.4)
+}
+
+/* texto dos itens de papel no painel: máquina de escrever */
+body #props.pp2 #pText,body #props.pp2 #pVerso {
+    font-family: Typewriter,'Special Elite',monospace!important
+}
+
+/* slider: trilho de couro, cheio de latão, pino de pergaminho em losango */
+body input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 24px;
+    background: transparent;
+    accent-color: var(--k-acc)
+}
+
+body input[type=range]::-webkit-slider-runnable-track {
+    height: 8px;
+    background: var(--k-fld);
+    box-shadow: inset 0 0 0 2px var(--k-line)
+}
+
+body input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 22px;
+    margin-top: -7px;
+    background: var(--k-plate);
+    clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%);
+    border: 0
+}
+
+body input[type=range]::-moz-range-track {
+    height: 8px;
+    background: var(--k-fld);
+    box-shadow: inset 0 0 0 2px var(--k-line)
+}
+
+body input[type=range]::-moz-range-progress {
+    height: 8px;
+    background: var(--k-acc)
+}
+
+body input[type=range]::-moz-range-thumb {
+    width: 18px;
+    height: 22px;
+    background: var(--k-plate);
+    clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%);
+    border: 0;
+    border-radius: 0
+}
+
+/* chave liga/desliga (painel do item) */
+body #props.pp2 label.chk>input[type=checkbox] {
+    width: 38px;
+    height: 21px;
+    border-radius: 0;
+    border: 0;
+    background: var(--k-fld);
+    box-shadow: inset 0 0 0 2px var(--k-line),inset 0 2px 0 rgba(0,0,0,.4);
+    clip-path: var(--k-cS)
+}
+
+body #props.pp2 label.chk>input[type=checkbox]::after {
+    left: 4px;
+    top: 4px;
+    width: 13px;
+    height: 13px;
+    border-radius: 0;
+    background: var(--k-mut);
+    clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%)
+}
+
+body #props.pp2 label.chk>input[type=checkbox]:checked {
+    background: var(--k-acc);
+    border: 0
+}
+
+body #props.pp2 label.chk>input[type=checkbox]:checked::after {
+    transform: translateX(17px);
+    background: var(--k-onacc)
+}
+
+body #props.pp2 .pp-tip {
+    text-decoration-color: rgba(201,162,74,.35)
+}
+
+/* caixinhas soltas (volume, trilha, backup, dados escondidos) */
+body :is(.flyout,#hwPanel,.ab-card,#sharePanel) input[type=checkbox] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    flex: none;
+    margin: 0 2px 0 0;
+    background: var(--k-fld);
+    box-shadow: inset 0 0 0 2px var(--k-line);
+    clip-path: var(--k-cS);
+    position: relative;
+    vertical-align: middle
+}
+
+body :is(.flyout,#hwPanel,.ab-card,#sharePanel) input[type=checkbox]:checked {
+    background: var(--k-acc)
+}
+
+body :is(.flyout,#hwPanel,.ab-card,#sharePanel) input[type=checkbox]:checked::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border-right: 3px solid var(--k-onacc);
+    border-bottom: 3px solid var(--k-onacc);
+    transform: rotate(40deg)
+}
+
+body #fxPanel .fxsw input {
+    appearance: auto;
+    -webkit-appearance: auto
+}
+
+/* ---------- abas ---------- */
+body #props.pp2 .pp-tabs,body .ab-tabs {
+    gap: 4px;
+    padding: 4px!important;
+    margin: 6px 12px 2px;
+    background: var(--k-deep);
+    border: 0!important;
+    clip-path: var(--k-cS)
+}
+
+body #props.pp2 .pp-tabs button,body .ab-tabs button {
+    border: 0!important;
+    color: var(--k-mut);
+    font: 800 13.5px/1 var(--k-body)!important;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 9px 4px!important;
+    background: transparent
+}
+
+body #props.pp2 .pp-tabs button.on,body .ab-tabs button.on,body .ab-tabs button[aria-selected=true] {
+    background: var(--k-plateBg)!important;
+    color: var(--k-plateT)!important;
+    clip-path: var(--k-cTab);
+    transform: rotate(-1.5deg)
+}
+
+body #props.pp2 .pp-body {
+    scrollbar-color: var(--k-line) transparent
+}
+
+body .seg {
+    background: var(--k-deep);
+    border: 0;
+    border-radius: 0;
+    clip-path: var(--k-cS)
+}
+
+body .seg button.on {
+    background: var(--k-acc);
+    color: var(--k-onacc)
+}
+
+body .om-sub button,body .om-pills button {
+    border-radius: 0!important;
+    clip-path: var(--k-cS)
+}
+
+/* ---------- textos ---------- */
+body :is(.panel,.flyout,#hwPanel,#objMenu) .hint,body #fxPanel .fxnote {
+    font-family: var(--k-body)!important;
+    color: var(--k-mut)
+}
+
+body #props.pp2 .row>.lbl,body .flyout .lbl {
+    font: 700 12px/1.2 var(--k-body)!important;
+    letter-spacing: .06em!important;
+    text-transform: uppercase;
+    color: var(--k-mut)
+}
+
+body #props.pp2 .att,body #props.pp2 .acbox {
+    background: var(--k-deep);
+    border: 0!important;
+    border-radius: 0;
+    clip-path: var(--k-cS);
+    box-shadow: inset 0 0 0 2px var(--k-line)
+}
+
+/* ---------- menu ⋯ ---------- */
+body .qi-more .qi-mrow {
+    font: 700 15px var(--k-body);
+    border-radius: 0;
+    clip-path: var(--k-cS);
+    min-height: 42px
+}
+
+body .qi-more .qi-mrow:hover {
+    background: var(--k-fld)
+}
+
+body .qi-more .qi-mrow .b.ico {
+    color: var(--k-acc)
+}
+
+/* ---------- efeitos ---------- */
+body #fxPanel .fxi-t,body #fxPanel .fxi-e {
+    border-radius: 0!important;
+    border: 0!important;
+    clip-path: var(--k-cS);
+    font-family: var(--k-body)!important;
+    font-weight: 800!important;
+    text-transform: uppercase;
+    letter-spacing: .04em
+}
+
+body #fxPanel .fxi-t.lv0 {
+    background: var(--k-fld);
+    color: var(--k-mut);
+    box-shadow: inset 0 0 0 2px var(--k-line)
+}
+
+body #fxPanel .fxi-t.lv1 {
+    background: var(--k-ok);
+    color: var(--k-onok);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.3)
+}
+
+body #fxPanel .fxi-t.lv2 {
+    background: radial-gradient(rgba(0,0,0,.07) 1px,transparent 1.3px) 0 0/4px 4px,var(--k-red);
+    color: var(--k-onred);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35)
+}
+
+body #fxPanel .fxi-t.lv1 .qic,body #fxPanel .fxi-t.lv2 .qic {
+    color: currentColor
+}
+
+body #fxPanel .fxi-t em b {
+    border-radius: 0;
+    transform: rotate(45deg);
+    width: 5px;
+    height: 5px;
+    background: currentColor;
+    opacity: .3
+}
+
+body #fxPanel .fxi-t em b.f {
+    opacity: 1;
+    background: currentColor
+}
+
+body #fxPanel .fxi-e {
+    background: var(--k-fld);
+    color: var(--k-txt)
+}
+
+body #fxPanel .fxi-e.on {
+    background: var(--k-acc);
+    color: var(--k-onacc)
+}
+
+body #fxPanel .fxi-leg .g0 {
+    --c: var(--k-line)
+}
+
+body #fxPanel .fxi-leg .g1 {
+    --c: var(--k-ok)
+}
+
+body #fxPanel .fxi-leg .g2 {
+    --c: var(--k-red)
+}
+
+/* ---------- objetos ---------- */
+body #objMenu .om-ico,body #objMenu .om-tabs button,body #objBig .ob-cats button {
+    border-radius: 0!important;
+    clip-path: var(--k-cS)
+}
+
+body .om-g button,body #objBig .ob-g button {
+    background: var(--k-fld);
+    border: 0;
+    border-radius: 0;
+    clip-path: var(--k-cS);
+    box-shadow: inset 0 0 0 1px var(--k-line);
+    font: 700 12.5px/1.2 var(--k-body);
+    color: var(--k-txt)
+}
+
+body .om-g button:hover,body #objBig .ob-g button:hover {
+    background: #433024
+}
+
+body #objMenu .om-list::-webkit-scrollbar-thumb {
+    background: var(--k-line);
+    border-radius: 0
+}
+
+/* ---------- barrinha do item, reações, aviso ---------- */
+body #qa button,body #qaMulti button {
+    border-radius: 0;
+    clip-path: var(--k-cS);
+    color: var(--k-txt)
+}
+
+body #qa button:hover {
+    background: var(--k-fld)
+}
+
+body #qa button.del {
+    color: var(--k-red)
+}
+
+body #reactPick {
+    padding: 7px 9px;
+    gap: 6px
+}
+
+body #reactPick button {
+    font-size: 32px;
+    line-height: 1;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    border-radius: 0;
+    clip-path: var(--k-cS);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 2px 0 rgba(0,0,0,.6))
+}
+
+body #reactPick button:hover {
+    background: var(--k-fld);
+    transform: translateY(-2px)
+}
+
+body #toast {
+    color: var(--k-txt)!important;
+    font: 700 14.5px/1.25 var(--k-body)!important;
+    letter-spacing: .02em;
+    padding: 11px 18px 11px 34px!important
+}
+
+body #toast::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    margin-top: -5px;
+    background: var(--k-acc);
+    transform: rotate(45deg);
+    box-shadow: 0 0 0 2px var(--ink)
+}
+
+body .it.sel .inner::after {
+    border-color: rgba(201,162,74,.95)
+}
+
+/* ---------- abas recolhidas e canto ---------- */
+body .mtab {
+    font: 800 11.5px var(--k-body);
+    letter-spacing: .12em;
+    color: var(--k-txt)
+}
+
+body #aboutBtn {
+    font: 400 21px var(--k-tit)
+}
+
+body #qiVerTag {
+    font-family: var(--k-body)!important;
+    font-weight: 800
+}
+
+/* ---------- ajuda / sobre ---------- */
+body .ab-card {
+    font-family: var(--k-body)!important;
+    color: var(--k-txt)!important
+}
+
+body .ab-logo {
+    display: inline-block;
+    padding: 12px 22px 18px 16px;
+    background: var(--k-plateBg);
+    color: var(--k-plateT)!important;
+    clip-path: var(--k-cTorn);
+    font: 400 34px/1 var(--k-tit)!important;
+    letter-spacing: .06em!important;
+    transform: rotate(-1.5deg)
+}
+
+body .ab-logo span {
+    font: inherit!important;
+    color: inherit!important
+}
+
+body .ab-logo em {
+    display: inline-block;
+    margin-left: 14px;
+    padding: 5px 9px;
+    border: 3px solid var(--k-red);
+    color: var(--k-red)!important;
+    background: transparent!important;
+    font: 800 11px var(--k-body)!important;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    transform: rotate(-5deg);
+    vertical-align: middle;
+    border-radius: 0
+}
+
+body .ab-hh {
+    background: radial-gradient(ellipse at 0 0,rgba(185,147,242,.18),transparent 60%),var(--k-deep)!important;
+    border: 0!important;
+    border-radius: 0!important;
+    clip-path: var(--k-cS);
+    box-shadow: inset 0 0 0 2px #6A4FA0
+}
+
+body .ab-or {
+    background: var(--k-fld)!important;
+    border: 0!important;
+    border-radius: 0!important;
+    clip-path: var(--k-cS)
+}
+
+body .ab-t {
+    font: 400 28px var(--k-tit)!important
+}
+
+body .ab-hh a,body .ab-or a {
+    border-radius: 0!important;
+    clip-path: var(--k-cBtn);
+    background: var(--k-acc)!important;
+    color: var(--k-onacc)!important;
+    font: 800 12.5px var(--k-body)!important;
+    letter-spacing: .06em
+}
+
+body .ab-k {
+    color: var(--k-uv)!important;
+    font: 800 11px var(--k-body)!important;
+    letter-spacing: .14em
+}
+
+body .ab-pane kbd,body .ab-pane .k,body .ab-pane b.k {
+    background: var(--k-plate);
+    color: var(--k-plateT);
+    border: 0;
+    border-radius: 0;
+    clip-path: var(--k-cS);
+    font: 800 12px var(--k-body)
+}
+
+/* ---------- jogar junto / convidado ---------- */
+body .shc-big {
+    background: var(--k-fld)!important;
+    border: 0!important;
+    border-radius: 0!important;
+    clip-path: var(--k-cS);
+    box-shadow: inset 0 0 0 2px var(--k-line)!important
+}
+
+body .shc-big b {
+    font: 800 16px var(--k-body);
+    color: var(--k-txt)
+}
+
+body .shc-big span {
+    color: var(--k-mut);
+    font-family: var(--k-body)
+}
+
+body #vwJoin .card {
+    font-family: var(--k-body)!important
+}
+
+body #vwJoin .t {
+    display: inline-block;
+    padding: 10px 18px 14px;
+    background: var(--k-plateBg);
+    color: var(--k-plateT);
+    clip-path: var(--k-cTorn);
+    font: 400 30px var(--k-tit)!important;
+    transform: rotate(-1.5deg)
+}
+
+body #vwJoin button:not([data-c]) {
+    background: var(--k-red)!important;
+    color: var(--k-onred)!important;
+    border-radius: 0!important;
+    clip-path: var(--k-cBtn);
+    font: 800 16px var(--k-body)!important;
+    letter-spacing: .06em;
+    text-transform: uppercase
+}
+
+body #vwBar {
+    font-family: var(--k-body)!important;
+    font-weight: 800
+}
+
+/* ---------- halloween: sustos e meia-noite ---------- */
+body #hwPanel {
+    --k-line: #7A3A2A
+}
+
+body #hwClock {
+    --k-line: #7A2A22;
+    padding: 10px 22px 12px
+}
+
+body #hwClock b {
+    font: 400 44px/1 var(--k-tit)!important;
+    color: #E0442E!important;
+    text-shadow: 0 0 14px rgba(224,68,46,.45)
+}
+
+body #hwClock i {
+    font: 800 11px var(--k-body)!important;
+    color: var(--k-mut)!important
+}
+
+/* ---------- enigmas ---------- */
+body :is(#puz,#tuneUI,#lockUI,#dialUI) .lt {
+    cursor: move!important;
+    font-size: 17px!important
+}
+
+/* ---------- barras de rolagem ---------- */
+body :is(.panel,.flyout,#objMenu,.ab-card,#hwPanel) ::-webkit-scrollbar {
+    width: 7px
+}
+
+body :is(.panel,.flyout,#objMenu,.ab-card,#hwPanel) ::-webkit-scrollbar-thumb {
+    background: var(--k-line);
+    border-radius: 0
+}
+
+/* ---------- ajustes da 1ª olhada ---------- */
+body #props.pp2 .pp-body {
+    padding-left: 15px!important;
+    padding-right: 14px!important
+}
+
+body #props.pp2 .pp-ic {
+    padding: 0 4px
+}
+
+body #hwPanel .hwp-h {
+    padding: 9px 8px 13px 12px;
+    margin: 0 0 12px;
+    background: var(--k-plateBg);
+    color: var(--k-plateT);
+    clip-path: var(--k-cTorn);
+    box-shadow: inset 0 0 14px rgba(90,50,15,.45)
+}
+
+body #hwPanel .hwp-h b {
+    font: 400 21px/1 var(--k-tit)!important;
+    color: var(--k-plateT)!important;
+    letter-spacing: .04em
+}
+
+body #hwPanel .hwp-h span {
+    color: rgba(42,26,14,.72)!important;
+    font: 800 10.5px var(--k-body);
+    letter-spacing: .18em;
+    text-transform: uppercase
+}
+
+body #hwPanel .hwp-h svg {
+    color: #B5481E
+}
+
+body #hwPanel .hwp-x {
+    color: var(--k-plateT)!important
+}
+
+body #undoBtn.undo-float,body #redoBtn.redo-float {
+    border-radius: 0!important;
+    border: 0!important;
+    background: var(--k-bgS)!important;
+    box-shadow: none!important;
+    filter: var(--k-shS);
+    color: var(--k-txt)
+}
+
+body .filters button {
+    background: var(--k-fld)!important;
+    border: 0!important;
+    border-radius: 0!important;
+    clip-path: var(--k-cS);
+    box-shadow: inset 0 0 0 1px var(--k-line);
+    color: var(--k-txt)!important;
+    font: 700 12.5px var(--k-body)!important
+}
+
+body .filters button.on {
+    background: var(--k-acc)!important;
+    color: var(--k-onacc)!important;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.3)
+}
+
+/* botão da caixa aberta aceso (h43_c_aceso.js) */
+body .b.qi-aceso,body #top .b.ico.qi-aceso,body .mtab.qi-aceso,body #tools button.qi-aceso {
+    background: radial-gradient(rgba(0,0,0,.07) 1px,transparent 1.3px) 0 0/4px 4px,var(--k-acc)!important;
+    color: var(--k-onacc)!important;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35)!important
+}
+
+body .qi-more .qi-mrow:has(.qi-aceso) {
+    background: var(--k-fld);
+    box-shadow: inset 3px 0 0 var(--k-acc)
+}
+
+body .qi-more .qi-mrow .b.ico.qi-aceso {
+    background: transparent!important;
+    color: var(--k-acc)!important;
+    box-shadow: none!important
+}
+
+body .amb-r,body .amb-r * {
+    font-family: var(--k-body)!important
+}
+
+/* a barra de cima só aparece depois de reagrupada (h40), senão ela "abre grande e encolhe" ao carregar; 2 s de segurança */
+body #top.panel:not(.qi-top2) {
+    visibility: hidden;
+    animation: qiTopShow 0s 2s forwards
+}
+
+@keyframes qiTopShow {
+    to {
+        visibility: visible
+    }
+}
+
+/* placa do "Quadro Investigativo" não cobre o texto; no feedback ela fica menor */
+body .ab-logo {
+    margin: 0 40px 18px 0;
+    max-width: calc(100% - 44px)
+}
+
+body .fbcard .ab-logo {
+    font-size: 24px!important;
+    padding: 10px 18px 14px 14px
+}
+
+body .fbcard .ab-logo span {
+    display: block;
+    font-size: 13px!important;
+    letter-spacing: .2em!important;
+    opacity: .75;
+    margin-bottom: 4px;
+    font-family: var(--k-body)!important;
+    font-weight: 800!important
+}
+
+body .fbtip,body .fbinfo {
+    border-radius: 0!important;
+    clip-path: var(--k-cS)
+}
+
+body #tab-help svg {
+    color: var(--k-acc)!important
+}
+
+/* cores do jogador na tela de entrar: bolinhas de verdade (a regra do botão vermelho não pega nelas) */
+body #vwCores button {
+    background: var(--c)!important;
+    border-radius: 50%!important;
+    clip-path: none!important;
+    box-shadow: 0 0 0 2px var(--ink)!important;
+    border: 0!important;
+    width: 32px;
+    height: 32px
+}
+
+body #vwCores button.on {
+    outline: 0!important;
+    box-shadow: 0 0 0 2px var(--ink),0 0 0 5px var(--k-plate),0 0 0 7px var(--ink)!important
+}
+
+body #vwCores .vc-l {
+    font: 800 11px var(--k-body);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--k-mut);
+    opacity: 1
+}
+
+/* cursor da mãozinha em TODO X e botão (algumas regras antigas forçavam o cursor do sistema) */
+body :is(button,.b,.qi-x,.pn-x,.ab-x,.hwp-x,.pp-x,.x,summary,label.chk,.qi-mrow,.mtab,[role=button],a[href]) {
+    cursor: var(--kdedo),pointer!important
+}
+
+body :is(button,.b,.qi-x,.pn-x,.ab-x,.hwp-x,.pp-x,.x) * {
+    cursor: inherit!important
+}
+
+body #qiRedeVia {
+    font: 800 11px var(--k-body);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--k-ok);
+    margin: 2px 0 6px
+}
+
+/* h45: "Mesa salva no servidor" no painel Jogar junto */
+body #qiSbSalvo {
+    font: 700 11.5px/1.35 var(--k-body,system-ui);
+    color: var(--k-mut,#a89a82);
+    margin: 2px 0 8px
+}
+
+body #qiSbSalvo.err {
+    color: var(--k-red,#D9663A)
+}
+
+/* hw/h46_vis_lab.css — portal FECHADO: a base (anel de pedra com selo) aparece por baixo do anel tracejado da animação, depois do fechamento */
+.it.lbon.lbhide.hlpfech .body img.main {
+    opacity: 1!important;
+    transition: opacity .35s .45s
+}
+
+/* pin na mão: sobe um pouco e a sombra afasta; ao soltar, desce de volta pro lugar */
+.pin {
+    transition: transform .16s cubic-bezier(.3,1.5,.5,1),filter .16s
+}
+
+.pin.qi-pdrag {
+    transform: translateY(-8px) scale(calc(var(--ps,1)*1.08));
+    filter: drop-shadow(6px 14px 4px rgba(0,0,0,.42))!important;
+    transition: transform .08s,filter .08s
+}
+
+/* 10/10 (desempenho): ver core/c03_luz.js. O degradê antigo escrito no style do #flameL/#nightL a cada quadro fica anulado;
+   as luzes são os <i class="qiLz"> (transform/opacity, sem repintar) e a máscara do escuro vem de --qiNtMk. */
+#flameL {
+    background: none!important;
+    overflow: hidden
+}
+
+#flameL>.qiLz {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 512px;
+    height: 512px;
+    transform-origin: 256px 256px;
+    will-change: transform,opacity;
+    pointer-events: none
+}
+
+#nightL {
+    -webkit-mask-image: var(--qiNtMk,none)!important;
+    mask-image: var(--qiNtMk,none)!important;
+    -webkit-mask-composite: source-in!important;
+    mask-composite: intersect!important
+}
+
+/* 10/10 (desempenho): nível de qualidade automático (core/c04_fxq.js). No baixo (qi-q0: modo leve, navegador sem
+   aceleração de vídeo ou máquina apertada) some o que é só enfeite e fica animando a tela toda o tempo todo. */
+body.qi-q0 #hwAsh {
+    display: none!important
+}
+
+body.qi-q0 #grain {
+    display: none!important
+}
+
+/* névoa de CSS do tema: continua aparecendo, só para de deslizar (deslizando, recompõe a tela toda a cada quadro) */
+body.qi-q0 #hwFog i {
+    animation-play-state: paused!important
+}
+
+/* animações infinitas que repintam (sombra/brilho/desfoque/fundo): param no lugar, continuam visíveis */
+body.qi-q0 .it.arv-av,body.qi-q0 .lcecto,body.qi-q0 .pingedge i,body.qi-q0 .tvx.snow,body.qi-q0 #qiSanOv.s3 {
+    animation-play-state: paused!important
+}
+
+/* 11/10: cartão "ligue a aceleração de vídeo" (core/c06_acel.js), na pele Arquivo de campo */
+#qiAcel {
+    position: fixed;
+    left: 50%;
+    bottom: 84px;
+    transform: translateX(-50%);
+    z-index: 99990;
+    width: min(440px,calc(100vw - 32px));
+    box-sizing: border-box;
+    padding: 18px 20px 16px;
+    background: var(--k-bg,#2A1D18);
+    filter: var(--k-sh,none);
+    color: var(--k-txt,#F0E3C8);
+    font: 15px/1.45 var(--k-body,system-ui,sans-serif);
+    animation: qiAcelIn .22s cubic-bezier(.2,.9,.3,1)
+}
+
+#qiAcel .qa-t {
+    display: inline-block;
+    margin: -4px 0 10px;
+    padding: 3px 12px 4px;
+    background: var(--k-plate,#E9D9B0);
+    color: var(--k-plateT,#2A1A0E);
+    font: 17px var(--k-tit,Georgia,serif);
+    transform: rotate(-1.5deg);
+    clip-path: var(--k-cTorn,none)
+}
+
+#qiAcel p {
+    margin: 0 0 10px
+}
+
+#qiAcel b {
+    color: var(--k-acc,#C9A24A);
+    font-weight: 700
+}
+
+#qiAcel .qa-n {
+    font-weight: 700;
+    color: var(--k-acc,#C9A24A);
+    margin-bottom: 4px
+}
+
+#qiAcel ol {
+    margin: 0 0 10px;
+    padding-left: 20px
+}
+
+#qiAcel li {
+    margin: 3px 0
+}
+
+#qiAcel .qa-u {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px
+}
+
+#qiAcel code {
+    background: var(--k-deep,#1B120F);
+    border: 1px solid var(--k-line,#5A4033);
+    padding: 4px 8px;
+    font: 13px ui-monospace,Consolas,monospace;
+    color: var(--k-txt,#F0E3C8);
+    user-select: all
+}
+
+#qiAcel .qa-d {
+    font-size: 13px;
+    color: var(--k-mut,#B9A285)
+}
+
+#qiAcel .qa-b {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end
+}
+
+#qiAcel .qa-nm {
+    opacity: .75
+}
+
+@keyframes qiAcelIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%,10px)
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%)
+    }
+}
+
+body.a11y-rm #qiAcel {
+    animation: none
+}
+
+/* 15/10: diagnóstico de conexão só no modo de depuração (core/c10_debug.js: ?debug=1) */
+body:not(.qi-debug) #qiDireto,body:not(.qi-debug) #qiRedeVia {
+    display: none!important
+}
+
+/* 15/10: modo econômico (core/c12_ocioso.js): ninguém mexendo há 20 s → a névoa de CSS do tema e as cinzas param no
+   lugar (são movimentos lentos e sutis; parados, o navegador não precisa recompor a tela a cada quadro). Mexeu, voltam. */
+body.qi-ocioso #hwFog i,body.qi-ocioso #hwAsh i {
+    animation-play-state: paused!important
+}
+
+/* 15/10 (peso dos itens): o pêndulo gira 60x/s e a pedra tem sombra (drop-shadow) — em camada própria, a sombra é
+   desenhada uma vez e o giro fica só com a placa de vídeo (antes repintava a cada quadro). */
+.pdl {
+    will-change: rotate
+}
+
+/* nov/n04_laboratorio.css — LOTE 4 · só visual dos overlays (mesmas posições/estados) */
+/* pêndulo: cordão de latão com contorno e cristal grande com facetas (ponta continua em ~96% do .pdl) */
+.it .pdl .str {
+    width: 3px;
+    margin-left: -1.5px;
+    height: 78%;
+    background: #d9bb72;
+    box-shadow: 0 0 0 1.3px #1a120c
+}
+
+.it .pdl .gem {
+    top: 73%;
+    width: 130%;
+    height: 24%;
+    clip-path: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 92'%3E%3Cpath d='M32 88 4 34 15 9h34l11 25z' fill='%239a63d6'/%3E%3Cpath d='M32 88 60 34 49 9H32z' fill='%236a3ba8'/%3E%3Cpath d='M32 88 4 34 15 9h9z' fill='%23d6bcff'/%3E%3Cpath d='M4 34h56M15 9l9 25 8 54 8-54 9-25' fill='none' stroke='%231a120c' stroke-width='2' stroke-opacity='.55' stroke-linejoin='round'/%3E%3Cpath d='M32 88 4 34 15 9h34l11 25z' fill='none' stroke='%231a120c' stroke-width='4.5' stroke-linejoin='round'/%3E%3Cpath d='M18 14 11 31' stroke='%23fff' stroke-opacity='.75' stroke-width='3.5' stroke-linecap='round'/%3E%3Crect x='25' y='1' width='14' height='10' rx='3' fill='%23e2b450' stroke='%231a120c' stroke-width='3'/%3E%3C/svg%3E") center/contain no-repeat;
+    filter: drop-shadow(0 4px 3px rgba(0,0,0,.45))
+}
+
+/* EMF: LED apagado legível (soquete escuro com aro) */
+.it .leds i {
+    background: #2c3238;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.6),inset 0 2px 0 3px rgba(255,255,255,.06)
+}
+
+/* mesa de luz: LED com aro */
+.it .lbled:not(.on) {
+    background: #2a2e33;
+    box-shadow: 0 0 0 1.5px #1a120c
+}
+
+.it .lbled.on {
+    box-shadow: 0 0 0 1.5px #1a120c,0 0 8px #6f6
+}
+
+/* reveladora / cronômetro: texto parado mais legível (rodando continua com o brilho original) */
+.it .rvwin:not(.on) {
+    color: #a5463a
+}
+
+.it .tled:not(.run):not(.end) {
+    color: #b03a2c
+}
+
+/* nov/n05_luz.css — LOTE 5 · só visual dos overlays (mesmas posições/estados) */
+/* timer de cozinha: os minutos ficam NO dial (giram com ele e param sob a seta fixa); a pega no centro substitui a barra vermelha */
+.it .tmdial {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='96' fill='%23f6f1e2' stroke='%231a120c' stroke-width='6'/%3E%3Cpath d='M100 6a94 94 0 0 1 94 94' fill='none' stroke='%231a120c' stroke-opacity='.18' stroke-width='10' transform='rotate%2845 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%280 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%286 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2812 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2818 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2824 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%2830 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2836 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2842 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2848 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2854 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%2860 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2866 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2872 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2878 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2884 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%2890 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%2896 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28102 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28108 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28114 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%28120 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28126 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28132 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28138 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28144 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%28150 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28156 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28162 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28168 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28174 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%28180 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28186 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28192 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28198 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28204 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%28210 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28216 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28222 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28228 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28234 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%28240 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28246 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28252 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28258 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28264 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%28270 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28276 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28282 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28288 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28294 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%28300 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28306 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28312 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28318 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28324 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='22' stroke='%231a120c' stroke-width='3.5' transform='rotate%28330 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28336 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28342 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28348 100 100%29'/%3E%3Cline x1='100' y1='9' x2='100' y2='16' stroke='%231a120c' stroke-width='1.6' transform='rotate%28354 100 100%29'/%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%23b3161c' transform='rotate%280 100 100%29'%3E0%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%2830 100 100%29'%3E5%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%2860 100 100%29'%3E10%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%2890 100 100%29'%3E15%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%28120 100 100%29'%3E20%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%28150 100 100%29'%3E25%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%28180 100 100%29'%3E30%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%28210 100 100%29'%3E35%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%28240 100 100%29'%3E40%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%28270 100 100%29'%3E45%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%28300 100 100%29'%3E50%3C/text%3E%3Ctext x='100' y='43' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='17' fill='%231a120c' transform='rotate%28330 100 100%29'%3E55%3C/text%3E%3C/svg%3E") center/100% 100% no-repeat;
+    box-shadow: 0 3px 5px rgba(0,0,0,.35)
+}
+
+.it .tmdial::after {
+    left: 50%;
+    top: 50%;
+    width: 13%;
+    height: 58%;
+    margin: 0;
+    transform: translate(-50%,-50%);
+    background: #e9e2cf;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2.5px #1a120c,inset -3px -3px 0 rgba(26,18,12,.18),inset 2px 2px 0 rgba(255,255,255,.7)
+}
+
+/* ampulheta: areia chapada com sombra suave à direita */
+.it .sand {
+    background: linear-gradient(90deg,#efcb7c 0 62%,#c99a45)
+}
+
+/* nov/n07_paineis.css — LOTE 7 · só visual dos overlays (mesmas posições, tamanhos e estados) */
+/* módulo dial: botão chapado com aro serrilhado, contorno e ponteiro vermelho com contorno */
+.knob {
+    background: radial-gradient(circle,#d3d8dd 0 58%,#1a120c 59% 61.5%,transparent 62%),repeating-conic-gradient(#9aa1a8 0 5deg,#c3c9ce 5deg 12deg);
+    border: 2.5px solid #1a120c;
+    box-sizing: border-box;
+    box-shadow: inset -5px -6px 7px rgba(26,18,12,.35),inset 3px 3px 3px rgba(255,255,255,.5),0 4px 5px rgba(0,0,0,.45)
+}
+
+.knob::after {
+    background: #e0402a;
+    border: 1.5px solid #1a120c;
+    border-radius: 4px;
+    box-sizing: border-box
+}
+
+/* módulo slider: cursor creme com contorno e risca central */
+.sk {
+    background: linear-gradient(#1a120c,#1a120c) center/66% 2px no-repeat,#e9e4d6;
+    border: 2px solid #1a120c;
+    box-sizing: border-box;
+    box-shadow: inset -3px -4px 4px rgba(26,18,12,.28),inset 2px 2px 2px rgba(255,255,255,.6),0 3px 4px rgba(0,0,0,.45)
+}
+
+/* módulo lâmpada: vidro chapado com contorno e ponto de brilho */
+.mlamp {
+    background: radial-gradient(circle at 33% 30%,rgba(255,255,255,.5) 0 11%,transparent 12%),#7a2219;
+    border: 2.5px solid #1a120c;
+    box-sizing: border-box;
+    box-shadow: inset -6px -7px 8px rgba(0,0,0,.35)
+}
+
+.mlamp.on {
+    background: radial-gradient(circle at 33% 30%,rgba(255,255,255,.85) 0 12%,transparent 13%),#47e06a;
+    box-shadow: inset -6px -7px 8px rgba(15,90,36,.45),0 0 26px #39d353
+}
+
+/* módulo chaves: alavanca com contorno e risca de pega */
+.msw::before {
+    background: linear-gradient(rgba(26,18,12,.35),rgba(26,18,12,.35)) center/56% 2px no-repeat,#8c9096;
+    border: 2px solid #1a120c;
+    box-sizing: border-box;
+    box-shadow: inset -3px -4px 4px rgba(26,18,12,.3),inset 2px 2px 2px rgba(255,255,255,.4),0 3px 5px rgba(0,0,0,.55)
+}
+
+.msw.on::before {
+    background: linear-gradient(rgba(26,18,12,.3),rgba(26,18,12,.3)) center/56% 2px no-repeat,#f2efe6
+}
+
+/* balança: travessão, pratos e contrapeso de latão chapado com contorno */
+.bbeam {
+    background: #e2b54e;
+    border: 2.5px solid #1a120c;
+    box-sizing: border-box;
+    box-shadow: inset 0 -4px 3px rgba(26,18,12,.28),inset 0 3px 0 rgba(255,255,255,.45),0 3px 4px rgba(0,0,0,.4)
+}
+
+.bpan svg path {
+    stroke: #3a2a14;
+    stroke-width: 2.2px
+}
+
+.bpan .dish {
+    background: #e2b54e;
+    border: 2.5px solid #1a120c;
+    box-sizing: border-box;
+    box-shadow: inset -5px -5px 5px rgba(26,18,12,.3),inset 0 3px 0 rgba(255,255,255,.45),0 5px 6px rgba(0,0,0,.4)
+}
+
+.bpan .cw {
+    background: #d9a640;
+    border: 2px solid #1a120c;
+    box-sizing: border-box;
+    color: #2a1c08;
+    box-shadow: inset -3px -3px 3px rgba(26,18,12,.3),inset 2px 2px 0 rgba(255,255,255,.4)
+}
+
+/* nov/n08_enigmas.css — LOTE 8 · só visual dos overlays (mesmas posições, tamanhos e estados) */
+/* ouija: prancheta cartoon (madeira clara chapada, contorno, janela de vidro); mesmo tamanho/âncora do original */
+.planch {
+    clip-path: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 115'%3E%3Cpath d='M50 4 C64 18 92 44 95 70 C97 90 84 110 68 110 L32 110 C16 110 3 90 5 70 C8 44 36 18 50 4Z' fill='%23ecd29a' stroke='%231a120c' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M86 74 C86 92 76 103 64 103 L36 103' fill='none' stroke='%23b88a4e' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M22 62 C26 46 38 30 48 20' fill='none' stroke='%23fff6dc' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='56' r='17' fill='%23b88a4e' stroke='%231a120c' stroke-width='4'/%3E%3Ccircle cx='50' cy='56' r='11' fill='%23e8f2f4' fill-opacity='.55' stroke='%231a120c' stroke-width='2.5'/%3E%3Cpath d='M44 51 L49 47' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='24' cy='96' r='4' fill='%231a120c'/%3E%3Ccircle cx='76' cy='96' r='4' fill='%231a120c'/%3E%3C/svg%3E") center/100% 100% no-repeat
+}
+
+/* caixa de música: manivela de aço com contorno; puxador com contorno */
+.crank {
+    background: #c9ced3;
+    border: 2px solid #1a120c;
+    box-sizing: border-box;
+    box-shadow: inset -3px 0 0 rgba(26,18,12,.3),inset 2px 0 0 rgba(255,255,255,.55),0 3px 4px rgba(0,0,0,.5)
+}
+
+.crank::after {
+    background: #eef0f2;
+    border: 2px solid #1a120c;
+    box-sizing: border-box;
+    box-shadow: inset -3px -4px 0 rgba(26,18,12,.25)
+}
+
+/* ===== n91 · barra de rolagem própria (só desktop; ver n91_rolagem.js) ===== */
+html.n91 .n91s {
+    scrollbar-width: none!important
+}
+
+html.n91 .n91s::-webkit-scrollbar {
+    display: none!important;
+    width: 0!important;
+    height: 0!important
+}
+
+n91-bar {
+    position: absolute!important;
+    top: 0!important;
+    right: 0!important;
+    left: auto!important;
+    bottom: auto!important;
+    width: 12px!important;
+    min-width: 0!important;
+    max-width: none!important;
+    min-height: 0!important;
+    max-height: none!important;
+    margin: 0!important;
+    padding: 0!important;
+    border: 0!important;
+    background: none!important;
+    box-shadow: none!important;
+    transform: none!important;
+    filter: none!important;
+    clip-path: none!important;
+    flex: none!important;
+    grid-area: auto!important;
+    pointer-events: none!important;
+    z-index: 40;
+    display: none!important;
+    overflow: visible!important
+}
+
+n91-bar.on {
+    display: block!important
+}
+
+n91-bar .n91t {
+    position: sticky;
+    top: 0;
+    width: 12px;
+    pointer-events: auto;
+    cursor: var(--cD,default)
+}
+
+n91-bar .n91t::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    right: 2px;
+    width: 5px;
+    border-radius: 9px;
+    background: rgba(107,90,58,.16);
+    transition: background .15s,width .15s
+}
+
+n91-bar .n91h {
+    position: absolute;
+    top: 0;
+    right: 1px;
+    width: 7px;
+    border-radius: 9px;
+    background: #6b5a3a;
+    cursor: var(--cP,pointer);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
+    transition: background .15s;
+    will-change: transform
+}
+
+n91-bar .n91t:hover::before {
+    background: rgba(107,90,58,.28)
+}
+
+n91-bar .n91h:hover,n91-bar .n91h.drag {
+    background: #8a7448
+}
+
+html.n91drag,html.n91drag * {
+    cursor: var(--cP,pointer)!important;
+    user-select: none!important
+}
+
+/* ===== n92 · painel de propriedades: caixas de texto, respiro da moldura, gatilhos ===== */
+/* campos de texto longo: rótulo em cima, área larga embaixo */
+#props .row.n92col {
+    display: flex!important;
+    flex-direction: column!important;
+    align-items: stretch!important;
+    gap: 5px;
+    height: auto
+}
+
+#props .row.n92col>.lbl {
+    width: auto!important;
+    max-width: none!important;
+    flex: none!important;
+    white-space: normal!important;
+    overflow: visible!important;
+    text-overflow: clip!important
+}
+
+#props .n92src {
+    display: none!important
+}
+
+#props textarea.n92ta {
+    display: block;
+    width: 100%!important;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 58px;
+    resize: vertical;
+    overflow-y: auto;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    flex: none
+}
+
+#props textarea.n92ta.n92one {
+    min-height: 40px
+}
+
+/* moldura: a área que rola fica por dentro da borda (nada encosta nem vaza por cima/baixo) */
+body #props.pp2 .pp-body {
+    margin: 2px 5px 8px!important;
+    padding-left: 10px!important;
+    padding-right: 10px!important;
+    padding-bottom: 12px!important;
+    -webkit-mask-image: linear-gradient(180deg,transparent 0,#000 7px,#000 calc(100% - 9px),transparent 100%);
+    mask-image: linear-gradient(180deg,transparent 0,#000 7px,#000 calc(100% - 9px),transparent 100%)
+}
+
+body #props.pp2 .acbox {
+    padding: 8px 10px 10px;
+    margin: 8px 0 10px
+}
+
+body #props.pp2 .acbox>.lbl {
+    padding: 0 2px
+}
+
+body #props.pp2 .pp-pane details.psec>summary {
+    padding-right: 4px;
+    margin-right: 0;
+    overflow: hidden
+}
+
+body #props.pp2 .pp-pane details.psec>.psb {
+    padding-left: 2px;
+    padding-right: 2px
+}
+
+body #props.pp2 .pp-pane>*:last-child {
+    margin-bottom: 4px
+}
+
+#props .pp-sub.n92sub {
+    margin-top: 8px
+}
+
+body #props :is(.row2,.pp-duo):has(>.n92col) {
+    display: block!important;
+    grid-template-columns: none!important
+}
+
+body #props :is(.row2,.pp-duo):has(>.n92col)>.row {
+    width: auto!important;
+    margin-bottom: 8px
+}
+
+/* n94: caixas do menu lateral esquerdo sem X */
+.qi-nox>.qi-x,.qi-nox>.pn-x,#objMenu>.pn-x,#objMenu>.qi-x,#markMenu>.qi-x,#fitaMenu>.qi-x,#diceMenu>.qi-x {
+    display: none!important
+}
+
+#objMenu {
+    padding-top: 10px
+}
+
+#about .ab-ia {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #a8987a;
+    opacity: .85;
+    margin-top: 14px!important;
+    padding-top: 10px;
+    border-top: 1px solid var(--ui-line,rgba(255,255,255,.1))
+}
+
+#about .ab-ia b {
+    color: #c9b995;
+    font-weight: 600
+}
