@@ -432,9 +432,10 @@
         import {CRISBridge} from '../integration-bridge.js';
         import {mountBoardSession} from './board-session.js';
         import {mountCluePanel} from './board-clue-panel.js';
+        import {installMobileBoardUX} from './mobile-board-ux.js';
         window.CRISMOUNT_CLUE_PANEL=mountCluePanel;
         window.CRISBridge=CRISBridge;
-        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js';document.body.append(script);}}
+        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;await mountBoardSession(identity);installMobileBoardUX();const script=document.createElement('script');script.src='quadro-cris-v7.js';document.body.append(script);}}
         catch(error){document.body.textContent='Não foi possível confirmar o acesso. Volte ao CRIS e entre novamente.';}
         </script>
 </body>
