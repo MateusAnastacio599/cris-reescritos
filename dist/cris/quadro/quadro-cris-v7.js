@@ -1,6 +1,6 @@
 /*! Quadro Investigativo © Viquitor "Harden" Saldanha · hipsandhops.com.br · Todos os direitos reservados. */
 (function(){
-const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.CRIS_IDENTITY.userId;
+const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.CRIS_IDENTITY.userId+(window.CRISBridge.archiveId?":"+window.CRISBridge.archiveId:"");
 
   /*! Quadro Investigativo © Viquitor "Harden" Saldanha · hipsandhops.com.br · Todos os direitos reservados. */
   "use strict";
@@ -5153,7 +5153,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     };
     Hm2("Enigmas", ["transp", "bloco", "balanca", "peso", "lacre"]), Hm2("Laborat\xF3rio", ["leitor", "mesaluz", "revelador", "pendulo"]);
   }
-  const Fs = new URL("./",location.href).href, zs = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js", Is = new URLSearchParams(location.search), Us = (Is.get("sala") || (window.CRIS_IDENTITY.isMaster ? "" : "CASO26107")).toUpperCase().replace(/[^A-Z0-9]/g, ""), Ks = !!Us, Bs = Ks, Os = { me: Ks ? "p" + Math.random().toString(36).slice(2, 8) : "host", name: window.CRIS_IDENTITY.name || "Mestre", links: /* @__PURE__ */ new Set(), sent: /* @__PURE__ */ new Map(), sentPose: /* @__PURE__ */ new Map(), sentPins: "", sentGlob: "", peer: null, code: null, st: "", ready: !Ks, fx: {}, cur: {}, echo: false, q: Promise.resolve(), soonT: 0, myFx: "", myCur: null, lastCur: "", rtune: false }, js = /* @__PURE__ */ new Set(["_scr", "_scan", "_sum"]), Ds = ["x", "y", "rot", "scale", "z"], Ns = ["surface", "light", "lampOff", "amb"];
+  const Fs = new URL("./",location.href).href, zs = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js", Is = new URLSearchParams(location.search), Us = (window.CRISBridge.archiveId ? (window.CRIS_IDENTITY.isMaster ? "" : "ARCHIVE") : (Is.get("sala") || (window.CRIS_IDENTITY.isMaster ? "" : "CASO26107"))).toUpperCase().replace(/[^A-Z0-9]/g, ""), Ks = !!Us, Bs = Ks, Os = { me: Ks ? "p" + Math.random().toString(36).slice(2, 8) : "host", name: window.CRIS_IDENTITY.name || "Mestre", links: /* @__PURE__ */ new Set(), sent: /* @__PURE__ */ new Map(), sentPose: /* @__PURE__ */ new Map(), sentPins: "", sentGlob: "", peer: null, code: null, st: "", ready: !Ks, fx: {}, cur: {}, echo: false, q: Promise.resolve(), soonT: 0, myFx: "", myCur: null, lastCur: "", rtune: false }, js = /* @__PURE__ */ new Set(["_scr", "_scan", "_sum"]), Ds = ["x", "y", "rot", "scale", "z"], Ns = ["surface", "light", "lampOff", "amb"];
   function Hs(e2) {
     return JSON.stringify(e2, function(t2, o2) {
       if ((this !== e2 || !Ds.includes(t2)) && ("_" !== t2[0] || js.has(t2))) return o2;
@@ -5498,7 +5498,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       });
     }, vr("");
   }
-  if (!Ks) {
+  if (!Ks&&!window.CRISBridge.archiveId) {
     setTimeout(wr, 0);
     try {
       Os.bc = new BroadcastChannel("qi-host"), Os.bc.onmessage = (e2) => {
@@ -5545,6 +5545,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     i2 && (i2.textContent = e2);
   }
   async function kr() {
+    if(window.CRISBridge.archiveId)return;
     document.body.classList.add("player");
     let e2 = "";
     try {
@@ -29479,7 +29480,7 @@ const crisProps=vt;
 vt=function(){const result=crisProps.apply(this,arguments);if(!Ks&&h){const item=K(h),panel=t('#props');if(item&&panel)window.CRISMOUNT_CLUE_PANEL?.({panel,item,onChange:()=>{E();ar();}});}return result;};
 
 
-if(!Ks){setTimeout(()=>{const modal=document.createElement('div');modal.id='masterLaunch';modal.innerHTML='<div class="master-card"><div class="master-title">C.R.I.S. · MESA INVESTIGATIVA</div><p>Prepare o quadro ou inicie a transmissão para os agentes.</p><div class="master-actions"><button id="masterStart" class="master-primary">INICIAR MESA OFICIAL</button><button id="masterOffline" class="master-secondary">EDITAR SEM TRANSMITIR</button><button id="masterBack" class="master-secondary">VOLTAR AO C.R.I.S.</button></div></div>';document.body.append(modal);t('#masterOffline').onclick=()=>modal.remove();t('#masterBack').onclick=()=>location.href='../';t('#masterStart').onclick=async()=>{if(!t('#sharePanel'))wr();await yr(false);modal.remove();};},0);}
+if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.createElement('div');modal.id='masterLaunch';modal.innerHTML='<div class="master-card"><div class="master-title">C.R.I.S. · MESA INVESTIGATIVA</div><p>Prepare o quadro ou inicie a transmissão para os agentes.</p><div class="master-actions"><button id="masterStart" class="master-primary">INICIAR MESA OFICIAL</button><button id="masterOffline" class="master-secondary">EDITAR SEM TRANSMITIR</button><button id="masterBack" class="master-secondary">VOLTAR AO C.R.I.S.</button></div></div>';document.body.append(modal);t('#masterOffline').onclick=()=>modal.remove();t('#masterBack').onclick=()=>location.href='../';t('#masterStart').onclick=async()=>{if(!t('#sharePanel'))wr();await yr(false);modal.remove();};},0);}
 
 
   /*! Quadro Investigativo © Viquitor "Harden" Saldanha · hipsandhops.com.br · Todos os direitos reservados. */
@@ -29527,6 +29528,7 @@ if(!Ks){setTimeout(()=>{const modal=document.createElement('div');modal.id='mast
       "function" == typeof Cm && Cm(e3);
     }
   })(), (async function() {
+    if(window.CRISBridge.archiveId&&!window.CRIS_IDENTITY.isMaster){document.body.classList.add("player","cris-archive-reader");try{const saved=await window.CRISBridge.loadBoard();await cr({s:JSON.stringify(saved.state),imgs:saved.imgs});window.CRIS_BOARD_SESSION.status("Quadro de arquivo · consulta pessoal");}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}window.QIL?.pronto();return;}
     if ((location.search.includes("obs") || location.hash.includes("obs")) && kt(false), at(), yt("select"), await document.fonts.ready, await Promise.all(["700 30px Hand", "30px Marker", "30px Typewriter", "700 30px News", "17px NewsR", "600 20px Cond", "40px Sigil"].map((e3) => document.fonts.load(e3).catch(() => 0))), Bs) return u = d(), u.items = [], u.pins = [], u.strings = [], await ze(), void kr();
                 const snapshot=()=>{const imgs={};for(const i of u.items)for(const k of ['imgId','audioId'])if(i[k]&&p[i[k]])imgs[i[k]]=p[i[k]];return {state:JSON.parse(JSON.stringify(u)),imgs};};
                 window.CRIS_BOARD_API={snapshot,persistLocal:value=>new Promise((resolve,reject)=>{if(!A){reject(Error('Não foi possível guardar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));return;}try{const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(value,crisBoardStorageKey());tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(Error('Não foi possível salvar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));}catch(error){reject(error);}}),save:()=>window.CRISBridge.saveBoard(snapshot()),visibility:async(id,visible)=>{
@@ -29535,10 +29537,10 @@ if(!Ks){setTimeout(()=>{const modal=document.createElement('div');modal.id='mast
                 }};
                 await k();
                 const session=window.CRIS_BOARD_SESSION;
-                const cloudSaved = await window.CRISBridge.loadBoard().catch(error=>{if(session)session.error=error;return null;});
+                const cloudSaved = await window.CRISBridge.loadBoard().catch(error=>{if(session)session.error=error;if(window.CRISBridge.archiveId){session?.status(error.message,true);throw error;}return null;});
                 let localSaved=await M(crisBoardStorageKey());
                 const legacyOwner=localStorage.getItem('cris:board:legacy-owner');
-                if(!localSaved&&(!legacyOwner||legacyOwner===window.CRIS_IDENTITY.userId)){localSaved=await M("board");localStorage.setItem('cris:board:legacy-owner',window.CRIS_IDENTITY.userId);}
+                if(!window.CRISBridge.archiveId&&!localSaved&&(!legacyOwner||legacyOwner===window.CRIS_IDENTITY.userId)){localSaved=await M("board");localStorage.setItem('cris:board:legacy-owner',window.CRIS_IDENTITY.userId);}
                 if(localSaved)await S(crisBoardStorageKey()+":before-cloud-load",localSaved);
                 const saved = session?await session.choose(localSaved,cloudSaved):localSaved||cloudSaved;
                 if (saved && saved.state) {
