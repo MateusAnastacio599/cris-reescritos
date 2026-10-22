@@ -1,3 +1,4 @@
+import {mountCaseBoards} from './case-boards.js';
 import {CRISBridge} from './integration-bridge.js';
 window.CRISBridge=CRISBridge;
 const STORAGE_KEY = 'cris_agente';
@@ -63,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     topAgentName.textContent = agent.name;
     topAgentClearance.textContent = agent.clearance.replace('NÍVEL DE ACESSO:', 'NÍVEL');
     applyAccessMode(key, agent);
+    mountCaseBoards(agent).catch(()=>{});
 
     login.classList.add('authenticated');
 
@@ -503,11 +505,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     for(const [key,,baseAttr] of FICHA_SKILLS){
-      out.skills[key]={die:FICHA_SKILL_START_DIE,atributo:baseAttr};
+      out.skills[key]={die:FICHA_DIE_ORDER.includes(source.skills?.[key]?.die)?source.skills[key].die:FICHA_SKILL_START_DIE,atributo:['fisico','mente','emocao'].includes(source.skills?.[key]?.atributo)?source.skills[key].atributo:baseAttr};
     }
 
     // Aptidões são fixas nesta versão: seis campos oficiais, sem criação de campos personalizados.
-    out.aptidoes=Object.fromEntries(FICHA_APTIDOES.map(([key,label])=>[key,{label,die:FICHA_SKILL_START_DIE}]));
+    out.aptidoes=Object.fromEntries(FICHA_APTIDOES.map(([key,label])=>[key,{label,die:FICHA_DIE_ORDER.includes(source.aptidoes?.[key]?.die)?source.aptidoes[key].die:FICHA_SKILL_START_DIE}]));
 
     if(Array.isArray(source.abilities)) out.abilities=source.abilities.map(v=>({
       name:String(v?.name??''),origin:String(v?.origin??''),cost:String(v?.cost??''),description:String(v?.description??'')
@@ -559,15 +561,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const skill=fichaState.skills[key]||{die:FICHA_SKILL_START_DIE,atributo:baseAttr};
         const attribute=skill.atributo||baseAttr;
         const row=document.createElement('div'); row.className='wizard-skill-row';
-        row.innerHTML=`<span>${label}</span><span class="skill-die-readonly" title="Valor inicial provisório: d4">${fichaDieMarkup(FICHA_SKILL_START_DIE)}</span><span class="skill-plus">+</span><span class="skill-die-display">${fichaDieMarkup(fichaState.attributes[baseAttr]||'d6')}</span><span class="wizard-pair-label">${FICHA_ATTR_LABELS[baseAttr]||baseAttr}</span>`;
+        row.innerHTML=`<span>${label}</span><span class="skill-die-readonly" title="Valor salvo na ficha">${fichaDieMarkup(skill.die||FICHA_SKILL_START_DIE)}</span><span class="skill-plus">+</span><span class="skill-die-display">${fichaDieMarkup(fichaState.attributes[baseAttr]||'d6')}</span><span class="wizard-pair-label">${FICHA_ATTR_LABELS[baseAttr]||baseAttr}</span>`;
         group.appendChild(row);
       }
       list.appendChild(group);
     }
     aptList.innerHTML='';
-    for(const [,label] of FICHA_APTIDOES){
+    for(const [key,label] of FICHA_APTIDOES){
       const row=document.createElement('div'); row.className='wizard-aptidao-row';
-      row.innerHTML=`<span class="wizard-aptidao-name">${fichaEscape(label)}</span><span class="skill-die-readonly" title="Valor inicial provisório: d4">${fichaDieMarkup(FICHA_SKILL_START_DIE)}</span><span>+ MENTE</span>`;
+      row.innerHTML=`<span class="wizard-aptidao-name">${fichaEscape(label)}</span><span class="skill-die-readonly" title="Valor salvo na ficha">${fichaDieMarkup(fichaState.aptidoes[key]?.die||FICHA_SKILL_START_DIE)}</span><span>+ MENTE</span>`;
       aptList.appendChild(row);
     }
   }
@@ -713,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row.dataset.search=`${label} aptidão mente`.toLowerCase();
       row.innerHTML=`
         <span class="aptidao-name">${fichaEscape(label)}</span>
-        <span class="skill-die-readonly" title="Valor inicial provisório: d4">${fichaDieMarkup(FICHA_SKILL_START_DIE)}</span>
+        <span class="skill-die-readonly" title="Valor salvo na ficha">${fichaDieMarkup(fichaState.aptidoes[key]?.die||FICHA_SKILL_START_DIE)}</span>
         <span class="skill-plus">+</span>
         <span class="skill-die-display" aria-hidden="true">${fichaDieMarkup(fichaState.attributes.mente)}</span>
         <span class="skill-attribute-label">MENTE</span>`;
@@ -735,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row.hidden=Boolean(query&&!row.dataset.search.includes(query));
       row.innerHTML=`
         <span class="skill-name">${label}</span>
-        <span class="skill-die-readonly" title="Valor inicial provisório: d4">${fichaDieMarkup(FICHA_SKILL_START_DIE)}</span>
+        <span class="skill-die-readonly" title="Valor salvo na ficha">${fichaDieMarkup(skill.die||FICHA_SKILL_START_DIE)}</span>
         <span class="skill-plus">+</span>
         <span class="skill-die-display" aria-hidden="true">${fichaDieMarkup(fichaState.attributes[baseAttr])}</span>
         <span class="skill-pair-label">${FICHA_ATTR_LABELS[baseAttr]}</span>`;
