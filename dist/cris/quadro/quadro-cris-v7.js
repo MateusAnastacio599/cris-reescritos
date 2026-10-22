@@ -901,13 +901,16 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   function dt(e2, t2 = {}) {
     Nt("note");
     const o2 = Object.assign({ id: r(), type: "note", style: "postit", text: "Escreva aqui", font: "Hand", size: 40, color: "#1d2a55", x: e2.x, y: e2.y, w: 260, h: 230, rot: 8 * (Math.random() - 0.5), scale: 1, z: st(), uv: false, fita: false, seed: 1e9 * Math.random() | 0, parent: null }, t2);
+    if(!window.CRIS_IDENTITY.isMaster){o2.crisOwner=window.CRIS_IDENTITY.userId;o2.by=Os.me;}
     return $(), u.items.push(o2), Fe(o2), J(o2), mt(o2.id), E(), o2;
   }
   function ut(e2, t2, o2, a2, n2, i2, s2 = {}) {
     const l2 = Object.assign({ id: r(), type: "mark", shape: e2, color: u.markColor || "#c3161c", stroke: 7, x: t2, y: o2, w: Math.max(30, a2), h: Math.max(24, n2), rot: i2, scale: 1, z: st(), seed: 1e9 * Math.random() | 0, uv: false, parent: null }, s2);
+    if(!window.CRIS_IDENTITY.isMaster){l2.crisOwner=window.CRIS_IDENTITY.userId;l2.by=Os.me;}
     return $(), u.items.push(l2), Fe(l2), J(l2), mt(l2.id), E(), l2;
   }
   function pt(e2) {
+    if(!window.CRIS_BOARD_RULES.ownsBoardItem(K(e2),window.CRIS_IDENTITY,Os.me)){St("Você só pode excluir itens que criou.");return;}
     $();
     const t2 = K(e2);
     t2 && "cont" === t2.type && Vo(t2).forEach((e3, o3) => {
@@ -920,6 +923,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     const t2 = K(e2);
     if (!t2) return;
     const o2 = JSON.parse(JSON.stringify(t2));
+    if(!window.CRIS_IDENTITY.isMaster){o2.crisOwner=window.CRIS_IDENTITY.userId;o2.by=Os.me;}
     o2.id = r(), o2.x += 30, o2.y += 30, o2.z = st(), o2.seed = (o2.seed || 1) + 7, o2.parent = null, delete o2.box, delete o2.hid, $(), u.items.push(o2), Fe(o2), mt(o2.id), E();
   }
   function mt(e2) {
@@ -1117,7 +1121,8 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   let bt = null, xt = null, wt = null;
   o.addEventListener("pointerdown", (e2) => {
     if (e2.target.closest(".note[contenteditable=true]")) return;
-    const t2 = Ge(e2.clientX, e2.clientY) || o;
+    let t2 = Ge(e2.clientX, e2.clientY) || o;
+    if("string"===y){const near=window.CRIS_BOARD_RULES.nearestPin(u.pins,P(e2),D,u.cam.z);if(near)t2=document.getElementById("pin-"+near.id)||t2;}
     e2.preventDefault(), document.activeElement && document.activeElement.isContentEditable && document.activeElement.blur();
     const n2 = P(e2);
     if (1 === e2.button || 2 === e2.button || 0 === e2.button && w) {
@@ -1388,6 +1393,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     if (!o2) return;
     const a2 = K(o2.dataset.id);
     if (!a2 || "note" !== a2.type) return;
+    if(!window.CRIS_BOARD_RULES.ownsBoardItem(a2,window.CRIS_IDENTITY,Os.me))return;
     const n2 = o2.querySelector(".note");
     $(), n2.contentEditable = true, n2.focus();
     const i2 = document.createRange();
@@ -5273,6 +5279,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
   async function cr(e2) {
     Object.assign(p, e2.imgs || {});
     const t2 = JSON.parse(e2.s);
+    u.fx=window.CRIS_BOARD_RULES.sceneEffects(t2.fx);
     if (u.items = t2.items || [], u.pins = t2.pins || [], u.strings = t2.strings || [], Ns.forEach((e3) => {
       e3 in t2 && (u[e3] = t2[e3]);
     }), u.z = t2.z || 1, await ze(), U(), er(), Os.ready = true, Os.links.size) {
@@ -5526,9 +5533,9 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       }
       e2.solved = o2;
     };
-    const Zm2 = (e2) => e2 && e2.by === Os.me;
+    const Zm2 = (e2) => window.CRIS_BOARD_RULES.ownsBoardItem(e2,window.CRIS_IDENTITY,Os.me);
     addEventListener("keydown", (e2) => {
-      if (e2.target.closest && e2.target.closest("input,textarea,[contenteditable=true]")) return;
+      if (e2.target.closest && e2.target.closest("input,textarea,select,.cris-sheet-drawer,[contenteditable=true]")) return;
       const t2 = e2.key.toLowerCase();
       if ((e2.ctrlKey || e2.metaKey) && ["y", "d"].includes(t2)) return e2.preventDefault(), void e2.stopImmediatePropagation();
       ["i", "k"].includes(t2) ? e2.stopImmediatePropagation() : "delete" !== t2 && "backspace" !== t2 || !h || Zm2(K(h)) || (e2.stopImmediatePropagation(), St("S\xF3 o mestre pode tirar isso da mesa"));
@@ -6147,7 +6154,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     const e2 = document.querySelector("#tools .minb");
     e2 && (e2.textContent = "\u2039", e2.title = "Minimizar ferramentas");
   }, 80), setTimeout(ol, 60), Ks && addEventListener("keydown", (e2) => {
-    e2.target.closest && e2.target.closest("input,textarea,[contenteditable=true]") || "h" !== e2.key.toLowerCase() || e2.ctrlKey || e2.stopImmediatePropagation();
+    e2.target.closest && e2.target.closest("input,textarea,select,.cris-sheet-drawer,[contenteditable=true]") || "h" !== e2.key.toLowerCase() || e2.ctrlKey || e2.stopImmediatePropagation();
   }, true);
   {
     const ph2 = /* @__PURE__ */ new Map();
@@ -6158,6 +6165,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     };
     hh2.addEventListener("pointerdown", (e2) => {
       if ("touch" === e2.pointerType) {
+        if(e2.target.closest("[contenteditable=true]"))return;
         if (ph2.set(e2.pointerId, { x: e2.clientX, y: e2.clientY }), 2 === ph2.size) {
           if (e2.stopImmediatePropagation(), e2.preventDefault(), void 0 !== bt && bt) {
             try {
@@ -6170,7 +6178,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
           const t2 = gh2();
           return void (fh2 = { c: t2, z: u.cam.z, cam: { ...u.cam } });
         }
-        1 !== ph2.size || "select" !== y || We(e2.clientX, e2.clientY) || (e2.stopImmediatePropagation(), e2.preventDefault(), mh2 = { x: e2.clientX, y: e2.clientY });
+        1 !== ph2.size || "select" !== y || e2.target.closest(".pin") || We(e2.clientX, e2.clientY) || (e2.stopImmediatePropagation(), e2.preventDefault(), mh2 = { x: e2.clientX, y: e2.clientY });
       }
     }, true), addEventListener("pointermove", (e2) => {
       if ("touch" === e2.pointerType && ph2.has(e2.pointerId)) {
@@ -7144,7 +7152,7 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
   } }, addEventListener("keydown", (e2) => {
     const t2 = h && K(h);
     if (!t2 || "cruzadas" !== t2.kind || !t2._sel || e2.ctrlKey || e2.metaKey || e2.altKey) return;
-    if (e2.target.closest && e2.target.closest("input,textarea,[contenteditable=true]")) return;
+    if (e2.target.closest && e2.target.closest("input,textarea,select,.cris-sheet-drawer,[contenteditable=true]")) return;
     const o2 = zl(t2), [a2, n2] = t2._sel.split(",").map(Number), i2 = e2.key, s2 = t2._dir ? [0, 1] : [1, 0];
     let r2 = true;
     t2.fill = t2.fill || {};
@@ -7507,14 +7515,14 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
       }, 650);
     }, true), addEventListener("keydown", async (e2) => {
       if (!e2.ctrlKey && !e2.metaKey || "z" !== e2.key.toLowerCase()) return;
-      if (e2.target.closest && e2.target.closest("input,textarea,[contenteditable=true]")) return;
+      if (e2.target.closest && e2.target.closest("input,textarea,select,.cris-sheet-drawer,[contenteditable=true]")) return;
       e2.preventDefault(), e2.stopImmediatePropagation();
       const t2 = og2.pop();
       if (t2) {
         for (const e3 of t2) {
           const t3 = K(e3.id);
           if (!e3.prev) {
-            t3 && t3.by === Os.me && pt(e3.id);
+            t3 && window.CRIS_BOARD_RULES.ownsBoardItem(t3,window.CRIS_IDENTITY,Os.me) && pt(e3.id);
             continue;
           }
           const o2 = JSON.parse(e3.prev);
@@ -11566,7 +11574,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     return "go" === t2;
   }
   Ns.push("fx");
-  const Af = { estilo: "cartoon", fumaca: true, nevoa: 0, brasas: false, poeira: false, liq: true }, kf = [], Mf = [], Sf = {}, Tf = {};
+  const Af = window.CRIS_BOARD_RULES.sceneEffects(), kf = [], Mf = [], Sf = {}, Tf = {};
   let Cf = null;
   const Ef = Object.assign({ leve: false }, (() => {
     try {
@@ -12918,7 +12926,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
   }, 0);
   const th = true;
   var oh, ah;
-  lm = true, Object.assign(Af, { hw: true, cinzas: true, brasas: true, nevoa: 1 });
+  lm = true;
   const nh = Object.assign({ aranha: false, gore: false }, (() => {
     try {
       const e2 = JSON.parse(localStorage.getItem("qi-hw") || "{}");
@@ -14843,7 +14851,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
       t2.stopPropagation(), e2.classList.remove("open"), gg();
     };
   }, 700), addEventListener("paste", async (e2) => {
-    if (e2.target.closest && e2.target.closest("input,textarea,[contenteditable=true]")) return;
+    if (e2.target.closest && e2.target.closest("input,textarea,select,.cris-sheet-drawer,[contenteditable=true]")) return;
     const t2 = e2.clipboardData && e2.clipboardData.getData("text") || "";
     if (!t2.trim().startsWith("QI1.")) return;
     if (e2.preventDefault(), e2.stopImmediatePropagation(), Ks) return void St("S\xF3 o mestre abre mesas");
@@ -29511,6 +29519,23 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
       e3.preventDefault(), F(innerWidth / 2, innerHeight / 2, u.cam.z * Math.exp(15e-4 * -e3.deltaY));
     }, { passive: false });
   })();
+  const crisNoteActions=document.createElement('div');crisNoteActions.id='crisNoteActions';crisNoteActions.hidden=true;crisNoteActions.setAttribute('aria-label','Ações da nota');
+  crisNoteActions.innerHTML='<button type="button" data-edit>Editar texto</button><button type="button" data-done hidden>Concluir texto</button><button type="button" data-delete>Excluir minha nota</button>';
+  document.body.append(crisNoteActions);
+  const crisFinishNote=()=>{const el=document.querySelector('#view [contenteditable=true]');if(el){el.blur();el.contentEditable='false';}crisUpdateNoteActions();};
+  function crisUpdateNoteActions(){const item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me);crisNoteActions.hidden=!item||item.type!=='note'||!own;const editing=!!document.querySelector('#view .note[contenteditable=true]');crisNoteActions.querySelector('[data-edit]').hidden=editing;crisNoteActions.querySelector('[data-done]').hidden=!editing;crisNoteActions.querySelector('[data-delete]').hidden=editing;}
+  function crisEditNote(item){if(!item||!window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me))return;const el=document.getElementById('it-'+item.id)?.querySelector('.note');if(!el)return;$();el.contentEditable='true';el.setAttribute('role','textbox');el.setAttribute('aria-label','Texto do post-it');el.focus();const range=document.createRange();range.selectNodeContents(el);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);crisUpdateNoteActions();}
+  crisNoteActions.querySelector('[data-edit]').onclick=()=>crisEditNote(h&&K(h));
+  crisNoteActions.querySelector('[data-done]').onclick=crisFinishNote;
+  crisNoteActions.querySelector('[data-delete]').onclick=()=>{const item=h&&K(h);if(item&&window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me)){pt(item.id);crisUpdateNoteActions();}};
+  for(const event of ['pointerdown','pointerup','click'])crisNoteActions.addEventListener(event,e=>e.stopPropagation());
+  // A touch outside must commit the note before the engine intercepts a pan.
+  window.addEventListener('pointerdown',e=>{const active=document.activeElement;if(active?.matches('#view [contenteditable=true]')&&!active.contains(e.target)&&!crisNoteActions.contains(e.target))crisFinishNote();},true);
+  document.addEventListener('focusout',()=>requestAnimationFrame(crisUpdateNoteActions));
+  const crisSelectNote=mt;mt=function(){const result=crisSelectNote.apply(this,arguments);crisUpdateNoteActions();return result;};
+  // On phones, creating a note opens its keyboard immediately. Existing notes
+  // have a visible Edit action and remain draggable with one finger.
+  const crisCreateNote=dt;dt=function(){const item=crisCreateNote.apply(this,arguments);if(Wr())requestAnimationFrame(()=>crisEditNote(item));return item;};
   let frame = 0;
   !(function e2() {
     requestAnimationFrame(e2);
