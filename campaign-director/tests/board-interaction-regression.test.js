@@ -9,6 +9,8 @@ const pinCss = await readFile(new URL('../../quadro/player-pin-actions.css', imp
 test('visual effects are off by default for both live and archived boards', () => {
   assert.match(engine, /const Af = \{ estilo: "cartoon", fumaca: false, nevoa: 0, brasas: false, poeira: false, liq: false \}/);
   assert.match(engine, /Object\.assign\(\{\}, Af, u\.fx \|\| \{\}\)/);
+  assert.match(engine, /lm = true, Object\.assign\(Af, \{ hw: false, cinzas: false, brasas: false, nevoa: 0 \}\)/);
+  assert.match(engine, /!Ks && i2 !== Os\.sentGlob/);
 });
 
 test('new uploads and the Original filter preserve document readability', () => {
