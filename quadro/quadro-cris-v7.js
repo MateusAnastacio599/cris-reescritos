@@ -5204,7 +5204,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     }
     for (const e3 of [...Os.sent.keys()]) o2.has(e3) || (Os.sent.delete(e3), Os.sentPose.delete(e3), t2.push(e3));
     const a2 = { t: "ops", from: Os.me, up: e2, del: t2 }, n2 = JSON.stringify([u.pins, u.strings]), i2 = Gs();
-    return n2 !== Os.sentPins && (Os.sentPins = n2, a2.pins = u.pins, a2.strings = u.strings), i2 !== Os.sentGlob && (Os.sentGlob = i2, a2.glob = {}, Ns.forEach((e3) => a2.glob[e3] = u[e3])), e2.length || t2.length || a2.pins || a2.glob ? a2 : null;
+    return n2 !== Os.sentPins && (Os.sentPins = n2, a2.pins = u.pins, a2.strings = u.strings), !Ks && i2 !== Os.sentGlob && (Os.sentGlob = i2, a2.glob = {}, Ns.forEach((e3) => a2.glob[e3] = u[e3])), e2.length || t2.length || a2.pins || a2.glob ? a2 : null;
   }
   function or(e2, t2) {
     for (const o2 of Os.links) {
@@ -12926,7 +12926,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
   }, 0);
   const th = true;
   var oh, ah;
-  lm = true, Object.assign(Af, { hw: true, cinzas: true, brasas: true, nevoa: 1 });
+  lm = true, Object.assign(Af, { hw: false, cinzas: false, brasas: false, nevoa: 0 });
   const nh = Object.assign({ aranha: false, gore: false }, (() => {
     try {
       const e2 = JSON.parse(localStorage.getItem("qi-hw") || "{}");
