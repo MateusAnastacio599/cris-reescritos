@@ -1,0 +1,40 @@
+name: Board interaction regressions
+
+on:
+  push:
+    branches: ["fix/player-board-mobile-ux"]
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "quadro/**"
+      - "campaign-director/tests/**"
+      - "campaign-director/package.json"
+      - "campaign-director/package-lock.json"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: campaign-director/package-lock.json
+
+      - name: Install test dependencies
+        run: npm ci
+        working-directory: campaign-director
+
+      - name: Run automated tests
+        run: npm test
+        working-directory: campaign-director
+
+      - name: Check board engine syntax
+        run: node --check quadro/quadro-cris-v7.js

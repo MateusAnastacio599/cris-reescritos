@@ -1,0 +1,38 @@
+/* Players may inspect their own selected pin without exposing the GM item editor. */
+body.player.pin-selected #props {
+  display: block !important;
+  z-index: 45;
+  top: 70px;
+  right: 12px;
+  bottom: auto;
+  left: auto;
+  width: min(300px, calc(100vw - 24px));
+  max-height: min(60vh, calc(100dvh - 100px));
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+body.player.pin-selected #props .btns button {
+  min-height: 40px;
+}
+
+@media (max-width: 760px) {
+  body.player.pin-selected #props {
+    top: auto;
+    right: 10px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    left: 10px;
+    width: auto;
+    max-height: 36dvh;
+    padding: 12px;
+  }
+
+  body.player.pin-selected #props .btns {
+    gap: 8px;
+  }
+
+  body.player.pin-selected #props .btns button {
+    min-height: 44px;
+    flex: 1 1 auto;
+  }
+}

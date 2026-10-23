@@ -508,7 +508,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     e2.putImageData(o2, 0, 0);
   })();
   const Ce = { original: { name: "Original", async run(e2, t2) {
-    const o2 = Math.min(1, 900 / Math.max(e2.width, e2.height)), a2 = ve(e2.width * o2, e2.height * o2);
+    const o2 = Math.min(1, 2400 / Math.max(e2.width, e2.height)), a2 = ve(e2.width * o2, e2.height * o2);
     if (a2.getContext("2d", { willReadFrequently: true }).drawImage(e2, 0, 0, a2.width, a2.height), t2.borda) {
       const e3 = Math.round(0.05 * a2.width), t3 = ve(a2.width + 2 * e3, a2.height + 2 * e3), o3 = t3.getContext("2d", { willReadFrequently: true });
       return o3.fillStyle = "#f7f4ec", o3.fillRect(0, 0, t3.width, t3.height), o3.drawImage(a2, e3, e3), t3;
@@ -785,8 +785,8 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     let a2;
     if (o2) {
       const e3 = j(o2, t2.x, t2.y);
-      a2 = { id: r(), item: o2.id, lx: e3.x, ly: e3.y };
-    } else a2 = { id: r(), item: null, lx: t2.x, ly: t2.y };
+      a2 = { id: r(), item: o2.id, lx: e3.x, ly: e3.y, by: Ks ? (window.CRIS_BOARD_OWNER_ID || Os.me) : "host" };
+    } else a2 = { id: r(), item: null, lx: t2.x, ly: t2.y, by: Ks ? (window.CRIS_BOARD_OWNER_ID || Os.me) : "host" };
     return a2.color = u.pinColor, a2.size = u.pinSize || 1, $(), u.pins.push(a2), Ne(a2), E(), a2;
   }
   function Ye(e2) {
@@ -794,7 +794,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     const t2 = document.getElementById("pin-" + e2);
     t2 && t2.remove(), Je.forEach((e3, t3) => {
       u.strings.find((e4) => e4.id === t3) || Je.delete(t3);
-    }), v === e2 && (v = null);
+    }), v === e2 && (v = null, document.body.classList.remove("pin-selected"));
   }
   function Xe() {
     t("#pinSw").innerHTML = Be.map((e2) => `<button style="background:${e2}" data-c="${e2}" class="${u.pinColor === e2 ? "on" : ""}" title="Cor do alfinete"></button>`).join(""), t("#pinSw").querySelectorAll("button").forEach((e2) => e2.onclick = () => {
@@ -888,8 +888,8 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   }
   async function lt(e2, t2, o2) {
     const a2 = r();
-    p[a2] = await ct(e2, 1600), t2 = t2 || rt();
-    const n2 = { id: r(), type: "img", imgId: a2, filter: o2 || "antiga", opts: {}, x: t2.x, y: t2.y, w: 300, rot: 10 * (Math.random() - 0.5), scale: 1, z: st(), seed: 1e9 * Math.random() | 0, parent: null };
+    p[a2] = await ct(e2, 2400), t2 = t2 || rt();
+    const n2 = { id: r(), type: "img", imgId: a2, filter: o2 || "original", opts: {}, x: t2.x, y: t2.y, w: 300, rot: 10 * (Math.random() - 0.5), scale: 1, z: st(), seed: 1e9 * Math.random() | 0, parent: null };
     return $(), u.items.push(n2), await Fe(n2), mt(n2.id), yt("select"), Nt("drop"), E(), n2;
   }
   async function ct(e2, t2) {
@@ -923,6 +923,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     o2.id = r(), o2.x += 30, o2.y += 30, o2.z = st(), o2.seed = (o2.seed || 1) + 7, o2.parent = null, delete o2.box, delete o2.hid, $(), u.items.push(o2), Fe(o2), mt(o2.id), E();
   }
   function mt(e2) {
+    document.body.classList.remove("pin-selected");
     if (h = e2, g = null, e2 && (v = null, document.querySelectorAll(".pin.psel").forEach((e3) => e3.classList.remove("psel"))), document.querySelectorAll(".it.sel").forEach((e3) => e3.classList.remove("sel")), e2) {
       const t2 = document.getElementById("it-" + e2);
       t2 && t2.classList.add("sel");
@@ -932,7 +933,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     vt();
   }
   function ht(e2) {
-    mt(null), v = e2, document.querySelectorAll(".pin").forEach((t2) => t2.classList.toggle("psel", t2.dataset.pin === e2)), vt();
+    mt(null), v = e2, document.body.classList.add("pin-selected"), document.querySelectorAll(".pin").forEach((t2) => t2.classList.toggle("psel", t2.dataset.pin === e2)), vt();
   }
   function gt(e2) {
     return String(e2 ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
@@ -955,10 +956,12 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     });
     if (v) {
       const o3 = u.pins.find((e3) => e3.id === v);
-      return o3 ? (e2.innerHTML = `<h3>Alfinete</h3><div class="row"><span class="lbl">Cor</span><div class="sw" id="pPinSw">${Be.map((e3) => `<button style="background:${e3}" data-c="${e3}" class="${o3.color === e3 ? "on" : ""}"></button>`).join("")}</div></div><div class="row"><span class="lbl">Tamanho</span><input type="range" id="pSize2" min="50" max="250" value="${Math.round(100 * (o3.size || 1))}"></div><div class="btns"><button class="b red" id="pDel">Apagar alfinete</button></div><div class="hint">Arraste o alfinete para outro item. Bot\xE3o direito tamb\xE9m apaga.</div>`, e2.classList.add("show"), e2.querySelectorAll("#pPinSw button").forEach((e3) => e3.onclick = () => {
+      return o3 ? (e2.innerHTML = `<h3>Alfinete</h3><div class="row"><span class="lbl">Cor</span><div class="sw" id="pPinSw">${Be.map((e3) => `<button style="background:${e3}" data-c="${e3}" class="${o3.color === e3 ? "on" : ""}"></button>`).join("")}</div></div><div class="row"><span class="lbl">Tamanho</span><input type="range" id="pSize2" min="50" max="250" value="${Math.round(100 * (o3.size || 1))}"></div><div class="btns"><button class="b" id="pConnect">Conectar a outra pista</button><button class="b red" id="pDel">Apagar alfinete</button></div><div class="hint">Arraste o alfinete para outra pista. Use “Conectar a outra pista” para criar uma ligação. O botão direito apaga somente alfinetes seus.</div>`, e2.classList.add("show"), e2.querySelectorAll("#pPinSw button").forEach((e3) => e3.onclick = () => {
         $(), o3.color = e3.dataset.c, u.pinColor = o3.color, Ne(o3), Xe(), vt(), E();
       }), t("#pSize2").oninput = (e3) => {
         o3.size = +e3.target.value / 100, u.pinSize = o3.size, Ne(o3), E();
+      }, t("#pConnect").onclick = () => {
+        yt("string"), xt = o3, document.getElementById("pin-" + o3.id)?.classList.add("pend"), Nt("pin"), St("Toque em outra pista ou alfinete para conectar");
       }, void (t("#pDel").onclick = () => {
         $(), Ye(o3.id), vt(), E();
       })) : void e2.classList.remove("show");
@@ -1135,13 +1138,13 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
       return;
     }
     if ("cont" === y) return Wo(n2), void yt("select");
-    if ("pin" === y) return Qe(e2, n2), Nt("pin"), void yt("select");
+    if ("pin" === y) { const p2 = Qe(e2, n2); Nt("pin"), yt("select"), ht(p2.id); return; }
     if ("string" === y) {
       let t3 = i2 ? u.pins.find((e3) => e3.id === i2.dataset.pin) : Qe(e2, n2);
       if (Nt("pin"), xt) {
         if (t3.id !== xt.id) {
           $();
-          const e3 = { id: r(), a: xt.id, b: t3.id, color: u.ropeColor || "#b3121c", slack: 1.06 };
+          const e3 = { id: r(), a: xt.id, b: t3.id, color: u.ropeColor || "#b3121c", slack: 1.06, by: Ks ? (window.CRIS_BOARD_OWNER_ID || Os.me) : "host" };
           u.strings.push(e3), et(e3), document.querySelectorAll(".pin.pend").forEach((e4) => e4.classList.remove("pend")), xt = null, Nt("string"), yt("select"), E();
         }
       } else xt = t3, document.getElementById("pin-" + t3.id).classList.add("pend");
@@ -1298,7 +1301,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
         }
       }
     })) : R.pop(), bt = null, void E();
-    if ("pan" === bt.mode) return I(), bt.rb && !bt.moved && bt.pin && ($(), Ye(bt.pin), vt(), E()), void (bt = null);
+    if ("pan" === bt.mode) return I(), bt.rb && !bt.moved && bt.pin && (Ks && u.pins.find((p2) => p2.id === bt.pin)?.by !== (window.CRIS_BOARD_OWNER_ID || Os.me) ? St("Voc\xEA s\xF3 pode apagar alfinetes que criou") : ($(), Ye(bt.pin), vt(), E())), void (bt = null);
     if ("scratch" === bt.mode) {
       const e3 = bt.it;
       if (bt.moved) {
@@ -5153,7 +5156,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     };
     Hm2("Enigmas", ["transp", "bloco", "balanca", "peso", "lacre"]), Hm2("Laborat\xF3rio", ["leitor", "mesaluz", "revelador", "pendulo"]);
   }
-  const Fs = new URL("./",location.href).href, zs = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js", Is = new URLSearchParams(location.search), Us = (window.CRISBridge.archiveId ? (window.CRIS_IDENTITY.isMaster ? "" : "ARCHIVE") : (Is.get("sala") || (window.CRIS_IDENTITY.isMaster ? "" : "CASO26107"))).toUpperCase().replace(/[^A-Z0-9]/g, ""), Ks = !!Us, Bs = Ks, Os = { me: Ks ? "p" + Math.random().toString(36).slice(2, 8) : "host", name: window.CRIS_IDENTITY.name || "Mestre", links: /* @__PURE__ */ new Set(), sent: /* @__PURE__ */ new Map(), sentPose: /* @__PURE__ */ new Map(), sentPins: "", sentGlob: "", peer: null, code: null, st: "", ready: !Ks, fx: {}, cur: {}, echo: false, q: Promise.resolve(), soonT: 0, myFx: "", myCur: null, lastCur: "", rtune: false }, js = /* @__PURE__ */ new Set(["_scr", "_scan", "_sum"]), Ds = ["x", "y", "rot", "scale", "z"], Ns = ["surface", "light", "lampOff", "amb"];
+  const Fs = new URL("./",location.href).href, zs = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js", Is = new URLSearchParams(location.search), Us = (window.CRISBridge.archiveId ? (window.CRIS_IDENTITY.isMaster ? "" : "ARCHIVE") : (Is.get("sala") || (window.CRIS_IDENTITY.isMaster ? "" : "CASO26107"))).toUpperCase().replace(/[^A-Z0-9]/g, ""), Ks = !!Us, Bs = Ks, Os = { me: Ks ? "p" + (window.CRIS_PLAYER_ID || Math.random().toString(36).slice(2, 8)) : "host", name: window.CRIS_IDENTITY.name || "Mestre", links: /* @__PURE__ */ new Set(), sent: /* @__PURE__ */ new Map(), sentPose: /* @__PURE__ */ new Map(), sentPins: "", sentGlob: "", peer: null, code: null, st: "", ready: !Ks, fx: {}, cur: {}, echo: false, q: Promise.resolve(), soonT: 0, myFx: "", myCur: null, lastCur: "", rtune: false }, js = /* @__PURE__ */ new Set(["_scr", "_scan", "_sum"]), Ds = ["x", "y", "rot", "scale", "z"], Ns = ["surface", "light", "lampOff", "amb"];
   function Hs(e2) {
     return JSON.stringify(e2, function(t2, o2) {
       if ((this !== e2 || !Ds.includes(t2)) && ("_" !== t2[0] || js.has(t2))) return o2;
@@ -5201,7 +5204,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     }
     for (const e3 of [...Os.sent.keys()]) o2.has(e3) || (Os.sent.delete(e3), Os.sentPose.delete(e3), t2.push(e3));
     const a2 = { t: "ops", from: Os.me, up: e2, del: t2 }, n2 = JSON.stringify([u.pins, u.strings]), i2 = Gs();
-    return n2 !== Os.sentPins && (Os.sentPins = n2, a2.pins = u.pins, a2.strings = u.strings), i2 !== Os.sentGlob && (Os.sentGlob = i2, a2.glob = {}, Ns.forEach((e3) => a2.glob[e3] = u[e3])), e2.length || t2.length || a2.pins || a2.glob ? a2 : null;
+    return n2 !== Os.sentPins && (Os.sentPins = n2, a2.pins = u.pins, a2.strings = u.strings), !Ks && i2 !== Os.sentGlob && (Os.sentGlob = i2, a2.glob = {}, Ns.forEach((e3) => a2.glob[e3] = u[e3])), e2.length || t2.length || a2.pins || a2.glob ? a2 : null;
   }
   function or(e2, t2) {
     for (const o2 of Os.links) {
@@ -5508,7 +5511,10 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     }
   }
   if (Ks) {
+    const saveLocalPlayerBoard = E;
     E = function() {
+      for (const e2 of u.items) !Os.sent.has(e2.id) && !e2.by && (e2.by = window.CRIS_BOARD_OWNER_ID || Os.me);
+      if (window.CRISBridge.archiveId) return saveLocalPlayerBoard();
       void 0 !== co && co && (clearTimeout(C), C = setTimeout(go, 120)), nr();
     }, $o.lacre.tick = function(e2, t2) {
       const o2 = t2.querySelector(".lheat");
@@ -5526,14 +5532,19 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       }
       e2.solved = o2;
     };
-    const Zm2 = (e2) => e2 && e2.by === Os.me;
+    const boardOwnerId = () => window.CRIS_BOARD_OWNER_ID || Os.me;
+    const Zm2 = (e2) => window.CRIS_IS_BOARD_OWNER ? window.CRIS_IS_BOARD_OWNER(e2, boardOwnerId()) : e2 && e2.by === boardOwnerId();
     addEventListener("keydown", (e2) => {
       if (e2.target.closest && e2.target.closest("input,textarea,[contenteditable=true]")) return;
       const t2 = e2.key.toLowerCase();
       if ((e2.ctrlKey || e2.metaKey) && ["y", "d"].includes(t2)) return e2.preventDefault(), void e2.stopImmediatePropagation();
-      ["i", "k"].includes(t2) ? e2.stopImmediatePropagation() : "delete" !== t2 && "backspace" !== t2 || !h || Zm2(K(h)) || (e2.stopImmediatePropagation(), St("S\xF3 o mestre pode tirar isso da mesa"));
+      ["i", "k"].includes(t2) ? e2.stopImmediatePropagation() : "delete" !== t2 && "backspace" !== t2 || (h ? Zm2(K(h)) : v ? Zm2(u.pins.find((p2) => p2.id === v)) : g ? Zm2(u.strings.find((s2) => s2.id === g)) : true) || (e2.stopImmediatePropagation(), St("Voc\xEA s\xF3 pode apagar itens que criou"));
     }, true), addEventListener("click", (e2) => {
-      e2.target.closest && e2.target.closest('[data-q="del"]') && h && !Zm2(K(h)) && (e2.stopImmediatePropagation(), e2.preventDefault(), St("S\xF3 o mestre pode tirar isso da mesa"));
+      if (e2.target.closest && e2.target.closest("#pDel") && v && !Zm2(u.pins.find((p2) => p2.id === v))) {
+        e2.stopImmediatePropagation(), e2.preventDefault(), St("Voc\xEA s\xF3 pode apagar alfinetes que criou");
+        return;
+      }
+      e2.target.closest && e2.target.closest('[data-q="del"]') && h && !Zm2(K(h)) && (e2.stopImmediatePropagation(), e2.preventDefault(), St("Voc\xEA s\xF3 pode apagar itens que criou"));
     }, true);
   }
   function Ar(e2, o2) {
@@ -5545,7 +5556,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     i2 && (i2.textContent = e2);
   }
   async function kr() {
-    if(window.CRISBridge.archiveId)return;
+    if(window.CRISBridge.archiveId){if(Ks)document.body.classList.add("player");return;}
     document.body.classList.add("player");
     let e2 = "";
     try {
@@ -11566,7 +11577,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     return "go" === t2;
   }
   Ns.push("fx");
-  const Af = { estilo: "cartoon", fumaca: true, nevoa: 0, brasas: false, poeira: false, liq: true }, kf = [], Mf = [], Sf = {}, Tf = {};
+  const Af = { estilo: "cartoon", fumaca: false, nevoa: 0, brasas: false, poeira: false, liq: false }, kf = [], Mf = [], Sf = {}, Tf = {};
   let Cf = null;
   const Ef = Object.assign({ leve: false }, (() => {
     try {
@@ -12918,7 +12929,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
   }, 0);
   const th = true;
   var oh, ah;
-  lm = true, Object.assign(Af, { hw: true, cinzas: true, brasas: true, nevoa: 1 });
+  lm = true, Object.assign(Af, { hw: false, cinzas: false, brasas: false, nevoa: 0 });
   const nh = Object.assign({ aranha: false, gore: false }, (() => {
     try {
       const e2 = JSON.parse(localStorage.getItem("qi-hw") || "{}");
@@ -29528,7 +29539,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
       "function" == typeof Cm && Cm(e3);
     }
   })(), (async function() {
-    if(window.CRISBridge.archiveId&&!window.CRIS_IDENTITY.isMaster){document.body.classList.add("player","cris-archive-reader");try{const saved=await window.CRISBridge.loadBoard();await cr({s:JSON.stringify(saved.state),imgs:saved.imgs});window.CRIS_BOARD_SESSION.status("Quadro de arquivo · consulta pessoal");}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}window.QIL?.pronto();return;}
+    if(window.CRISBridge.archiveId&&!window.CRIS_IDENTITY.isMaster){document.body.classList.add("player","cris-archive-reader");try{await k();const published=await window.CRISBridge.loadBoard();const local=await M(crisBoardStorageKey());const saved=window.CRIS_MERGE_PLAYER_ARCHIVE?window.CRIS_MERGE_PLAYER_ARCHIVE(published,local,window.CRIS_BOARD_OWNER_ID):published;await cr({s:JSON.stringify(saved.state),imgs:saved.imgs});Os.sent.clear();Os.sentPose.clear();for(const item of u.items){Os.sent.set(item.id,Hs(item));Os.sentPose.set(item.id,Vs(item));}window.CRIS_BOARD_SESSION.status("Quadro de arquivo · consulta pessoal");}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}window.QIL?.pronto();return;}
     if ((location.search.includes("obs") || location.hash.includes("obs")) && kt(false), at(), yt("select"), await document.fonts.ready, await Promise.all(["700 30px Hand", "30px Marker", "30px Typewriter", "700 30px News", "17px NewsR", "600 20px Cond", "40px Sigil"].map((e3) => document.fonts.load(e3).catch(() => 0))), Bs) return u = d(), u.items = [], u.pins = [], u.strings = [], await ze(), void kr();
                 const snapshot=()=>{const imgs={};for(const i of u.items)for(const k of ['imgId','audioId'])if(i[k]&&p[i[k]])imgs[i[k]]=p[i[k]];return {state:JSON.parse(JSON.stringify(u)),imgs};};
                 window.CRIS_BOARD_API={snapshot,persistLocal:value=>new Promise((resolve,reject)=>{if(!A){reject(Error('Não foi possível guardar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));return;}try{const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(value,crisBoardStorageKey());tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(Error('Não foi possível salvar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));}catch(error){reject(error);}}),save:()=>window.CRISBridge.saveBoard(snapshot()),visibility:async(id,visible)=>{
