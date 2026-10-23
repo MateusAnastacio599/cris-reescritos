@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getStablePeerId } from '../../quadro/player-identity.js';
+import { getStablePeerId, isOwnedBy } from '../../quadro/player-identity.js';
 
 class MemoryStorage {
   values = new Map();
@@ -34,4 +34,12 @@ test('falls back to a temporary id when session storage is unavailable', () => {
     storage: blockedStorage,
     random: () => 0.5,
   }), 'i');
+});
+
+test('only the author token is recognized as the owner of a board element', () => {
+  const pin = { id: 'pin-1', by: 'pabc123' };
+  assert.equal(isOwnedBy(pin, 'pabc123'), true);
+  assert.equal(isOwnedBy(pin, 'pother'), false);
+  assert.equal(isOwnedBy({ id: 'old-pin' }, 'pabc123'), false);
+  assert.equal(isOwnedBy(null, 'pabc123'), false);
 });
