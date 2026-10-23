@@ -10,7 +10,7 @@
         <link rel="stylesheet" href="base.css">
         <link rel="stylesheet" href="Halloween2026-1.css">
         <link rel="stylesheet" href="Halloween2026-2.css">
-<link rel="stylesheet" href="board-integration.css"><link rel="stylesheet" href="board-polish.css">
+<link rel="stylesheet" href="board-integration.css"><link rel="stylesheet" href="board-polish.css"><link rel="stylesheet" href="player-pin-actions.css">
     </head>
     <body class="ui">
         <div id="view">
@@ -433,9 +433,9 @@
         import {mountBoardSession} from './board-session.js';
         import {mountCluePanel} from './board-clue-panel.js';
         import {installMobileBoardUX} from './mobile-board-ux.js';
-        import {getStablePeerId} from './player-identity.js';
+        import {getStablePeerId, isOwnedBy} from './player-identity.js';
         window.CRISMOUNT_CLUE_PANEL=mountCluePanel;
-        window.CRISBridge=CRISBridge;
+        window.CRISBridge=CRISBridge;window.CRIS_IS_BOARD_OWNER=isOwnedBy;
         try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;window.CRIS_PLAYER_ID=getStablePeerId(identity.userId);await mountBoardSession(identity);installMobileBoardUX();const script=document.createElement('script');script.src='quadro-cris-v7.js';document.body.append(script);}}
         catch(error){document.body.textContent='Não foi possível confirmar o acesso. Volte ao CRIS e entre novamente.';}
         </script>
