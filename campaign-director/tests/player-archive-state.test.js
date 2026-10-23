@@ -20,7 +20,7 @@ test('merges only a player’s own saved annotations into the latest published b
     state: {
       items: [
         { id: 'master-clue', type: 'img', by: 'host', text: 'stale local version' },
-        { id: 'player-note', type: 'note', by: OWNER, text: 'Minha observação' },
+        { id: 'player-note', type: 'note', imgId: 'player-note-image', by: OWNER, text: 'Minha observação' },
         { id: 'other-player-note', type: 'note', by: 'owner-other', text: 'Outra pessoa' },
       ],
       pins: [
