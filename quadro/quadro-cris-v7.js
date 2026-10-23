@@ -5530,7 +5530,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       }
       e2.solved = o2;
     };
-    const Zm2 = (e2) => e2 && e2.by === Os.me;
+    const Zm2 = (e2) => window.CRIS_IS_BOARD_OWNER ? window.CRIS_IS_BOARD_OWNER(e2, Os.me) : e2 && e2.by === Os.me;
     addEventListener("keydown", (e2) => {
       if (e2.target.closest && e2.target.closest("input,textarea,[contenteditable=true]")) return;
       const t2 = e2.key.toLowerCase();
