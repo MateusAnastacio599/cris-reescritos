@@ -30,7 +30,7 @@ test('pins and connections record stable ownership and can be connected explicit
 test('saved-board annotations are local, merged with publication and ownership is stable', () => {
   assert.match(engine, /if \(window\.CRISBridge\.archiveId\) return saveLocalPlayerBoard\(\)/);
   assert.match(engine, /window\.CRIS_MERGE_PLAYER_ARCHIVE\?window\.CRIS_MERGE_PLAYER_ARCHIVE/);
-  assert.match(engine, /for \(const item of u\.items\)\{Os\.sent\.set\(item\.id,Hs\(item\)\)/);
+  assert.match(engine, /Os\.sent\.clear\(\);Os\.sentPose\.clear\(\);for\(const item of u\.items\)\{Os\.sent\.set\(item\.id,Hs\(item\)\)/);
   assert.match(boardHtml, /window\.CRIS_IS_BOARD_OWNER=isOwnedBy/);
   assert.match(boardHtml, /window\.CRIS_BOARD_OWNER_ID=getStableBoardOwnerId/);
   assert.match(pinCss, /body\.player\.pin-selected #props/);
