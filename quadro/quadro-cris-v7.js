@@ -11567,7 +11567,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     return "go" === t2;
   }
   Ns.push("fx");
-  const Af = { estilo: "cartoon", fumaca: true, nevoa: 0, brasas: false, poeira: false, liq: true }, kf = [], Mf = [], Sf = {}, Tf = {};
+  const Af = { estilo: "cartoon", fumaca: !Ks, nevoa: 0, brasas: false, poeira: false, liq: !Ks }, kf = [], Mf = [], Sf = {}, Tf = {};
   let Cf = null;
   const Ef = Object.assign({ leve: false }, (() => {
     try {
