@@ -18,3 +18,7 @@ export function getStablePeerId(userId, {
     return createId();
   }
 }
+
+export function isOwnedBy(entity, ownerId) {
+  return Boolean(entity && ownerId && entity.by === ownerId);
+}
