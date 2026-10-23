@@ -785,7 +785,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     let a2;
     if (o2) {
       const e3 = j(o2, t2.x, t2.y);
-      a2 = { id: r(), item: o2.id, lx: e3.x, ly: e3.y, by: Ks ? Os.me : "host" };
+      a2 = { id: r(), item: o2.id, lx: e3.x, ly: e3.y, by: Ks ? (window.CRIS_BOARD_OWNER_ID || Os.me) : "host" };
     } else a2 = { id: r(), item: null, lx: t2.x, ly: t2.y, by: Ks ? Os.me : "host" };
     return a2.color = u.pinColor, a2.size = u.pinSize || 1, $(), u.pins.push(a2), Ne(a2), E(), a2;
   }
@@ -1301,7 +1301,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
         }
       }
     })) : R.pop(), bt = null, void E();
-    if ("pan" === bt.mode) return I(), bt.rb && !bt.moved && bt.pin && (Ks && u.pins.find((p2) => p2.id === bt.pin)?.by !== Os.me ? St("Voc\xEA s\xF3 pode apagar alfinetes que criou") : ($(), Ye(bt.pin), vt(), E())), void (bt = null);
+    if ("pan" === bt.mode) return I(), bt.rb && !bt.moved && bt.pin && (Ks && u.pins.find((p2) => p2.id === bt.pin)?.by !== (window.CRIS_BOARD_OWNER_ID || Os.me) ? St("Voc\xEA s\xF3 pode apagar alfinetes que criou") : ($(), Ye(bt.pin), vt(), E())), void (bt = null);
     if ("scratch" === bt.mode) {
       const e3 = bt.it;
       if (bt.moved) {
@@ -5511,8 +5511,10 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     }
   }
   if (Ks) {
+    const saveLocalPlayerBoard = E;
     E = function() {
-      for (const e2 of u.items) !Os.sent.has(e2.id) && !e2.by && (e2.by = Os.me);
+      for (const e2 of u.items) !Os.sent.has(e2.id) && !e2.by && (e2.by = window.CRIS_BOARD_OWNER_ID || Os.me);
+      if (window.CRISBridge.archiveId) return saveLocalPlayerBoard();
       void 0 !== co && co && (clearTimeout(C), C = setTimeout(go, 120)), nr();
     }, $o.lacre.tick = function(e2, t2) {
       const o2 = t2.querySelector(".lheat");
@@ -5530,7 +5532,8 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       }
       e2.solved = o2;
     };
-    const Zm2 = (e2) => window.CRIS_IS_BOARD_OWNER ? window.CRIS_IS_BOARD_OWNER(e2, Os.me) : e2 && e2.by === Os.me;
+    const boardOwnerId = () => window.CRIS_BOARD_OWNER_ID || Os.me;
+    const Zm2 = (e2) => window.CRIS_IS_BOARD_OWNER ? window.CRIS_IS_BOARD_OWNER(e2, boardOwnerId()) : e2 && e2.by === boardOwnerId();
     addEventListener("keydown", (e2) => {
       if (e2.target.closest && e2.target.closest("input,textarea,[contenteditable=true]")) return;
       const t2 = e2.key.toLowerCase();
@@ -29536,7 +29539,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
       "function" == typeof Cm && Cm(e3);
     }
   })(), (async function() {
-    if(window.CRISBridge.archiveId&&!window.CRIS_IDENTITY.isMaster){document.body.classList.add("player","cris-archive-reader");try{const saved=await window.CRISBridge.loadBoard();await cr({s:JSON.stringify(saved.state),imgs:saved.imgs});window.CRIS_BOARD_SESSION.status("Quadro de arquivo · consulta pessoal");}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}window.QIL?.pronto();return;}
+    if(window.CRISBridge.archiveId&&!window.CRIS_IDENTITY.isMaster){document.body.classList.add("player","cris-archive-reader");try{await k();const published=await window.CRISBridge.loadBoard();const local=await M(crisBoardStorageKey());const saved=window.CRIS_MERGE_PLAYER_ARCHIVE?window.CRIS_MERGE_PLAYER_ARCHIVE(published,local,window.CRIS_BOARD_OWNER_ID):published;await cr({s:JSON.stringify(saved.state),imgs:saved.imgs});Os.sent.clear();Os.sentPose.clear();for(const item of u.items){Os.sent.set(item.id,Hs(item));Os.sentPose.set(item.id,Vs(item));}window.CRIS_BOARD_SESSION.status("Quadro de arquivo · consulta pessoal");}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}window.QIL?.pronto();return;}
     if ((location.search.includes("obs") || location.hash.includes("obs")) && kt(false), at(), yt("select"), await document.fonts.ready, await Promise.all(["700 30px Hand", "30px Marker", "30px Typewriter", "700 30px News", "17px NewsR", "600 20px Cond", "40px Sigil"].map((e3) => document.fonts.load(e3).catch(() => 0))), Bs) return u = d(), u.items = [], u.pins = [], u.strings = [], await ze(), void kr();
                 const snapshot=()=>{const imgs={};for(const i of u.items)for(const k of ['imgId','audioId'])if(i[k]&&p[i[k]])imgs[i[k]]=p[i[k]];return {state:JSON.parse(JSON.stringify(u)),imgs};};
                 window.CRIS_BOARD_API={snapshot,persistLocal:value=>new Promise((resolve,reject)=>{if(!A){reject(Error('Não foi possível guardar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));return;}try{const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(value,crisBoardStorageKey());tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(Error('Não foi possível salvar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));}catch(error){reject(error);}}),save:()=>window.CRISBridge.saveBoard(snapshot()),visibility:async(id,visible)=>{
