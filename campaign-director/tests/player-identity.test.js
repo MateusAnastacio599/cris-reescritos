@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getStablePeerId, isOwnedBy } from '../../quadro/player-identity.js';
+import { getStablePeerId, getStableBoardOwnerId, isOwnedBy } from '../../quadro/player-identity.js';
 
 class MemoryStorage {
   values = new Map();
@@ -42,4 +42,22 @@ test('only the author token is recognized as the owner of a board element', () =
   assert.equal(isOwnedBy(pin, 'pother'), false);
   assert.equal(isOwnedBy({ id: 'old-pin' }, 'pabc123'), false);
   assert.equal(isOwnedBy(null, 'pabc123'), false);
+});
+
+test('persistent owner token survives new tabs and reloads for the same account', () => {
+  const sharedLocalStorage = new MemoryStorage();
+  const firstTab = getStableBoardOwnerId('user-1', { storage: sharedLocalStorage, random: () => 0.314159 });
+  const secondTab = getStableBoardOwnerId('user-1', { storage: sharedLocalStorage, random: () => 0.271828 });
+  const otherAccount = getStableBoardOwnerId('user-2', { storage: sharedLocalStorage, random: () => 0.161803 });
+  assert.equal(firstTab, secondTab);
+  assert.notEqual(firstTab, otherAccount);
+});
+
+test('falls back safely if persistent storage is blocked', () => {
+  const blockedStorage = {
+    getItem() { throw new Error('blocked'); },
+    setItem() { throw new Error('blocked'); },
+  };
+  const owner = getStableBoardOwnerId('user-1', { storage: blockedStorage, random: () => 0.5 });
+  assert.match(owner, /^owner-/);
 });
