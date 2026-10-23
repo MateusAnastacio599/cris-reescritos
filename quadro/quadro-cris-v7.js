@@ -786,7 +786,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     if (o2) {
       const e3 = j(o2, t2.x, t2.y);
       a2 = { id: r(), item: o2.id, lx: e3.x, ly: e3.y, by: Ks ? (window.CRIS_BOARD_OWNER_ID || Os.me) : "host" };
-    } else a2 = { id: r(), item: null, lx: t2.x, ly: t2.y, by: Ks ? Os.me : "host" };
+    } else a2 = { id: r(), item: null, lx: t2.x, ly: t2.y, by: Ks ? (window.CRIS_BOARD_OWNER_ID || Os.me) : "host" };
     return a2.color = u.pinColor, a2.size = u.pinSize || 1, $(), u.pins.push(a2), Ne(a2), E(), a2;
   }
   function Ye(e2) {
@@ -1144,7 +1144,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
       if (Nt("pin"), xt) {
         if (t3.id !== xt.id) {
           $();
-          const e3 = { id: r(), a: xt.id, b: t3.id, color: u.ropeColor || "#b3121c", slack: 1.06, by: Ks ? Os.me : "host" };
+          const e3 = { id: r(), a: xt.id, b: t3.id, color: u.ropeColor || "#b3121c", slack: 1.06, by: Ks ? (window.CRIS_BOARD_OWNER_ID || Os.me) : "host" };
           u.strings.push(e3), et(e3), document.querySelectorAll(".pin.pend").forEach((e4) => e4.classList.remove("pend")), xt = null, Nt("string"), yt("select"), E();
         }
       } else xt = t3, document.getElementById("pin-" + t3.id).classList.add("pend");
