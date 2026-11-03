@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {personalBoardLayer,mergePersonalBoard} from '../integration-main/quadro/board-rules.js';
+const base={state:{items:[{id:'clue',text:'old',x:1,y:2}],pins:[{id:'gm',item:'clue'}],strings:[],fx:{hw:true,nevoa:2}},imgs:{old:'old image'}};
+const note={id:'note',type:'note',text:'My deduction',crisOwner:'alice',x:3,y:4};
+test('new publication preserves personal notes, pins, connections and layout, with latest published text',()=>{
+ const current=structuredClone(base);current.state.items[0].x=100;current.state.items.push(note);current.state.pins.push({id:'p',crisOwner:'alice',item:'note'});current.state.strings.push({id:'s',a:'p',b:'gm',crisOwner:'alice'});
+ const layer=personalBoardLayer(base,current,'alice'),updated=structuredClone(base);updated.state.items[0].text='new';updated.state.items.push({id:'new-clue'});
+ const merged=mergePersonalBoard(updated,JSON.parse(JSON.stringify(layer)),'alice');assert.equal(merged.state.items[0].text,'new');assert.equal(merged.state.items[0].x,100);assert.ok(merged.state.items.some(x=>x.id==='new-clue'));assert.equal(merged.state.items.find(x=>x.id==='note').text,'My deduction');assert.equal(merged.state.strings.length,1);assert.equal(merged.state.fx.hw,false);assert.equal(merged.state.fx.nevoa,0);assert.equal(base.state.items[0].text,'old');
+});
+test('deleting own pins and notes persists, including deletion of connected strings',()=>{const current=structuredClone(base);const layer=personalBoardLayer(base,current,'alice');assert.equal(mergePersonalBoard(base,layer,'alice').state.items.length,1);assert.deepEqual(layer.pins,[]);assert.deepEqual(layer.strings,[]);});
+test('other players layers are isolated; removed published endpoints cannot leave invalid ropes',()=>{const layer={version:1,items:[note,{id:'bob',crisOwner:'bob'}],pins:[{id:'p',item:'note',crisOwner:'alice'},{id:'missing',item:'removed-clue',crisOwner:'alice'}],strings:[{id:'valid',a:'p',b:'gm',crisOwner:'alice'},{id:'dangling',a:'p',b:'missing',crisOwner:'alice'}]};const result=mergePersonalBoard(base,layer,'alice');assert.ok(!result.state.items.some(x=>x.id==='bob'));assert.deepEqual(result.state.strings.map(x=>x.id),['valid']);assert.equal(mergePersonalBoard(base,layer,'bob').state.items.some(x=>x.id==='note'),false);});
