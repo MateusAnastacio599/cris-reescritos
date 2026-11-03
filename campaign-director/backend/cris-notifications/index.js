@@ -24,7 +24,7 @@ Deno.serve(async req=>{
   if(existing&&(existing.created_by!==user.id||existing.campaign_id!==campaign.id||existing.audience!==body.audience))return response({error:'Identificador já utilizado.'},409);
   if(!notice){
    const since=new Date(Date.now()-60000).toISOString(),count=await admin.from('operation_notices').select('id',{count:'exact',head:true}).eq('created_by',user.id).gte('created_at',since);if(count.error)throw Error('Falha na verificação de envio.');if(count.count>=10)return response({error:'Aguarde um minuto antes de enviar novamente.'},429);
-   const payload=payloadForAudience(body.payload,body.audience,campaign.id);
+   const payload=payloadForAudience(body.payload,body.audience,campaign.id,body.testKind);
    const row={id:body.noticeId,campaign_id:campaign.id,created_by:user.id,audience:body.audience,payload};
    const inserted=await admin.from('operation_notices').insert(row).select('*').single();
    if(inserted.error?.code==='23505'){notice=ok(await admin.from('operation_notices').select('*').eq('id',body.noticeId).eq('created_by',user.id).eq('campaign_id',campaign.id).eq('audience',body.audience).single());}else notice=ok(inserted);
@@ -39,7 +39,7 @@ Deno.serve(async req=>{
    const claim=await admin.from('notice_push_deliveries').update({status:'sending',updated_at:new Date().toISOString()}).eq('notice_id',notice.id).eq('subscription_id',device.id).or('status.in.(pending,failed),and(status.eq.sending,updated_at.lt.'+new Date(Date.now()-120000).toISOString()+')').select('notice_id').maybeSingle();if(claim.error){failed++;return;}if(!claim.data){skipped++;return;}
    try{
     const subscription=validPushSubscription(device.subscription),base=allowedAppBase(device.app_base);
-    const message=JSON.stringify({id:notice.id,title:notice.payload.title,body:notice.payload.summary,url:noticeLink(base,notice.id),test:notice.audience==='self'});
+    const message=JSON.stringify({id:notice.id,title:notice.payload.title,body:notice.payload.summary,url:noticeLink(base,notice.id),test:notice.audience==='self',alertAt:notice.created_at});
     await webpush.sendNotification(subscription,message,{TTL:86400,urgency:'normal',timeout:10000,vapidDetails:{subject:'https://mateusanastacio599.github.io/cris-reescritos/',publicKey:config.public_key,privateKey:config.private_key}});
     ok(await admin.from('notice_push_deliveries').update({status:'sent',updated_at:new Date().toISOString()}).eq('notice_id',notice.id).eq('subscription_id',device.id));accepted++;
    }catch(error){failed++;if([404,410].includes(error.statusCode))await admin.from('cris_push_subscriptions').delete().eq('id',device.id);else await admin.from('notice_push_deliveries').update({status:'failed',updated_at:new Date().toISOString()}).eq('notice_id',notice.id).eq('subscription_id',device.id);}

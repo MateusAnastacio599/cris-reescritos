@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     topAgentClearance.textContent = agent.clearance.replace('NÍVEL DE ACESSO:', 'NÍVEL');
     applyAccessMode(key, agent);
     mountCaseBoards(agent).catch(()=>{});
-    import('./notifications.js?v=320').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
+    import('./notifications.js?v=321').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
 
     login.classList.add('authenticated');
 
