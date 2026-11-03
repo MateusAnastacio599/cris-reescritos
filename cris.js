@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     topAgentClearance.textContent = agent.clearance.replace('NÍVEL DE ACESSO:', 'NÍVEL');
     applyAccessMode(key, agent);
     mountCaseBoards(agent).catch(()=>{});
+    import('./notifications.js?v=320').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
 
     login.classList.add('authenticated');
 
@@ -77,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // retorna automaticamente para a mesma sala após autenticar.
       try {
         const pendingBoard = localStorage.getItem('cris_quadro_retorno');
+        if (pendingBoard && new URL(location.href).searchParams.has('notice')) { localStorage.removeItem('cris_quadro_retorno'); return; }
         if (pendingBoard) {
           const target = new URL(pendingBoard, window.location.href);
           const sameOrigin = target.origin === window.location.origin;
@@ -154,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
      ENCERRAR SESSÃO
      ========================================================= */
 
-  logout.addEventListener('click',async()=>{try{await CRISBridge.logout();localStorage.removeItem(STORAGE_KEY);location.reload();}catch(e){error.textContent='Não foi possível encerrar a sessão.';}});
+  logout.addEventListener('click',async()=>{try{await window.CRIS_NOTIFICATIONS?.beforeLogout();await CRISBridge.logout();localStorage.removeItem(STORAGE_KEY);location.reload();}catch(e){error.textContent='Não foi possível encerrar a sessão.';}});
 
 
   /* =========================================================
