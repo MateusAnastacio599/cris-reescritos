@@ -1,3 +1,4 @@
+import {sceneEffects} from './quadro/board-rules.js';
 // Saved case boards use independent GM drafts and explicit player publications.
 export const archiveIdFrom = search => {const id=new URLSearchParams(search).get('board');if(!id)return null;if(!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id))throw Error('Código de quadro inválido.');return id;};
 export function publishedBoard(snapshot){
@@ -6,7 +7,8 @@ export function publishedBoard(snapshot){
  const items=all.filter(i=>!blocked.has(i.id)).map(i=>JSON.parse(JSON.stringify(i,(k,v)=>k.startsWith('_')&&!['_scr','_scan','_sum'].includes(k)||['crisClue','crisClueName','gmNotes'].includes(k)?undefined:v)));
  const ids=new Set(items.map(i=>i.id)),pins=(source.pins||[]).filter(p=>!p.item||ids.has(p.item)),pinIds=new Set(pins.map(p=>p.id));
  const state={items,pins,strings:(source.strings||[]).filter(s=>pinIds.has(s.a)&&pinIds.has(s.b))};
- for(const k of ['surface','light','lampOff','cam','z'])if(source[k]!==undefined)state[k]=structuredClone(source[k]);
+ state.fx=sceneEffects(source.fx);
+ for(const k of ['surface','light','lampOff','cam','z','temp','san'])if(source[k]!==undefined)state[k]=structuredClone(source[k]);
  const imgs={};for(const i of items)for(const key of ['imgId','audioId'])if(i[key]&&snapshot.imgs?.[i[key]])imgs[i[key]]=snapshot.imgs[i[key]];
  return {state,imgs};
 }

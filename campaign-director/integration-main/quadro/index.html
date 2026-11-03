@@ -2,7 +2,7 @@
 <html lang="pt-BR">
     <head>
 
-        <meta name="qi-ver" content="CRIS 3.17">
+        <meta name="qi-ver" content="CRIS 3.18">
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔍</text></svg>">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
@@ -427,8 +427,10 @@
         <input type="file" id="fileArt" accept="image/*" hidden>
         <input type="file" id="fileAud" accept="audio/*" hidden>
         <input type="file" id="fileInto" accept="image/*" multiple hidden>
-        <script>self.QI_VER_SITE="CRIS 3.17";self.QI_BUILD_SITE="CRIS 3.17";</script>
+        <script>self.QI_VER_SITE="CRIS 3.18";self.QI_BUILD_SITE="CRIS 3.18";</script>
         <script type="module">
+        import {sceneEffects,ownsBoardItem,nearestPin} from './board-rules.js';
+        window.CRIS_BOARD_RULES={sceneEffects,ownsBoardItem,nearestPin};
         import {CRISBridge} from '../integration-bridge.js';
         import {mountBoardSession} from './board-session.js';
         import {mountCluePanel} from './board-clue-panel.js';
