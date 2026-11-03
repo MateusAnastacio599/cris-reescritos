@@ -1,5 +1,7 @@
 /*! Quadro Investigativo © Viquitor "Harden" Saldanha · hipsandhops.com.br · Todos os direitos reservados. */
 (function(){
+const crisPersonal=!!window.CRISBridge.archiveId&&!window.CRIS_IDENTITY.isMaster;
+let crisPublishedBase=null,crisPersonalReady=false;
 const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.CRIS_IDENTITY.userId+(window.CRISBridge.archiveId?":"+window.CRISBridge.archiveId:"");
 
   /*! Quadro Investigativo © Viquitor "Harden" Saldanha · hipsandhops.com.br · Todos os direitos reservados. */
@@ -707,7 +709,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   }
   async function ze() {
     Vt.clear(), t("#lampBtn") && t("#lampBtn").classList.toggle("off", !!u.lampOff), ko.length = 0, ro(), applySound(), a.innerHTML = "", n.innerHTML = "", Je.clear(), he(), oe();
-    for (const e2 of u.items) await Fe(e2);
+    if(crisPersonal){for(let start=0;start<u.items.length;start+=6)await Promise.all(u.items.slice(start,start+6).map(Fe));}else for (const e2 of u.items) await Fe(e2);
     u.pins.forEach(Ne), u.strings.forEach((e2) => et(e2)), Xe(), Ao(), vt(), q(), co && go();
   }
   function Ie(e2) {
@@ -787,6 +789,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
       const e3 = j(o2, t2.x, t2.y);
       a2 = { id: r(), item: o2.id, lx: e3.x, ly: e3.y };
     } else a2 = { id: r(), item: null, lx: t2.x, ly: t2.y };
+    if(!window.CRIS_IDENTITY.isMaster){a2.crisOwner=window.CRIS_IDENTITY.userId;a2.by=Os.me;}
     return a2.color = u.pinColor, a2.size = u.pinSize || 1, $(), u.pins.push(a2), Ne(a2), E(), a2;
   }
   function Ye(e2) {
@@ -1147,6 +1150,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
         if (t3.id !== xt.id) {
           $();
           const e3 = { id: r(), a: xt.id, b: t3.id, color: u.ropeColor || "#b3121c", slack: 1.06 };
+          if(!window.CRIS_IDENTITY.isMaster){e3.crisOwner=window.CRIS_IDENTITY.userId;e3.by=Os.me;}
           u.strings.push(e3), et(e3), document.querySelectorAll(".pin.pend").forEach((e4) => e4.classList.remove("pend")), xt = null, Nt("string"), yt("select"), E();
         }
       } else xt = t3, document.getElementById("pin-" + t3.id).classList.add("pend");
@@ -5229,6 +5233,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     e2 && or(e2);
   }
   function nr() {
+    if(crisPersonal){crisSavePersonal();return;}
     Ws() && (clearTimeout(Os.soonT), Os.soonT = setTimeout(ar, 110));
   }
   function ir(e2) {
@@ -7342,6 +7347,7 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
     u = $t(Object.assign(d(), e2)), u.ui = o2, await ze(), U(), E(), "function" == typeof ar && ar();
   }
   async function Gl() {
+    if(crisPersonal){Jl();return;}
     const e2 = t("#scenePanel"), o2 = await Nl();
     e2.innerHTML = `<div class="fl-h">Cenas salvas</div><div class="sc-row"><button class="b" id="scSave">\uFF0B Salvar a mesa atual como cena</button></div><div class="sc-list">${o2.length ? o2.map((e3) => `<div class="sc-it"><div><b>${gt(e3.name)}</b><span>${gt(e3.date)} \xB7 ${e3.n} itens</span></div><button class="b" data-ld="${e3.id}">Abrir</button><button class="b x" data-rm="${e3.id}" title="Apagar">\u2715</button></div>`).join("") : '<div class="hint">Nenhuma cena ainda. Prepare mesas antes da sess\xE3o e troque entre elas no meio do jogo.</div>'}</div>
     <div class="fl-h" style="margin-top:12px">Arquivo</div><div class="sc-tpl"><button class="b" id="scImg">Exportar imagem (PNG)</button><button class="b" id="scExp">Exportar mesa (arquivo)</button><button class="b" id="scImp">Importar mesa</button><button class="b" id="scNew">Nova mesa</button></div>
@@ -29519,31 +29525,34 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
       e3.preventDefault(), F(innerWidth / 2, innerHeight / 2, u.cam.z * Math.exp(15e-4 * -e3.deltaY));
     }, { passive: false });
   })();
-  const crisNoteActions=document.createElement('div');crisNoteActions.id='crisNoteActions';crisNoteActions.hidden=true;crisNoteActions.setAttribute('aria-label','Ações da nota');
-  crisNoteActions.innerHTML='<button type="button" data-edit>Editar texto</button><button type="button" data-done hidden>Concluir texto</button><button type="button" data-delete>Excluir minha nota</button>';
-  document.body.append(crisNoteActions);
-  const crisFinishNote=()=>{const el=document.querySelector('#view [contenteditable=true]');if(el){el.blur();el.contentEditable='false';}crisUpdateNoteActions();};
-  function crisUpdateNoteActions(){const item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me);crisNoteActions.hidden=!item||item.type!=='note'||!own;const editing=!!document.querySelector('#view .note[contenteditable=true]');crisNoteActions.querySelector('[data-edit]').hidden=editing;crisNoteActions.querySelector('[data-done]').hidden=!editing;crisNoteActions.querySelector('[data-delete]').hidden=editing;}
+  // Keep personal editing in the existing contextual toolbar.
+  const crisQA=t('#qa'),crisEdit=document.createElement('button');
+  crisEdit.id='crisEditText';crisEdit.type='button';crisEdit.title='Editar texto';crisEdit.setAttribute('aria-label','Editar texto');crisEdit.textContent='✎';crisQA.prepend(crisEdit);
+  const crisFinishNote=()=>{const el=document.querySelector('#view .note[contenteditable=true]');if(el){const item=h&&K(h);if(item)item.text=el.innerText;el.contentEditable='false';el.blur();_e(item?.id);u.strings.forEach(et);at();nt();E();if(crisPersonal)void crisSavePersonalNow();}crisUpdateNoteActions();};
+  function crisUpdateNoteActions(){const item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me),editing=!!document.querySelector('#view .note[contenteditable=true]');crisEdit.hidden=!item||item.type!=='note'||!own;crisEdit.textContent=editing?'✓':'✎';crisEdit.title=editing?'Concluir texto':'Editar texto';crisEdit.setAttribute('aria-label',crisEdit.title);}
   function crisEditNote(item){if(!item||!window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me))return;const el=document.getElementById('it-'+item.id)?.querySelector('.note');if(!el)return;$();el.contentEditable='true';el.setAttribute('role','textbox');el.setAttribute('aria-label','Texto do post-it');el.focus();const range=document.createRange();range.selectNodeContents(el);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);crisUpdateNoteActions();}
-  crisNoteActions.querySelector('[data-edit]').onclick=()=>crisEditNote(h&&K(h));
-  crisNoteActions.querySelector('[data-done]').onclick=crisFinishNote;
-  crisNoteActions.querySelector('[data-delete]').onclick=()=>{const item=h&&K(h);if(item&&window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me)){pt(item.id);crisUpdateNoteActions();}};
-  for(const event of ['pointerdown','pointerup','click'])crisNoteActions.addEventListener(event,e=>e.stopPropagation());
-  // A touch outside must commit the note before the engine intercepts a pan.
-  window.addEventListener('pointerdown',e=>{const active=document.activeElement;if(active?.matches('#view [contenteditable=true]')&&!active.contains(e.target)&&!crisNoteActions.contains(e.target))crisFinishNote();},true);
+  crisEdit.onclick=()=>document.querySelector('#view .note[contenteditable=true]')?crisFinishNote():crisEditNote(h&&K(h));
+  crisEdit.onpointerdown=e=>{e.preventDefault();e.stopPropagation();};
+  window.addEventListener('pointerdown',e=>{const active=document.activeElement;if(active?.matches('#view .note[contenteditable=true]')&&!active.contains(e.target)&&!crisQA.contains(e.target))crisFinishNote();},true);
   document.addEventListener('focusout',()=>requestAnimationFrame(crisUpdateNoteActions));
   const crisSelectNote=mt;mt=function(){const result=crisSelectNote.apply(this,arguments);crisUpdateNoteActions();return result;};
-  // On phones, creating a note opens its keyboard immediately. Existing notes
-  // have a visible Edit action and remain draggable with one finger.
   const crisCreateNote=dt;dt=function(){const item=crisCreateNote.apply(this,arguments);if(Wr())requestAnimationFrame(()=>crisEditNote(item));return item;};
+  const crisDrawQA=$a;$a=function(){crisDrawQA();const pin=v&&u.pins.find(p=>p.id===v),item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(pin||item,window.CRIS_IDENTITY,Os.me);crisQA.classList.toggle('cris-pin-actions',!!pin);crisQA.classList.toggle('cris-own-note',!!item&&item.type==='note'&&own);if(pin&&x&&!bt){crisQA.classList.add('show');const point=X(D(pin)),width=crisQA.offsetWidth||50;crisQA.style.transform=`translate(${c(point.x-width/2,8,innerWidth-width-8)}px,${c(point.y-80,70,innerHeight-150)}px)`;}const del=crisQA.querySelector('[data-q=del]');if(del)del.hidden=!own;crisUpdateNoteActions();};
+  window.addEventListener('click',e=>{if(!v||!e.target.closest?.('#qa [data-q=del]'))return;e.preventDefault();e.stopImmediatePropagation();const pin=u.pins.find(p=>p.id===v);if(window.CRIS_BOARD_RULES.ownsBoardItem(pin,window.CRIS_IDENTITY,Os.me)){$();Ye(v);vt();E();if(crisPersonal)void crisSavePersonalNow();crisQA.classList.remove('show');}},true);
+  window.addEventListener('keydown',e=>{if(!v||!['Delete','Backspace'].includes(e.key)||e.target.closest?.('input,textarea,[contenteditable=true]'))return;e.preventDefault();e.stopImmediatePropagation();const pin=u.pins.find(p=>p.id===v);if(window.CRIS_BOARD_RULES.ownsBoardItem(pin,window.CRIS_IDENTITY,Os.me)){$();Ye(v);E();if(crisPersonal)void crisSavePersonalNow();}},true);
+  let crisSaveTimer;
+  const crisSnapshot=()=>({state:JSON.parse(JSON.stringify(u)),imgs:Hl(),viewport:{width:innerWidth,height:innerHeight}});
+  async function crisSavePersonalNow(){if(!crisPersonalReady)return;clearTimeout(crisSaveTimer);const layer=window.CRIS_BOARD_RULES.personalBoardLayer(crisPublishedBase,crisSnapshot(),window.CRIS_IDENTITY.userId);await new Promise((resolve,reject)=>{if(!A)return reject(Error('Armazenamento local indisponível'));const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(layer,crisBoardStorageKey()+':personal');tx.oncomplete=resolve;tx.onerror=tx.onabort=()=>reject(tx.error||Error('Falha ao salvar anotações'));});window.CRIS_BOARD_SESSION.status('Suas anotações estão salvas neste navegador');}
+  function crisSavePersonal(){if(!crisPersonalReady)return;clearTimeout(crisSaveTimer);crisSaveTimer=setTimeout(()=>crisSavePersonalNow().catch(()=>window.CRIS_BOARD_SESSION.status('Não foi possível salvar neste navegador. Exporte uma imagem antes de sair.',true)),180);}
+  if(crisPersonal){document.addEventListener('visibilitychange',()=>{if(document.hidden)crisSavePersonalNow().catch(()=>{});});addEventListener('pagehide',()=>crisSavePersonalNow().catch(()=>{}));}
   let frame = 0;
   !(function e2() {
     requestAnimationFrame(e2);
     try {
       frame++, frame % 8 == 0 && Ps(), frame % 20 == 0 && os(), Wi(), frame % 30 == 0 && Nn();
       const e3 = performance.now();
-      So(e3);
-      const n2 = Ha(e3);
+      if(!crisPersonal)So(e3);
+      const n2 = crisPersonal?false:Ha(e3);
       if (frame % 2 == 0 && rn(n2), Tn(), Yt(), ba(), $a(), tt(), nt(), frame % 6 == 0 && io(), co) {
         (bt || Vt.size) && frame % 5 == 0 ? go() : vo();
         const e4 = u.light;
@@ -29553,7 +29562,9 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
       "function" == typeof Cm && Cm(e3);
     }
   })(), (async function() {
-    if(window.CRISBridge.archiveId&&!window.CRIS_IDENTITY.isMaster){document.body.classList.add("player","cris-archive-reader");try{const saved=await window.CRISBridge.loadBoard();await cr({s:JSON.stringify(saved.state),imgs:saved.imgs});window.CRIS_BOARD_SESSION.status("Quadro de arquivo · consulta pessoal");}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}window.QIL?.pronto();return;}
+    at();
+    if(crisPersonal){document.body.classList.add('player','cris-archive-reader');try{await k();const saved=await window.CRISBridge.loadBoard();crisPublishedBase=structuredClone(saved);const layer=await M(crisBoardStorageKey()+':personal');const combined=window.CRIS_BOARD_RULES.mergePersonalBoard(saved,layer,window.CRIS_IDENTITY.userId);u.cam=combined.state.cam||u.cam;await cr({s:JSON.stringify(combined.state),imgs:combined.imgs});if(layer?.cam&&layer.viewport?.width===innerWidth&&layer.viewport?.height===innerHeight){u.cam=layer.cam;q();}u.sound=localStorage.getItem('cris:board:interaction-sounds')!=='off';crisPersonalReady=true;window.CRIS_PERSONAL_BOARD={snapshot:crisSnapshot,save:crisSavePersonalNow};window.CRIS_BOARD_SESSION.status('Anotações pessoais · salvas neste navegador');Dl();t('#sceneBtn').title='Exportar imagem (PNG)';t('#sceneBtn').onclick=()=>Jl();}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}document.body.classList.remove('cris-loading');window.QIL?.pronto();return;}
+
     if ((location.search.includes("obs") || location.hash.includes("obs")) && kt(false), at(), yt("select"), await document.fonts.ready, await Promise.all(["700 30px Hand", "30px Marker", "30px Typewriter", "700 30px News", "17px NewsR", "600 20px Cond", "40px Sigil"].map((e3) => document.fonts.load(e3).catch(() => 0))), Bs) return u = d(), u.items = [], u.pins = [], u.strings = [], await ze(), void kr();
                 const snapshot=()=>{const imgs={};for(const i of u.items)for(const k of ['imgId','audioId'])if(i[k]&&p[i[k]])imgs[i[k]]=p[i[k]];return {state:JSON.parse(JSON.stringify(u)),imgs};};
                 window.CRIS_BOARD_API={snapshot,persistLocal:value=>new Promise((resolve,reject)=>{if(!A){reject(Error('Não foi possível guardar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));return;}try{const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(value,crisBoardStorageKey());tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(Error('Não foi possível salvar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));}catch(error){reject(error);}}),save:()=>window.CRISBridge.saveBoard(snapshot()),visibility:async(id,visible)=>{
@@ -29579,7 +29590,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
                 if(session)session.ready(window.CRIS_BOARD_API);
                 E();
                 if(!saved){qt();U();E();}
-                window.QIL?.pronto();
+                document.body.classList.remove('cris-loading');window.QIL?.pronto();
 })();
 
 })();
