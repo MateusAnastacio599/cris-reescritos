@@ -6,7 +6,7 @@ self.addEventListener('push',event=>{
  const valid=/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(data.id||'');
  const root=new URL(self.registration.scope),url=new URL(valid?'?notice='+data.id:'',root);
  // Keep navigation within this installation. Never trust an arbitrary payload URL.
- event.waitUntil(self.registration.showNotification(String(data.title||'CRIS · Central de Operações').slice(0,120),{body:String(data.body||'Um comunicado está disponível na sua caixa de entrada.').slice(0,300),icon:new URL('assets/notification-icon-192.png',root).href,badge:new URL('assets/notification-badge.png',root).href,tag:valid?'cris-notice:'+data.id:'cris-message',data:{url:url.href},renotify:false,vibrate:[160,90,160,90,360],...(Number.isFinite(Date.parse(data.alertAt))?{timestamp:Date.parse(data.alertAt)}:{})}));
+ event.waitUntil(self.registration.showNotification(String(data.title||'CRIS · Central de Operações').slice(0,120),{body:String(data.body||'Um comunicado está disponível na sua caixa de entrada.').slice(0,300),icon:new URL('assets/notification-icon-192.png',root).href,badge:new URL('assets/notification-badge.png',root).href,tag:valid?'cris-notice:'+data.id:'cris-message',data:{url:url.href},renotify:false}));
 });
 self.addEventListener('notificationclick',event=>{
  event.notification.close();const root=new URL(self.registration.scope);let url=root.href;
