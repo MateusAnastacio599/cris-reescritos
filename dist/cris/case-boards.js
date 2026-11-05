@@ -7,10 +7,15 @@ export async function mountCaseBoards(identity, excluded = new Set()){
  if(identity.isMaster)document.querySelectorAll('[data-linked-board]').forEach(slot=>{
    const row=all.find(board=>board.id===slot.dataset.linkedBoard);
    if(!row)return;
-   slot.innerHTML='<details class="archive-admin"><summary>Gerenciar quadro</summary><div class="case-archive-actions"><button type="button" data-linked-edit>Detalhes</button>'+
-     (published.has(row.id)?'<button type="button" data-linked-hide>Recolher publicação</button>':'')+'</div></details>';
-   slot.querySelector('[data-linked-edit]').onclick=()=>editor(row);
-   slot.querySelector('[data-linked-hide]')?.addEventListener('click',()=>run(async()=>{await lib.unpublish(row.id);await refresh();}));
+   const card=slot.closest('.dossier-board'),infoId='board-info-'+row.id;
+   card.querySelector('[data-board-info]')?.remove();
+   slot.innerHTML='<button type="button" class="linked-board-expand" aria-expanded="false" aria-controls="'+infoId+'" aria-label="Mais informações do quadro" title="Mais informações do quadro"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>';
+   const info=document.createElement('div');info.id=infoId;info.dataset.boardInfo=row.id;info.className='linked-board-info';info.hidden=true;
+   info.innerHTML='<div><span class="micro-label">'+(published.has(row.id)?'DISPONÍVEL AOS AGENTES':'RASCUNHO · SOMENTE MESTRE')+'</span><h5>'+esc(row.title)+'</h5>'+(row.description?'<p>'+esc(row.description)+'</p>':'')+'</div><div class="case-archive-actions"><button type="button" data-linked-edit>Editar detalhes</button>'+(published.has(row.id)?'<button type="button" data-linked-hide>Recolher publicação</button>':'')+'</div>';
+   card.append(info);
+   const toggle=slot.querySelector('button');toggle.onclick=()=>{info.hidden=!info.hidden;toggle.setAttribute('aria-expanded',String(!info.hidden));};
+   info.querySelector('[data-linked-edit]').onclick=()=>editor(row);
+   info.querySelector('[data-linked-hide]')?.addEventListener('click',()=>run(async()=>{await lib.unpublish(row.id);await refresh();}));
  });
  };
  const run=async fn=>{try{await fn();}catch(e){status.textContent=e.message;}};

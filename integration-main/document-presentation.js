@@ -9,8 +9,10 @@ export function presentDocument(blocks,render){
   const matches=lines.map(line=>line.trim().match(/^\*\*([^*]+?):?\*\*\s*:?\s*(.+)$/));
   if(matches.length&&matches.every(Boolean))for(const [,key,value] of matches)fields.push([key.replace(/:$/,''),value]);else remaining.push(block);
  }
+ const annexes=sections.filter(section=>/^(?:\d+[.\s-]*)?anexos?$/i.test(section.title.trim()));
+ const annex=annexes.map(section=>render(section.blocks)).join('');
  const summary=sections.find(s=>/descrição|registro da ocorrência|resumo/i.test(s.title));
- const overview=(fields.length?'<section class="occurrence-overview"><dl class="occurrence-facts">'+fields.map(([key,value])=>'<div><dt>'+esc(key)+'</dt><dd>'+esc(value)+'</dd></div>').join('')+'</dl></section>':'')+(summary?'<section class="dossier-summary"><h4>'+esc(summary.title)+'</h4><div class="case-document-body">'+render(summary.blocks)+'</div></section>':'');
- const details=sections.filter(s=>s!==summary).map(s=>({...s,blocks:s===facts?remaining:s.blocks})).filter(s=>s.blocks.some(b=>b.type!=='divider')).map(s=>'<details class="occurrence-section"><summary>'+esc(s.title)+'</summary><div class="case-document-body">'+render(s.blocks)+'</div></details>').join('');
- return {overview,details};
+ const overview=(fields.length?'<section class="occurrence-overview"><dl class="occurrence-facts">'+fields.map(([key,value])=>'<div'+(/local|endere[çc]o/i.test(key)?' class="fact-location"':/causa/i.test(key)?' class="fact-cause"':'')+'><dt>'+esc(key)+'</dt><dd>'+esc(value)+'</dd></div>').join('')+'</dl></section>':'')+(summary?'<section class="dossier-summary"><h4>'+esc(summary.title)+'</h4><div class="case-document-body">'+render(summary.blocks)+'</div></section>':'');
+ const details=sections.filter(s=>s!==summary&&!annexes.includes(s)).map(s=>({...s,blocks:s===facts?remaining:s.blocks})).filter(s=>s.blocks.some(b=>b.type!=='divider')).map(s=>'<details class="occurrence-section"><summary>'+esc(s.title)+'</summary><div class="case-document-body">'+render(s.blocks)+'</div></details>').join('');
+ return {overview,details,annex};
 }
