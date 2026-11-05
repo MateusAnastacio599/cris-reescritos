@@ -3475,3 +3475,24 @@ body.master-access .board-launch-button { background: #21152f; border-color: #6f
 .occurrence-section summary{cursor:pointer;font-weight:bold;padding:5px 0}
 .occurrence-section .case-document-body{margin:10px 0 0}
 @media(max-width:650px){.occurrence-layout{grid-template-columns:1fr}}
+
+/* Archive dossier reader */
+.case-archive-dialog{width:min(1080px,calc(100vw - 32px));max-height:88dvh}
+.dossier-header{padding-bottom:16px;border-bottom:1px solid #493455}
+.dossier-header h3{font-size:clamp(20px,3vw,30px)}
+.dossier-header small,.case-no-board{color:#c8b6d7}
+.occurrence-overview{margin-top:18px}
+.occurrence-facts{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+.dossier-evidence,.dossier-complement{margin-top:24px}
+.evidence-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,255px),1fr));gap:14px}
+.evidence-gallery .case-attachment{margin:0;min-width:0}
+.evidence-gallery .evidence-enlarge{display:block;width:100%;padding:0;cursor:zoom-in;background:#08070d}
+.evidence-gallery .case-file-preview img{width:100%;height:clamp(128px,20vw,195px);object-fit:contain;margin:0}
+.evidence-gallery .case-file-preview{margin-bottom:14px}
+.archive-admin{margin-top:12px;color:#c8b6d7;font-size:12px}
+.archive-admin summary{cursor:pointer;margin-bottom:8px}
+.evidence-zoom{max-width:95vw;max-height:94dvh;background:#100b17;color:#eee;border:1px solid #755194;padding:12px}
+.evidence-zoom::backdrop{background:#000d}
+.evidence-zoom img{display:block;max-width:100%;max-height:80dvh;object-fit:contain;margin:8px auto 0}
+.evidence-zoom button{background:#17101f;color:#dcc7f7;border:1px solid #57416f;padding:8px;font:inherit;cursor:pointer}
+@media(max-width:600px){.case-archive-dialog{width:calc(100vw - 16px);max-height:94dvh}.occurrence-facts,.evidence-gallery{grid-template-columns:1fr}}

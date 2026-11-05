@@ -1,4 +1,5 @@
-import {archiveClient, CaseArchive, evidenceImage} from './case-archive-data.js';
+import {archiveClient, CaseArchive, evidenceImage} from './case-archive-data.js?v=327';
+import {mountCaseBoards} from './case-boards.js?v=327';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
@@ -46,7 +47,7 @@ export async function mountCaseArchive(bridge, identity) {
   }
   const api = new CaseArchive(await archiveClient(bridge), bridge.campaignId);
   const boards = await bridge.boardLibrary();
-  let preview = false, data = {investigations:[], documents:[]}, destinations = [];
+  let preview = false, data = {investigations:[], documents:[], attachments:[]}, destinations = [], drafts = [];
   const dialog = document.createElement('dialog');
   dialog.className = 'case-board-dialog case-archive-dialog';
   dialog.setAttribute('aria-label','Arquivos da investigação');
@@ -92,26 +93,31 @@ export async function mountCaseArchive(bridge, identity) {
   }
 
   async function refresh() {
-    [data, destinations] = await Promise.all([api.list(), boards.list(false)]);
+    [data, destinations, drafts] = await Promise.all([api.list(), boards.list(false), master ? boards.list(true) : []]);
     render();
   }
 
   function render() {
     const manage = master && !preview;
     const investigations = data.investigations.filter(row => !preview || row.published);
+    const associated = new Set(investigations.map(row => row.board_id).filter(Boolean));
+    mountCaseBoards({...identity,isMaster:manage}, associated).catch(report);
     root.innerHTML = '<div class="case-boards-head"><div><span class="micro-label">CASO 26-107</span><h3>Investigações</h3></div>'+
       '<div class="case-archive-actions">'+(master ? '<button type="button" data-preview aria-pressed="'+preview+'">'+
       (preview?'Voltar à gestão':'Ver como jogador')+'</button>' : '')+(manage?'<button type="button" data-new>Nova investigação</button>':'')+
       '</div></div><p role="status"></p><div class="case-boards-list">'+
       investigations.map(row => {
-        const board = destinations.find(item => item.id === row.board_id);
+        const board = (manage ? drafts : destinations).find(item => item.id === row.board_id);
         const docs = data.documents.filter(doc => doc.investigation_id === row.id && (!preview || doc.published));
+        const published = new Set(docs.filter(doc => row.published && doc.published).map(doc => doc.id));
+        const count = data.attachments.filter(attachment => published.has(attachment.document_id)).length;
         return '<article class="case-board-card"><span class="micro-label">'+(manage?statusLabel(row.published):'INVESTIGAÇÃO')+
-          '</span><h4>'+escape(row.title)+'</h4><p>'+escape(row.description)+'</p>'+
+          '</span><h4>'+escape(row.title)+'</h4>'+(row.description?'<p>'+escape(row.description)+'</p>':'')+
+          '<p class="dossier-counts">'+published.size+(published.size===1?' documento':' documentos')+' · '+count+(count===1?' evidência publicada':' evidências publicadas')+'</p>'+
           (docs.length ? '<ul class="case-document-list">'+docs.map(doc => '<li><button type="button" data-document="'+doc.id+'">'+
           escape(doc.title)+(manage?' · '+statusLabel(doc.published):'')+'</button></li>').join('')+'</ul>' : '<p>Sem documentos disponíveis.</p>')+
-          '<div>'+(board?'<a href="'+linkBoard(board.id)+'">'+escape(board.title)+' ↗</a>':'')+
-          (manage?'<button type="button" data-edit="'+row.id+'">Editar investigação</button><button type="button" data-add="'+row.id+'">Novo documento</button>':'')+
+          '<div>'+(board?'<a href="'+linkBoard(board.id)+'">'+(manage?'Preparar quadro · ':'Abrir quadro · ')+escape(board.title)+' ↗</a>'+(manage?'<span class="linked-board-controls" data-linked-board="'+board.id+'"></span>':''):'')+
+          (manage?'<details class="archive-admin"><summary>Gerenciar dossiê</summary><div class="case-archive-actions"><button type="button" data-edit="'+row.id+'">Editar investigação</button><button type="button" data-add="'+row.id+'">Novo documento</button></div></details>':'')+
           '</div></article>';
       }).join('')+'</div>';
     if (!investigations.length) root.querySelector('[role=status]').textContent = 'Nenhuma investigação disponível.';
@@ -192,31 +198,37 @@ export async function mountCaseArchive(bridge, identity) {
     }
     const manage = master && !preview;
     const attach = result.attachments.filter(row => !preview || row.published);
-    const mainPhoto = attach.find(row => row.object_path && evidenceImage(row.mime));
     const body = doc.body ? occurrenceBody(doc.body) : {overview:'',details:''};
-    const add = label => !master ? '<button type="button" data-pin>'+label+'</button>' : '';
+    const available = await boards.list(false);
+    const add = !master || preview
+      ? (available.length
+        ? '<button type="button" data-pin>Adicionar ao quadro</button>'
+        : '<small class="case-no-board">Nenhum quadro disponível para esta evidência.</small>')
+      : '';
     const evidenceCard = row => '<article class="case-board-card case-attachment" data-attachment="'+row.id+'">'+
+      (row.object_path && evidenceImage(row.mime)?'<div class="case-file-preview" aria-busy="true"></div>':'')+
       '<span class="micro-label">'+(manage?statusLabel(row.published):'EVIDÊNCIA')+'</span><h4>'+escape(row.title)+'</h4>'+
       (row.body?'<div class="case-document-body">'+readDocument(row.body)+'</div>':'')+
-      (row.object_path?'<div class="case-file-preview"></div>':(!row.body&&manage?'<p>Aguardando arquivo original.</p>':''))+
-      '<div class="case-archive-actions">'+add(evidenceImage(row.mime)?'Adicionar imagem ao quadro':'Adicionar evidência ao quadro')+
-      (row.object_path?'<button type="button" data-original>Baixar original</button>':'')+
-      (manage?'<button type="button" data-edit-attachment>Editar evidência</button>':'')+'</div></article>';
-    show('<span class="micro-label">'+escape(investigation.title)+'</span><h3>'+escape(doc.title)+'</h3>'+
-      (manage?'<p>'+statusLabel(doc.published && investigation.published)+' · acesso dos agentes</p>':'')+
-      '<div class="case-archive-actions">'+add('Adicionar documento ao quadro')+
-      (manage?'<button type="button" data-edit-doc>Editar documento</button><button type="button" data-add-attachment>Nova evidência</button>':'')+
-      '</div><p role="status"></p>'+
-      (body.overview || mainPhoto ? '<div class="occurrence-layout">'+body.overview+(mainPhoto?evidenceCard(mainPhoto):'')+'</div>' : '')+
-      (body.details?'<div class="case-document-body">'+body.details+'</div>':'')+
-      attach.filter(row => row !== mainPhoto).map(evidenceCard).join(''));
+      (!row.object_path&&!row.body&&manage?'<p>Aguardando arquivo original.</p>':'')+
+      '<div class="case-archive-actions">'+add+
+      (row.object_path?'<button type="button" data-original>Arquivo original</button>':'')+'</div>'+
+      (manage?'<details class="archive-admin"><summary>Gerenciar evidência</summary><button type="button" data-edit-attachment>Editar evidência</button></details>':'')+'</article>';
+    show('<header class="dossier-header"><span class="micro-label">'+escape(investigation.title)+'</span><h3>'+escape(doc.title)+'</h3>'+
+      (manage?'<small>'+statusLabel(doc.published && investigation.published)+' · acesso dos agentes</small>':'')+'</header>'+
+      body.overview+'<p role="status"></p>'+
+      (attach.length?'<section class="dossier-evidence"><h4>Evidências e anexos</h4><div class="evidence-gallery">'+attach.map(evidenceCard).join('')+'</div></section>':'')+
+      (body.details?'<section class="dossier-complement"><h4>Informações complementares</h4><div class="case-document-body">'+body.details+'</div></section>':'')+
+      ((!master || preview) && available.length ? '<button type="button" data-pin-document>Adicionar documento ao quadro</button>' : '')+
+      (manage?'<details class="archive-admin"><summary>Gerenciar documento</summary><div class="case-archive-actions"><button type="button" data-edit-doc>Editar documento</button><button type="button" data-add-attachment>Nova evidência</button></div></details>':''));
     const current = view;
     dialog.querySelector('[data-edit-doc]')?.addEventListener('click', () => editDocument(doc, doc.investigation_id));
     dialog.querySelector('[data-add-attachment]')?.addEventListener('click', () => editAttachment(doc));
     dialog.querySelectorAll('[data-pin]').forEach(button => button.onclick = action(async () => {
-      const id = button.closest('[data-attachment]')?.dataset.attachment;
-      await chooseBoard(investigation, id?'attachment':'document', id || doc.id, doc.id);
+      const id = button.closest('[data-attachment]').dataset.attachment;
+      button.disabled = true;
+      try { await chooseBoard(investigation, 'attachment', id, doc.id); } finally { button.disabled = false; }
     }));
+    dialog.querySelector('[data-pin-document]')?.addEventListener('click', action(() => chooseBoard(investigation, 'document', doc.id, doc.id)));
     for (const row of attach) {
       const card = dialog.querySelector('[data-attachment="'+row.id+'"]');
       card.querySelector('[data-edit-attachment]')?.addEventListener('click', () => editAttachment(doc,row));
@@ -235,47 +247,74 @@ export async function mountCaseArchive(bridge, identity) {
         if (!url) return;
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = row.title + (evidenceImage(row.mime)?'.'+row.mime.split('/')[1]:'');
+        anchor.download = row.title;
         anchor.click();
       });
-      if (evidenceImage(row.mime)) load().then(url => {
+      const frame = card.querySelector('.case-file-preview');
+      if (!frame) continue;
+      load().then(url => {
         if (!url) return;
         const img = document.createElement('img');
         img.src = url;
         img.alt = row.title;
-        const enlarge = document.createElement('a');
-        enlarge.href = url;
-        enlarge.target = '_blank';
-        enlarge.rel = 'noopener';
-        enlarge.setAttribute('aria-label','Ampliar imagem: '+row.title);
+        const enlarge = document.createElement('button');
+        enlarge.type = 'button';
+        enlarge.className = 'evidence-enlarge';
+        enlarge.setAttribute('aria-label','Ampliar imagem de '+row.title);
         enlarge.append(img);
-        const caption = document.createElement('small');
-        caption.textContent = 'Imagem ampliável · Arquivo original';
-        card.querySelector('.case-file-preview').append(enlarge, caption);
-      }).catch(() => { if (view === current) card.querySelector('.case-file-preview').textContent = 'Imagem indisponível.'; });
+        enlarge.onclick = () => {
+          const zoom = document.createElement('dialog');
+          zoom.className = 'evidence-zoom';
+          const close = document.createElement('button');
+          close.textContent = 'Fechar imagem';
+          close.onclick = () => zoom.close();
+          const full = img.cloneNode();
+          zoom.append(close, full);
+          document.body.append(zoom);
+          zoom.onclose = () => { zoom.remove(); enlarge.focus(); };
+          zoom.showModal();
+        };
+        frame.append(enlarge);
+        const fileLink = document.createElement('a');
+        fileLink.href = url;
+        fileLink.target = '_blank';
+        fileLink.rel = 'noopener';
+        fileLink.textContent = 'Arquivo original';
+        original.replaceWith(fileLink);
+      }).catch(() => {
+        if (view === current) frame.textContent = 'Imagem indisponível.';
+      }).finally(() => frame.removeAttribute('aria-busy'));
     }
   }
 
   async function chooseBoard(investigation, kind, sourceId, documentId) {
-    const available = await boards.list(false);
-    show('<h3>Adicionar ao quadro</h3><p role="status"></p>'+
-      (available.length?'<form><label>Quadro de destino<select name="board">'+options(available,investigation.board_id)+'</select></label>'+
-        '<div class="case-archive-actions"><button type="button" data-back>Voltar ao documento</button><button type="submit">Adicionar</button></div></form>'
-      : '<p>O mestre ainda não publicou um quadro para os agentes.</p><button type="button" data-back>Voltar ao documento</button>'));
-    dialog.querySelector('[data-back]').onclick = action(() => openDocument(documentId));
+    const available = [...await boards.list(false)];
+    available.sort((a,b) => Number(b.id === investigation.board_id) - Number(a.id === investigation.board_id));
+    const back = () => openDocument(documentId);
+    async function addTo(boardId) {
+      const result = await api.pin(boardId,kind,sourceId);
+      show('<h3>'+(result.existing?'Evidência já está no quadro':'Evidência adicionada')+'</h3>'+
+        '<div class="case-archive-actions"><a href="'+linkBoard(boardId,result.id)+'">Abrir quadro e localizar pin ↗</a>'+
+        '<button type="button" data-back>Voltar ao documento</button></div>');
+      dialog.querySelector('[data-back]').onclick = action(back);
+    }
+    if (available.length === 1 && !preview) {
+      await addTo(available[0].id);
+      return;
+    }
+    const content = !available.length ? '<p>Nenhum quadro disponível para esta evidência.</p>' :
+      '<form><label>Quadro de destino<select name="board">'+options(available,investigation.board_id)+'</select></label>'+
+      (preview ? '<p>Prévia do jogador. Apenas uma conta de jogador pode salvar o pin.</p>' : '<button type="submit">Adicionar</button>')+'</form>';
+    show('<h3>Adicionar ao quadro</h3><p role="status"></p>'+content+
+      '<button type="button" data-back>Voltar ao documento</button>');
+    dialog.querySelector('[data-back]').onclick = action(back);
     const form = dialog.querySelector('form');
-    if (!form) return;
+    if (!form || preview) return;
     form.onsubmit = event => {
       event.preventDefault();
       const button = form.querySelector('[type=submit]');
       button.disabled = true;
-      const boardId = new FormData(form).get('board');
-      api.pin(boardId,kind,sourceId).then(result => {
-        show('<h3>'+(result.existing?'Evidência já está no quadro':'Evidência adicionada')+'</h3>'+
-          '<div class="case-archive-actions"><a href="'+linkBoard(boardId,result.id)+'">Localizar no quadro ↗</a>'+
-          '<button type="button" data-back>Voltar ao documento</button></div>');
-        dialog.querySelector('[data-back]').onclick = action(() => openDocument(documentId));
-      }).catch(report).finally(() => { button.disabled = false; });
+      addTo(new FormData(form).get('board')).catch(report).finally(() => { button.disabled = false; });
     };
   }
 

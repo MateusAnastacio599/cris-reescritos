@@ -21,11 +21,12 @@ export class CaseArchive {
   }
 
   async list() {
-    const [investigations, documents] = await Promise.all([
+    const [investigations, documents, attachments] = await Promise.all([
       this.rows('case_investigations').order('position').order('title'),
-      this.rows('case_documents', 'id,investigation_id,title,position,published').order('position').order('title')
+      this.rows('case_documents', 'id,investigation_id,title,position,published').order('position').order('title'),
+      this.rows('case_attachments', 'id,document_id').eq('published', true)
     ]);
-    return {investigations: checked(investigations), documents: checked(documents)};
+    return {investigations: checked(investigations), documents: checked(documents), attachments: checked(attachments)};
   }
 
   async document(id) {
