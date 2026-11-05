@@ -1,0 +1,23 @@
+begin;
+insert into auth.users(id) values('db261070-2a24-4eae-8a51-000000000001'),('db261070-2a24-4eae-8a51-000000000002');
+insert into public.campaigns(id,owner_id,title) values('db261070-2a24-4eae-8a51-000000000004','db261070-2a24-4eae-8a51-000000000001','Notification draft verification');
+insert into public.campaign_members(campaign_id,user_id,role) values('db261070-2a24-4eae-8a51-000000000004','db261070-2a24-4eae-8a51-000000000002','player');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','db261070-2a24-4eae-8a51-000000000001',true);
+insert into public.operation_notice_drafts(id,campaign_id,payload) values('db261070-2a24-4eae-8a51-000000000005','db261070-2a24-4eae-8a51-000000000004','{"type":"investigation","title":"Private draft","summary":"Test only"}');
+update public.operation_notice_drafts set payload=payload||'{"summary":"Saved from another session"}',updated_at=now() where id='db261070-2a24-4eae-8a51-000000000005';
+do $$ begin if not exists(select 1 from public.operation_notice_drafts where id='db261070-2a24-4eae-8a51-000000000005' and payload->>'summary'='Saved from another session') then raise exception 'Master draft not persisted';end if; if exists(select 1 from public.operation_notices where campaign_id='db261070-2a24-4eae-8a51-000000000004') then raise exception 'Saving sent a notice';end if;end $$;
+select set_config('request.jwt.claim.sub','db261070-2a24-4eae-8a51-000000000002',true);
+do $$ begin
+ if exists(select 1 from public.operation_notice_drafts where campaign_id='db261070-2a24-4eae-8a51-000000000004') then raise exception 'Player reads drafts';end if;
+ begin insert into public.operation_notice_drafts(campaign_id,payload) values('db261070-2a24-4eae-8a51-000000000004','{}');raise exception 'Player writes drafts';exception when insufficient_privilege then null;end;
+ update public.operation_notice_drafts set payload='{}' where id='db261070-2a24-4eae-8a51-000000000005';if found then raise exception 'Player changes master draft';end if;
+end $$;
+reset role;
+insert into public.operation_notices(id,campaign_id,created_by,audience,payload) values('db261070-2a24-4eae-8a51-000000000005','db261070-2a24-4eae-8a51-000000000004','db261070-2a24-4eae-8a51-000000000001','self','{"title":"Private only"}');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','db261070-2a24-4eae-8a51-000000000002',true);
+do $$ begin if exists(select 1 from public.operation_notices where id='db261070-2a24-4eae-8a51-000000000005') then raise exception 'Player reads private test';end if;end $$;
+select set_config('request.jwt.claim.sub','db261070-2a24-4eae-8a51-000000000001',true);
+do $$ begin update public.operation_notice_drafts set payload='{}' where id='db261070-2a24-4eae-8a51-000000000005';if found then raise exception 'Sent draft can be modified';end if;end $$;
+rollback;

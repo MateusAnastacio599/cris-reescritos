@@ -12,7 +12,7 @@
         <link rel="stylesheet" href="base.css">
         <link rel="stylesheet" href="Halloween2026-1.css">
         <link rel="stylesheet" href="Halloween2026-2.css">
-<link rel="stylesheet" href="board-integration.css?v=331"><link rel="stylesheet" href="board-polish.css">
+<link rel="stylesheet" href="board-integration.css?v=332"><link rel="stylesheet" href="board-polish.css">
     </head>
     <body class="ui cris-loading">
         <div id="crisLoading" role="status">Abrindo quadro…</div>
@@ -432,15 +432,15 @@
         <input type="file" id="fileInto" accept="image/*" multiple hidden>
         <script>self.QI_VER_SITE="CRIS 3.24";self.QI_BUILD_SITE="CRIS 3.24";</script>
         <script type="module">
-        import {BoardEvidence} from "./board-evidence.js?v=330";
+        import {BoardEvidence} from "./board-evidence.js?v=332";
         window.CRIS_BOARD_EVIDENCE=BoardEvidence;
-        import {choosePreparation} from "./board-preparations.js?v=330";
+        import {choosePreparation} from "./board-preparations.js?v=332";
         window.CRIS_PREPARATION_DIALOG=choosePreparation;
         import {sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard} from './board-rules.js?v=328';
         window.CRIS_BOARD_RULES={sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard};
         import {CRISBridge} from '../integration-bridge.js?v=328';
-        import {mountBoardSession} from './board-session.js?v=330';
-        import {mountCluePanel} from './board-clue-panel.js?v=331';
+        import {mountBoardSession} from './board-session.js?v=332';
+        import {mountCluePanel} from './board-clue-panel.js?v=332';
         window.CRISMOUNT_CLUE_PANEL=mountCluePanel;
         window.CRISBridge=CRISBridge;
         try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=331';document.body.append(script);}}

@@ -1,3 +1,4 @@
+import {presentDocument} from './document-presentation.js?v=332';
 import {archiveClient, CaseArchive, evidenceImage} from './case-archive-data.js?v=328';
 import {mountCaseBoards} from './case-boards.js?v=328';
 
@@ -23,28 +24,7 @@ export async function mountCaseArchive(bridge, identity) {
     .filter(block => !['clue','cue','note'].includes(block.type))
     .map(block => block.type === 'todo' ? {...block,type:'list'} : block);
   const readDocument = markdown => renderReadBlocks(documentBlocks(markdown));
-  function occurrenceBody(markdown) {
-    const sections = [{title:'Dados do registro', blocks:[]}];
-    for (const block of documentBlocks(markdown)) {
-      if (block.type === 'h2') sections.push({title:block.text, blocks:[]});
-      else sections.at(-1).blocks.push(block);
-    }
-    const identification = sections.find(section => /identificação/i.test(section.title));
-    const fields = identification?.blocks.filter(block => block.type !== 'divider');
-    const lines = fields?.every(block => block.type === 'paragraph')
-      ? fields.flatMap(block => block.text.split('\n')).map(line => line.match(/^\*\*([^*]+):\*\*\s*(.+)$/))
-      : null;
-    if (!lines?.length || !lines.every(Boolean)) return {overview:'',details:readDocument(markdown)};
-    const conclusion = sections.find(section => /conclusão/i.test(section.title));
-    const summary = conclusion?.blocks.find(block => block.type === 'paragraph');
-    const overview = '<section class="occurrence-overview" aria-label="Ficha da ocorrência"><dl class="occurrence-facts">'+
-      lines.map(([,key,value]) => '<div><dt>'+escape(key)+'</dt><dd>'+escape(value)+'</dd></div>').join('')+
-      '</dl>'+(summary?'<div class="case-document-body"><strong>EM RESUMO</strong>'+renderReadBlocks([summary])+'</div>':'')+'</section>';
-    const details = sections.filter(section => section !== identification && section.blocks.length).map(section =>
-      '<details class="occurrence-section"><summary>'+escape(section.title)+'</summary><div class="case-document-body">'+
-      renderReadBlocks(section.blocks)+'</div></details>').join('');
-    return {overview,details};
-  }
+  const occurrenceBody=markdown=>presentDocument(documentBlocks(markdown),renderReadBlocks);
   const api = new CaseArchive(await archiveClient(bridge), bridge.campaignId);
   const boards = await bridge.boardLibrary();
   let preview = false, data = {investigations:[], documents:[], attachments:[]}, destinations = [], drafts = [];
@@ -58,7 +38,8 @@ export async function mountCaseArchive(bridge, identity) {
     urls.forEach(url => URL.revokeObjectURL(url));
     urls = [];
   };
-  dialog.addEventListener('close', () => { if (!dialog.open) release(); });
+  dialog.addEventListener('close', () => { if (!dialog.open) {release();const url=new URL(location.href);url.searchParams.delete('document');url.searchParams.delete('evidence');history.replaceState(null,'',url);} });
+  document.querySelectorAll('a[href="#arquivos"]').forEach(link=>link.addEventListener('click',()=>{dialog.close();navigate('home');}));
   function show(html) {
     release();
     dialog.classList.toggle('archive-compact',!html.startsWith('<header class="dossier-header"'));
@@ -102,10 +83,10 @@ export async function mountCaseArchive(bridge, identity) {
   const independent = document.getElementById('caseBoards');
   const sources = document.querySelector('#arquivos .external-source');
   function navigate(next) {
-    active=next;
+    dialog.close();active=next;
     const url=new URL(location.href);
     if(next==='home')url.searchParams.delete('investigation');else url.searchParams.set('investigation',next);
-    url.hash='arquivos';history.pushState(null,'',url);render();
+    url.searchParams.delete('document');url.searchParams.delete('evidence');url.hash='arquivos';history.pushState(null,'',url);render();root.scrollIntoView({block:'start',behavior:'smooth'});
   }
   addEventListener('popstate',()=>{active=new URLSearchParams(location.search).get('investigation')||'home';render();});
   function render() {
@@ -125,7 +106,7 @@ export async function mountCaseArchive(bridge, identity) {
         '</span><h4>'+escape(row.title)+'</h4>'+(row.description?'<p>'+escape(row.description)+'</p>':'')+
         '<p class="dossier-counts">'+published.size+(published.size===1?' documento':' documentos')+' · '+count+(count===1?' evidência publicada':' evidências publicadas')+'</p>'+
         (selected ? (docs.length ? '<ul class="case-document-list">'+docs.map(doc => '<li><button type="button" data-document="'+doc.id+'"><span>RELATÓRIO / DOCUMENTO</span><strong>'+
-          escape(doc.title)+'</strong>'+(manage?'<small>'+statusLabel(doc.published)+'</small>':'')+'<b aria-hidden="true">→</b></button></li>').join('')+'</ul>' : '<p>Sem documentos disponíveis.</p>') :
+          escape(doc.title)+'</strong>'+(manage?'<small>'+statusLabel(doc.published)+'</small>':'')+'<b aria-hidden="true">Abrir →</b></button></li>').join('')+'</ul>' : '<p>Sem documentos disponíveis.</p>') :
           '<button type="button" class="dossier-open" data-open="'+row.id+'">Consultar investigação <span aria-hidden="true">→</span></button>')+
         (selected&&board?'<div class="dossier-board"><div><span class="micro-label">QUADRO DA INVESTIGAÇÃO</span><p>Reúna as pistas que você escolher. Suas anotações são pessoais.</p></div><a href="'+linkBoard(board.id)+'">'+(manage?'Preparar quadro':'Abrir quadro')+' ↗</a>'+(manage?'<span class="linked-board-controls" data-linked-board="'+board.id+'"></span>':'')+'</div>':'')+
         (selected&&!board?'<p class="case-no-board">O quadro desta investigação ainda não foi liberado.</p>':'')+
@@ -133,8 +114,8 @@ export async function mountCaseArchive(bridge, identity) {
     };
     const heading=selected?'Documentos da investigação':active==='boards'?'Quadros independentes':active==='sources'?'Fontes externas':'Escolha um assunto';
     root.innerHTML = '<nav class="archive-breadcrumb" aria-label="Caminho do acervo"><button type="button" data-home '+(active==='home'?'disabled':'')+'>Acervo</button>'+
-      (active!=='home'?'<span aria-hidden="true">/</span><span>'+escape(selected?.title||heading)+'</span>':'')+'</nav>'+
-      '<div class="case-boards-head"><div><span class="micro-label">CASO 26-107</span><h3>'+heading+'</h3></div><div class="case-archive-actions">'+
+      (active!=='home'?'<span aria-hidden="true">›</span><span>'+escape(selected?.title||heading)+'</span>':'')+'</nav>'+
+      '<div class="case-boards-head"><div><span class="micro-label">CASO 26-107</span><h3>'+(selected?'Registros disponíveis':heading)+'</h3></div><div class="case-archive-actions">'+
       (master?'<button type="button" data-preview aria-pressed="'+preview+'">'+(preview?'Voltar à gestão':'Ver como jogador')+'</button>':'')+
       (manage&&active==='home'?'<button type="button" data-new>Nova investigação</button>':'')+'</div></div><p role="status"></p>'+
       (selected?dossier(selected):active==='home'?'<div class="archive-subjects">'+investigations.map(dossier).join('')+
@@ -341,6 +322,9 @@ export async function mountCaseArchive(bridge, identity) {
   }
 
   await refresh();
-  const target = new URLSearchParams(location.search).get('document');
-  if (target && uid.test(target)) await openDocument(target);
+  const params=new URLSearchParams(location.search),target=params.get('document'),evidence=params.get('evidence');
+  if(location.hash==='#arquivos'||params.has('investigation')||target||evidence){document.getElementById('arquivos')?.classList.add('is-open');document.querySelector('.content')?.classList.add('view-restricted');}
+  if(target||evidence){const consumed=new URL(location.href);consumed.searchParams.delete('document');consumed.searchParams.delete('evidence');history.replaceState(null,'',consumed);}
+  if(evidence&&uid.test(evidence)){const r=await api.rows('case_attachments','id,document_id').eq('id',evidence).maybeSingle();if(r.data){await openDocument(r.data.document_id);dialog.querySelector('[data-attachment="'+evidence+'"]')?.scrollIntoView({block:'nearest'});}else show('<h3>Evidência indisponível</h3><p>Este conteúdo não está disponível para esta conta.</p>');}
+  else if(target&&uid.test(target))await openDocument(target);
 }

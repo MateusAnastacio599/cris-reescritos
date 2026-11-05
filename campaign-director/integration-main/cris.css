@@ -3543,3 +3543,44 @@ body.master-access .board-launch-button { background: #21152f; border-color: #6f
 .topbar .top-agent{max-width:none;width:100%;box-sizing:border-box}
 #arquivos>h2{line-height:1.15;margin-bottom:22px}
 @media(max-width:600px){#arquivos{padding-top:30px;scroll-margin-top:110px}#arquivos>.section-topline{margin-bottom:24px}#arquivos>h2{font-size:29px;line-height:1.15;margin-bottom:20px}#arquivos>.archive-intro{font-size:12px;margin-bottom:18px}}
+
+/* Compact operational archive, consistent across document formats. */
+#caseArchive{scroll-margin-top:110px}
+#arquivos .archive-breadcrumb{margin:0 0 16px;padding:10px 12px;border:1px solid #32263d;background:#120d19;gap:10px;font-size:12px;line-height:1.5}
+#arquivos .archive-breadcrumb button{min-height:32px;color:#d6b6f3;text-decoration:underline;text-underline-offset:4px}
+#arquivos .case-boards-head{margin-bottom:14px}
+#arquivos .case-boards-head h3{font-size:17px;margin:4px 0}
+#arquivos .dossier-card h4{margin:8px 0;font-size:18px}
+#arquivos .dossier-card .dossier-counts{margin:4px 0 12px}
+#arquivos .case-document-list{margin-top:8px}
+#arquivos .case-document-list button{min-height:62px;padding:12px 84px 12px 14px;gap:5px}
+#arquivos .case-document-list button>b{font:12px "Courier New",monospace;right:14px}
+#arquivos .dossier-board{padding:14px;margin-top:16px;gap:12px}
+.case-archive-dialog{position:fixed;box-sizing:border-box;border-radius:4px;padding:24px;line-height:1.55;overscroll-behavior:contain}
+.case-archive-dialog .case-close{position:sticky;top:0;float:right;margin:0 0 8px 12px;width:44px;height:44px;min-width:44px;font:26px/1 "Courier New",monospace;background:#1b1225;z-index:3}
+.case-archive-dialog .dossier-header{padding-right:52px}
+.case-archive-dialog .dossier-header h3{font-size:clamp(20px,2.5vw,28px);margin:8px 0;line-height:1.35}
+.case-archive-dialog .occurrence-facts{grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px 20px;padding:16px;border:1px solid #37283f;background:#15101b}
+.case-archive-dialog .occurrence-facts dt{font-size:10px;line-height:1.5}
+.case-archive-dialog .occurrence-facts dd{font-size:13px;line-height:1.55}
+.case-archive-dialog .dossier-summary{margin:20px 0}
+.case-archive-dialog .dossier-summary .case-document-body{margin:8px 0}
+.case-archive-dialog .evidence-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.case-archive-dialog .evidence-gallery .case-attachment{padding:14px;border-left-width:2px;display:flex;flex-direction:column;gap:8px}
+.case-archive-dialog .case-attachment h4{font-size:14px;margin:0;line-height:1.5}
+.case-archive-dialog .case-attachment .micro-label{font-size:9px;letter-spacing:.08em}
+.case-archive-dialog .case-attachment .case-document-body{margin:0;font-size:12px;line-height:1.6}
+.case-archive-dialog .case-attachment .case-document-body p{margin:0}
+.case-archive-dialog .case-file-preview{display:block;margin:0 0 4px}
+.case-archive-dialog .case-file-preview img{height:175px;width:100%;object-fit:contain}
+.case-archive-dialog .case-attachment .case-archive-actions{display:flex;gap:6px;margin-top:auto;padding-top:6px}
+.case-archive-dialog .case-attachment .case-archive-actions :is(button,a){padding:8px 10px;min-height:40px;font-size:11px;line-height:1.4;letter-spacing:0;text-transform:none}
+.case-archive-dialog form>h3{margin:4px 52px 16px 0}
+.case-archive-dialog form label{letter-spacing:0}
+.case-archive-dialog input[type=file]::file-selector-button{font:inherit;background:#2b1c38;color:#e5d2f5;border:1px solid #614176;padding:8px;margin-right:10px}
+.case-archive-dialog .archive-admin{margin-top:14px;padding-top:10px}
+@media(max-width:600px){
+ #arquivos{padding-top:20px}#arquivos>.section-topline{display:flex;justify-content:space-between;gap:8px;font-size:8px;margin-bottom:16px;letter-spacing:.08em}#arquivos>h2{font-size:26px;margin-bottom:12px}#arquivos>.archive-intro{font-size:12px;line-height:1.6;margin-bottom:12px}
+ #caseArchive{margin-top:18px;padding-top:16px}#arquivos .archive-breadcrumb{font-size:11px}#arquivos .archive-breadcrumb>span:last-child{flex:1;min-width:140px}#arquivos .dossier-card{padding:14px}#arquivos .case-document-list button{padding-right:54px}#arquivos .case-document-list button>b{font-size:10px;right:10px}#arquivos .case-document-list button>strong{font-size:13px}#arquivos .case-document-list button>span{display:none}
+ .case-archive-dialog{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);padding:14px;scrollbar-gutter:auto}.case-archive-dialog .dossier-header{padding-right:44px}.case-archive-dialog .dossier-header .micro-label{font-size:9px;letter-spacing:.04em}.case-archive-dialog .occurrence-facts{grid-template-columns:1fr 1fr;padding:12px;gap:10px}.case-archive-dialog .evidence-gallery{grid-template-columns:1fr}.case-archive-dialog .evidence-gallery .case-attachment{padding:12px;gap:7px}.case-archive-dialog .case-file-preview img{height:150px}.case-archive-dialog .dossier-evidence,.case-archive-dialog .dossier-complement{margin-top:18px}.case-archive-dialog .case-document-body{font-size:13px}.case-archive-dialog .case-attachment .case-archive-actions{flex-wrap:wrap}.case-archive-dialog .case-close{width:40px;height:40px;min-width:40px}
+}

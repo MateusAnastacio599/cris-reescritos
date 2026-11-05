@@ -1,6 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.118.0';
 import webpush from 'npm:web-push@3.6.7';
-import {UUID,payloadForAudience,allowedAppBase,validPushSubscription,noticeLink} from './notice-contract.js';
+import {UUID,payloadForAudience,allowedAppBase,validPushSubscription,noticeLink,resolveNoticeTarget} from './notice-contract.js';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, x-client-info, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'};
 const response=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json'}});
 const ok=r=>{if(r.error)throw Error('Falha no armazenamento.');return r.data;};
@@ -24,7 +24,14 @@ Deno.serve(async req=>{
   if(existing&&(existing.created_by!==user.id||existing.campaign_id!==campaign.id||existing.audience!==body.audience))return response({error:'Identificador já utilizado.'},409);
   if(!notice){
    const since=new Date(Date.now()-60000).toISOString(),count=await admin.from('operation_notices').select('id',{count:'exact',head:true}).eq('created_by',user.id).gte('created_at',since);if(count.error)throw Error('Falha na verificação de envio.');if(count.count>=10)return response({error:'Aguarde um minuto antes de enviar novamente.'},429);
-   const payload=payloadForAudience(body.payload,body.audience,campaign.id,body.testKind);
+   let source=body.payload;
+   if(body.draftId){
+    if(body.audience!=='campaign'||body.draftId!==body.noticeId)return response({error:'Rascunho inválido.'},400);
+    const draft=ok(await admin.from('operation_notice_drafts').select('*').eq('id',body.draftId).eq('campaign_id',campaign.id).eq('created_by',user.id).maybeSingle());
+    if(!draft||draft.updated_at!==body.draftUpdatedAt)return response({error:'O rascunho mudou. Reabra e revise antes de enviar.'},409);source=draft.payload;
+   }
+   const payload=payloadForAudience(source,body.audience,campaign.id,body.testKind);
+   await resolveNoticeTarget(admin,campaign.id,payload.target);
    const row={id:body.noticeId,campaign_id:campaign.id,created_by:user.id,audience:body.audience,payload};
    const inserted=await admin.from('operation_notices').insert(row).select('*').single();
    if(inserted.error?.code==='23505'){notice=ok(await admin.from('operation_notices').select('*').eq('id',body.noticeId).eq('created_by',user.id).eq('campaign_id',campaign.id).eq('audience',body.audience).single());}else notice=ok(inserted);
