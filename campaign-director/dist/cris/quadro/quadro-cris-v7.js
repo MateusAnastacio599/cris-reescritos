@@ -2658,11 +2658,28 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     const a2 = o2.querySelector(".inner");
     a2.classList.remove(t2 || "vib"), a2.offsetWidth, a2.classList.add(t2 || "vib");
   }
+  function playBoardMedia(media, onStarted) {
+    return media.play().then(() => onStarted?.()).catch(error => {
+      if (error.name === "AbortError") return;
+      St(error.name === "NotAllowedError"
+        ? "O navegador bloqueou a reprodução. Clique no aparelho para tentar de novo."
+        : "Não consegui reproduzir a mídia. Confira o formato do arquivo.");
+    });
+  }
+  function boardMediaVolume() {
+    const volume = Object.assign({}, On, u.vol || {});
+    return u.sound === false ? 0 : c(volume.g * volume.v, 0, 1);
+  }
   function Fa(e2) {
     const t2 = document.getElementById("it-" + e2.id), o2 = $o[e2.kind];
     if (!t2 || !o2.ov) return;
     let a2 = t2.querySelector(".ov");
     a2 || (a2 = document.createElement("div"), a2.className = "ov", t2.querySelector(".inner").appendChild(a2)), a2.innerHTML = o2.ov(e2);
+    const video = a2.querySelector("video.tvv");
+    if (video) {
+      video.volume = boardMediaVolume();
+      playBoardMedia(video);
+    }
   }
   const za = (e2) => String(void 0 !== (e2.opts && e2.opts.msgs) ? e2.opts.msgs : $o[e2.kind].defMsgs || "").split("\n").map((e3) => e3.trim()).filter(Boolean);
   function Ia(e2, t2, o2, a2, n2, i2, s2, r2) {
@@ -2730,8 +2747,12 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   }, act(e2) {
     if (!e2.audioId || !p[e2.audioId]) return Nt("key"), void St("Carregue um \xE1udio no painel do gravador");
     let t2 = ja.get(e2.id);
-    t2 || (t2 = new Audio(p[e2.audioId]), t2.onended = () => Fa(e2), ja.set(e2.id, t2)), Nt("key"), t2.paused ? Promise.resolve().catch(() => {
-    }) : t2.pause(), setTimeout(() => Fa(e2), 30);
+    t2 || (t2 = new Audio(p[e2.audioId]), t2.onended = () => Fa(e2), ja.set(e2.id, t2)), Nt("key"), t2.volume = boardMediaVolume();
+    if (t2.paused) playBoardMedia(t2, () => Fa(e2));
+    else {
+      t2.pause();
+      Fa(e2);
+    }
   } }, radio: { name: "Walkie-talkie", dev: true, click: true, w: 140, fields: [["alvo", "Frequ\xEAncia certa (MHz; vazio = fala sempre)", "147.30"], ["frase", "Frase", "...tem algu\xE9m a\xED? C\xE2mbio."], ["voz", "Falar a frase (voz do navegador)", false, "check"]], btns: { aud: ["Carregar \xE1udio\u2026", (e2) => {
     Da = e2.id, t("#fileAud").click();
   }] }, hint: "Clique: abre o sintonizador. Na frequ\xEAncia certa, a frase aparece (e o \xE1udio toca).", async draw(e2) {
@@ -3057,8 +3078,9 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
       }
       if (e2.audioId && p[e2.audioId]) {
         let t3 = ja.get(e2.id);
-        t3 || (t3 = new Audio(p[e2.audioId]), ja.set(e2.id, t3)), t3.currentTime = 0, Promise.resolve().catch(() => {
-        });
+        t3 || (t3 = new Audio(p[e2.audioId]), ja.set(e2.id, t3)), t3.currentTime = 0;
+        t3.volume = boardMediaVolume();
+        playBoardMedia(t3);
       }
     }, 350);
   }
@@ -3430,7 +3452,8 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
       const o2 = zt.currentTime;
       Ut.m.gain.setTargetAtTime(t2 ? 0 : e2.g, o2, 0.02), Ut.i.gain.setTargetAtTime(e2.i, o2, 0.02), Ut.e.gain.setTargetAtTime(e2.e, o2, 0.02);
     }
-    ja.forEach((o2) => o2.volume = t2 ? 0 : c(e2.g * e2.v, 0, 1));
+    ja.forEach(media => media.volume = boardMediaVolume());
+    document.querySelectorAll("video.tvv").forEach(video => video.volume = boardMediaVolume());
   }
   function Hn() {
     const e2 = Object.assign({}, On, u.vol || {});
@@ -10062,20 +10085,28 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
       ja.delete(e2.id);
     }
   }
-  function wp(e2) {
-    const t2 = e2.disc && K(e2.disc);
-    if (!(e2.playing && t2 && t2.audioId && p[t2.audioId])) return void xp(e2);
-    let o2 = ja.get(e2.id);
-    o2 && o2._src === t2.audioId || (xp(e2), o2 = new Audio(p[t2.audioId]), o2._src = t2.audioId, ja.set(e2.id, o2)), o2.volume = false === u.sound ? 0 : 0.9;
-    const a2 = () => {
-      try {
-        o2.currentTime = Math.min(bp(e2), (o2.duration || 1e9) - 0.2);
-      } catch (e3) {
-      }
-      Promise.resolve().catch(() => {
-      });
+  function wp(device) {
+    const disc = device.disc && K(device.disc);
+    const source = disc?.audioId && p[disc.audioId];
+    if (!device.playing || !source) return void xp(device);
+    const existing = ja.get(device.id);
+    if (existing && existing._src === source) {
+      existing.volume = boardMediaVolume();
+      return;
+    }
+    xp(device);
+    const audio = new Audio(source);
+    audio._src = source;
+    audio.volume = boardMediaVolume();
+    ja.set(device.id, audio);
+    const seek = () => {
+      if (ja.get(device.id) !== audio) return;
+      const end = Number.isFinite(audio.duration) ? Math.max(0, audio.duration - 0.2) : Infinity;
+      audio.currentTime = Math.min(bp(device), end);
     };
-    o2.readyState > 0 ? a2() : o2.onloadedmetadata = a2;
+    if (audio.readyState > 0) seek();
+    else audio.addEventListener("loadedmetadata", seek, { once: true });
+    playBoardMedia(audio);
   }
   $o.vhs = { name: "Fita VHS", w: 200, snd: "object", fields: [["label", "Etiqueta", "CASAMENTO 1994"], ["yt", "Link do YouTube (ou carregue um v\xEDdeo)", ""], ["cor", "Cor", "#1b1b1f", "color"]], btns: { vid: ["Carregar v\xEDdeo (curto, .webm)\u2026", (e2) => gp(e2, "video/webm,video/mp4,video/*", 18)] }, hint: "Solte em cima da TV com videocassete. V\xEDdeo: link do YouTube (s\xF3 funciona com o site no ar) ou um arquivo curto e leve (.webm de prefer\xEAncia, at\xE9 ~10 MB).", async draw(e2) {
   } }, $o.tvvhs = { name: "TV com videocassete", dev: true, click: true, w: 300, snd: "object", fields: [["marca", "Marca", "TELEFUNK"]], btns: { ej: ["Ejetar fita", (e2) => yp(e2, "tape")], rw: ["Rebobinar", (e2) => {
@@ -10088,7 +10119,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     let a2;
     if (t2) if (e2.playing) {
       const o3 = jc((t2.opts || {}).yt), n2 = Math.floor(bp(e2));
-      a2 = o3 && location.protocol.startsWith("http") ? `<iframe class="tvv" src="https://www.youtube.com/embed/${o3}?autoplay=1&start=${n2}&controls=0&modestbranding=1&playsinline=1&rel=0" allow="autoplay; encrypted-media"></iframe>` : t2.audioId && p[t2.audioId] ? `<video class="tvv" data-off="${bp(e2)}" src="${p[t2.audioId]}" autoplay playsinline></video>` : o3 ? '<div class="tvx blue"></div><div class="tvt">YouTube s\xF3 funciona<br>com o site no ar</div>' : '<div class="tvx snow"></div><div class="tvt">FITA VAZIA</div>';
+      a2 = t2.audioId && p[t2.audioId] ? `<video class="tvv" data-off="${bp(e2)}" src="${p[t2.audioId]}" playsinline></video>` : o3 && location.protocol.startsWith("http") ? `<iframe class="tvv" src="https://www.youtube.com/embed/${o3}?autoplay=1&start=${n2}&controls=0&modestbranding=1&playsinline=1&rel=0" allow="autoplay; encrypted-media"></iframe>` : o3 ? '<div class="tvx blue"></div><div class="tvt">YouTube s\xF3 funciona<br>com o site no ar</div>' : '<div class="tvx snow"></div><div class="tvt">FITA VAZIA</div>';
     } else a2 = `<div class="tvx blue"></div><div class="tvt">\u25B6 PLAY<br><small>${gt(String((t2.opts || {}).label || ""))}</small></div>`;
     else a2 = '<div class="tvx snow"></div><div class="tvt">SEM FITA</div>';
     return `<div class="tvscr" style="${o2}">${a2}<i class="scan"></i></div>${`<div class="vled" style="left:64%;top:${490 / 600 * 100}%;width:22%;height:${32 / 600 * 100}%;font-size:${La(e2, 0.045)}">${t2 ? e2.playing ? "\u25B6 " + $c(1e3 * bp(e2)) : "\u25A0 STOP" : "--:--"}</div>`}`;
@@ -10106,7 +10137,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
         a2.currentTime = Math.min(+a2.dataset.off || 0, (a2.duration || 1e9) - 0.2);
       } catch (e3) {
       }
-      a2.volume = false === u.sound ? 0 : 0.9;
+      a2.volume = boardMediaVolume();
     }
   } }, $o.cd = { name: "CD", w: 150, snd: "pick", fields: [["titulo", "T\xEDtulo", "Mixtape da Helena"], ["artista", "Artista / anota\xE7\xE3o", "faixa 7 \u2605"], ["yt", "Link do YouTube (ou carregue um \xE1udio)", ""], ["cor", "Cor do r\xF3tulo", "#e9e3d4", "color"]], btns: { aud: ["Carregar \xE1udio\u2026", (e2) => gp(e2, "audio/*", 15)] }, hint: "Solte em cima do discman. \xC1udio: link do YouTube (com o site no ar) ou um arquivo de \xE1udio.", async draw(e2) {
   } }, $o.discman = { name: "Discman", dev: true, click: true, w: 220, snd: "object", fields: [["cor", "Cor", "#c9cdd2", "color"]], btns: { ej: ["Tirar o CD", (e2) => yp(e2, "disc")] }, hint: "Solte um CD em cima. Clique: toca / pausa. Todo mundo ouve.", async draw(e2) {
@@ -10117,7 +10148,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     let o2 = `<div class="dmwin" style="left:${100 / 420 * 100}%;top:${100 / 440 * 100}%;width:${220 / 420 * 100}%;height:50%">${t2 ? `<div class="dmcd ${e2.playing ? "spin" : ""}" style="background-image:url(${f[t2.id] && f[t2.id].url || ""})"></div>` : ""}</div>`;
     if (t2 && e2.playing) {
       const a2 = jc((t2.opts || {}).yt);
-      a2 && location.protocol.startsWith("http") && (o2 += `<iframe class="dmyt" src="https://www.youtube.com/embed/${a2}?autoplay=1&start=${Math.floor(bp(e2))}&controls=0&playsinline=1" allow="autoplay"></iframe>`);
+      a2 && !p[t2.audioId] && location.protocol.startsWith("http") && (o2 += `<iframe class="dmyt" src="https://www.youtube.com/embed/${a2}?autoplay=1&start=${Math.floor(bp(e2))}&controls=0&playsinline=1" allow="autoplay"></iframe>`);
     }
     return o2 += `<div class="vled" style="left:${140 / 420 * 100}%;top:75%;width:${140 / 420 * 100}%;height:${26 / 440 * 100}%;font-size:${La(e2, 0.05)}">${t2 ? e2.playing ? "\u25B6 " + $c(1e3 * bp(e2)) : "\u25A0" : "SEM CD"}</div>`, o2;
   }, act(e2) {
@@ -12005,7 +12036,8 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
   function gm(e2) {
     ja.forEach((t2, o2) => {
       const a2 = K(o2);
-      if (e2 || !a2 || !a2.audioId) {
+      const mediaId = a2?.kind === "discman" ? K(a2.disc)?.audioId : a2?.audioId;
+      if (e2 || !mediaId || !p[mediaId]) {
         try {
           t2.pause(), t2.removeAttribute("src"), t2.load();
         } catch (e3) {
@@ -16582,8 +16614,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
         try {
           n2 = t3.createMediaElementSource(a3);
         } catch (e3) {
-          return void Promise.resolve().catch(() => {
-          });
+          return void playBoardMedia(a3);
         }
         let l2 = n2;
         const i2 = (e3) => (l2.connect(e3), l2 = e3, e3);
@@ -16614,8 +16645,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
           const a4 = t3.createGain();
           a4.gain.value = "demonio" === o2 ? 0.38 : 0.22, r2.connect(e3), e3.connect(a4), a4.connect(e3), e3.connect(Ut ? Ut.e : t3.destination);
         }
-        return void Promise.resolve().catch(() => {
-        });
+        return void playBoardMedia(a3);
       }
       if (t2.fala && window.speechSynthesis) {
         const e3 = new SpeechSynthesisUtterance(t2.fala);
