@@ -1,5 +1,5 @@
 import {mountCaseBoards} from './case-boards.js';
-import {CRISBridge} from './integration-bridge.js';
+import {CRISBridge} from './integration-bridge.js?v=328';
 window.CRISBridge=CRISBridge;
 const STORAGE_KEY = 'cris_agente';
 
@@ -64,12 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
     topAgentName.textContent = agent.name;
     topAgentClearance.textContent = agent.clearance.replace('NÍVEL DE ACESSO:', 'NÍVEL');
     applyAccessMode(key, agent);
-    import('./case-archive.js?v=327').then(({mountCaseArchive}) => mountCaseArchive(CRISBridge, agent)).catch(() => {
+    import('./case-archive.js?v=328').then(({mountCaseArchive}) => mountCaseArchive(CRISBridge, agent)).catch(() => {
       mountCaseBoards(agent).catch(()=>{});
       const archive = document.getElementById('caseArchive');
       if (archive) archive.textContent = 'Não foi possível carregar as investigações. Reabra o CRIS para tentar novamente.';
     });
-    import('./notifications.js?v=323').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
+    import('./notifications.js?v=328').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
 
     login.classList.add('authenticated');
 

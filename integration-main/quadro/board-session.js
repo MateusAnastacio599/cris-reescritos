@@ -1,5 +1,5 @@
 import {openBoardSheet} from './board-sheet.js';
-import {CRISBridge} from '../integration-bridge.js';
+import {CRISBridge} from '../integration-bridge.js?v=328';
 export const boardStamp=value=>{const text=JSON.stringify(value,function(key,value){return value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value;});let a=2166136261,b=2246822519;for(let i=0;i<text.length;i++){a=Math.imul(a^text.charCodeAt(i),16777619);b=Math.imul(b^text.charCodeAt(i),3266489917);}return text.length+':'+(a>>>0).toString(16)+':'+(b>>>0).toString(16);};
 export function chooseBoardVersion(local,remote,base){if(!local)return 'remote';if(!remote)return 'local';if(boardStamp(local)===boardStamp(remote))return 'remote';if(base===boardStamp(local))return 'remote';if(base===boardStamp(remote))return 'local';return 'review';}
 // Journal side effects before waiting for network confirmation. A retry must never
@@ -38,7 +38,7 @@ export async function mountBoardSession(identity,{bridge=CRISBridge,client}={}){
  if(!client){const {getCloudClient}=await import(new URL('cloud-account.js',bridge.directorURL));client=getCloudClient;}const session=new BoardSession({bridge,client});window.CRIS_BOARD_SESSION=session;
  const toolbar=document.createElement('nav');toolbar.className='cris-board-toolbar';toolbar.setAttribute('aria-label','Campanha e ficha');toolbar.innerHTML=`<button type="button" class="cris-menu-toggle" aria-label="Menu do quadro" aria-expanded="false" aria-controls="crisBoardMenu">☰ <span>CRIS</span></button><div id="crisBoardMenu" class="cris-board-menu" hidden><div class="cris-board-who"><strong></strong><small id="boardSyncStatus">${identity.isMaster?'Abrindo quadro da conta…':'Quadro da campanha · aguardando mesa'}</small></div><button type="button" id="openOwnSheet">Minha ficha</button>${identity.isMaster?'<button type="button" id="boardSaveNow">Sincronizar</button><a id="boardDirectorLink" target="crisDirector" rel="noopener">Roteiro e SoundPad ↗</a>':''}<a href="../#arquivos">Arquivos do caso</a><a href="../">Voltar ao CRIS</a></div>`;toolbar.querySelector('strong').textContent=identity.name;document.body.append(toolbar);
  if(identity.isMaster){toolbar.querySelector('#boardDirectorLink').href=bridge.directorURL;toolbar.querySelector('#boardSaveNow').onclick=()=>session.flush().catch(()=>{});}
- if(identity.isMaster){const actions=document.createElement('div');actions.className='cris-archive-actions';actions.innerHTML=bridge.archiveId?'<strong>Quadro de arquivo · rascunho</strong><small>Alterações só aparecem aos agentes após publicar.</small><button type="button" data-publish>Publicar versão visível</button><button type="button" data-unpublish>Recolher publicação</button>':'<button type="button" data-copy>Guardar cópia nos arquivos</button>';toolbar.querySelector('#crisBoardMenu').append(actions);
+ if(identity.isMaster){const actions=document.createElement('div');actions.className='cris-archive-actions';actions.innerHTML=bridge.archiveId?'<strong>Quadro de arquivo · rascunho</strong><small>Publique para liberar novas pistas. Itens apagados ou ocultados são retirados ao salvar.</small><button type="button" data-publish>Publicar versão visível</button><button type="button" data-unpublish>Recolher publicação</button>':'<button type="button" data-copy>Guardar cópia nos arquivos</button>';toolbar.querySelector('#crisBoardMenu').append(actions);
  const action=async(button,fn)=>{button.disabled=true;try{await fn();}catch(e){session.status(e.message,true);}finally{button.disabled=false;}};
  actions.querySelector('[data-publish]')?.addEventListener('click',e=>action(e.currentTarget,async()=>{if(!session.api)throw Error('Aguarde o quadro carregar.');await session.flush();const count=await(await bridge.boardLibrary()).publish(bridge.archiveId);session.status('Versão publicada · '+count+' itens visíveis');}));
  actions.querySelector('[data-unpublish]')?.addEventListener('click',e=>action(e.currentTarget,async()=>{await(await bridge.boardLibrary()).unpublish(bridge.archiveId);session.status('Publicação recolhida · rascunho preservado');}));
@@ -50,6 +50,6 @@ export async function mountBoardSession(identity,{bridge=CRISBridge,client}={}){
  const showSheet=()=>{setOpen(false);openBoardSheet({bridge,identity});};
  toolbar.querySelector('#openOwnSheet').onclick=showSheet;
 
- import('../notifications.js?v=323').then(({mountNotifications})=>mountNotifications({bridge,identity,anchor:menu})).catch(()=>{});
+ import('../notifications.js?v=328').then(({mountNotifications})=>mountNotifications({bridge,identity,anchor:menu})).catch(()=>{});
  return session;
 }

@@ -11,5 +11,6 @@ export function mountCluePanel({panel,item,onChange}){
  const save=()=>{setClueMetadata(item,{name:name.value,enabled:enabled.checked});onChange();};
  name.oninput=()=>{if(name.value.trim())enabled.checked=true;save();};enabled.onchange=save;
  box.querySelector('button').onclick=async e=>{try{await navigator.clipboard.writeText(item.id);e.currentTarget.textContent='Código copiado';}catch{e.currentTarget.textContent='Selecione o código acima para copiar';}};
+ if(window.CRISBridge?.archiveId&&['img','note'].includes(item.type)){const prepare=document.createElement('button');prepare.type='button';prepare.textContent='Vincular preparação ao acervo';prepare.onclick=()=>window.CRIS_PREPARE_EVIDENCE?.(item.id);box.append(prepare);}
  box.addEventListener('keydown',e=>e.stopPropagation());(panel.querySelector('.pp-body')||panel).prepend(box);
 }

@@ -1,5 +1,5 @@
-import {BoardLibrary,archiveIdFrom} from './board-library.js';
-import {BoardAssets} from './board-assets.js';
+import {BoardLibrary,archiveIdFrom} from './board-library.js?v=328';
+import {BoardAssets} from './board-assets.js?v=328';
 // CRIS bridge: identity and private persistence come from Supabase, not local credentials.
 const directorBase=new URL('../',import.meta.url);
 let library=null,boardAssets=null,accountPromise,sdk,identity=null,campaignId=null,sheetRevision=0,boardRevision=0,sheetQueue=Promise.resolve(),boardQueue=Promise.resolve();
