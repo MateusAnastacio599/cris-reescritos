@@ -3462,3 +3462,16 @@ body.master-access .board-launch-button { background: #21152f; border-color: #6f
 .case-attachment .case-file-preview{display:block}
 .case-file-preview img{display:block;max-width:100%;max-height:65dvh;object-fit:contain;margin:12px auto}
 @media(max-width:600px){.case-archive-dialog{padding:16px}.case-archive-dialog h3{font-size:19px}.case-archive-dialog input,.case-archive-dialog textarea,.case-archive-dialog select{font-size:16px}}
+
+.archive-intro{color:#c8b6d7;line-height:1.6}
+.occurrence-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:18px;align-items:start;margin:18px 0}
+.occurrence-layout>:only-child{grid-column:1/-1}
+.occurrence-layout .case-attachment{margin:0}
+.occurrence-facts{display:grid;gap:10px;margin:0}
+.occurrence-facts dt{color:#c8a8df;font-size:.75rem;text-transform:uppercase}
+.occurrence-facts dd{margin:0;color:#f1e6fa;line-height:1.4}
+.occurrence-overview .case-document-body{font-size:.82rem;margin-bottom:0}
+.occurrence-section{border-top:1px solid #493455;padding:10px 0}
+.occurrence-section summary{cursor:pointer;font-weight:bold;padding:5px 0}
+.occurrence-section .case-document-body{margin:10px 0 0}
+@media(max-width:650px){.occurrence-layout{grid-template-columns:1fr}}
