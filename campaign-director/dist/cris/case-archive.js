@@ -18,9 +18,32 @@ export async function mountCaseArchive(bridge, identity) {
   if (!root) return;
   const master = identity.isMaster;
   const {parseBlocks, renderReadBlocks} = await import(new URL('markdown.js', bridge.directorURL));
-  const readDocument = markdown => renderReadBlocks(parseBlocks(markdown.replace(/\\(?=\r?$)/gm, ''))
+  const documentBlocks = markdown => parseBlocks(markdown.replace(/\\(?=\r?$)/gm, ''))
     .filter(block => !['clue','cue','note'].includes(block.type))
-    .map(block => block.type === 'todo' ? {...block,type:'list'} : block));
+    .map(block => block.type === 'todo' ? {...block,type:'list'} : block);
+  const readDocument = markdown => renderReadBlocks(documentBlocks(markdown));
+  function occurrenceBody(markdown) {
+    const sections = [{title:'Dados do registro', blocks:[]}];
+    for (const block of documentBlocks(markdown)) {
+      if (block.type === 'h2') sections.push({title:block.text, blocks:[]});
+      else sections.at(-1).blocks.push(block);
+    }
+    const identification = sections.find(section => /identificação/i.test(section.title));
+    const fields = identification?.blocks.filter(block => block.type !== 'divider');
+    const lines = fields?.every(block => block.type === 'paragraph')
+      ? fields.flatMap(block => block.text.split('\n')).map(line => line.match(/^\*\*([^*]+):\*\*\s*(.+)$/))
+      : null;
+    if (!lines?.length || !lines.every(Boolean)) return {overview:'',details:readDocument(markdown)};
+    const conclusion = sections.find(section => /conclusão/i.test(section.title));
+    const summary = conclusion?.blocks.find(block => block.type === 'paragraph');
+    const overview = '<section class="occurrence-overview" aria-label="Ficha da ocorrência"><dl class="occurrence-facts">'+
+      lines.map(([,key,value]) => '<div><dt>'+escape(key)+'</dt><dd>'+escape(value)+'</dd></div>').join('')+
+      '</dl>'+(summary?'<div class="case-document-body"><strong>EM RESUMO</strong>'+renderReadBlocks([summary])+'</div>':'')+'</section>';
+    const details = sections.filter(section => section !== identification && section.blocks.length).map(section =>
+      '<details class="occurrence-section"><summary>'+escape(section.title)+'</summary><div class="case-document-body">'+
+      renderReadBlocks(section.blocks)+'</div></details>').join('');
+    return {overview,details};
+  }
   const api = new CaseArchive(await archiveClient(bridge), bridge.campaignId);
   const boards = await bridge.boardLibrary();
   let preview = false, data = {investigations:[], documents:[]}, destinations = [];
@@ -169,24 +192,25 @@ export async function mountCaseArchive(bridge, identity) {
     }
     const manage = master && !preview;
     const attach = result.attachments.filter(row => !preview || row.published);
-    const add = !master ? '<button type="button" data-pin>Adicionar ao quadro</button>' : '';
-    show('<span class="micro-label">'+escape(investigation.title)+'</span><h3>'+escape(doc.title)+'</h3>'+
-      (manage?'<p>'+statusLabel(doc.published && investigation.published)+' · acesso dos agentes</p>':'')+
-      (attach.length ? '<p><button type="button" data-jump-evidence>Ver evidências</button></p>' : '')+
-      (doc.body?'<div class="case-document-body">'+readDocument(doc.body)+'</div>':'')+
-      '<div class="case-archive-actions">'+add+(manage?'<button type="button" data-edit-doc>Editar documento</button><button type="button" data-add-attachment>Nova evidência</button>':'')+
-      '</div><p role="status"></p>'+attach.map(row => '<article class="case-board-card case-attachment" data-attachment="'+row.id+'">'+
+    const mainPhoto = attach.find(row => row.object_path && evidenceImage(row.mime));
+    const body = doc.body ? occurrenceBody(doc.body) : {overview:'',details:''};
+    const add = label => !master ? '<button type="button" data-pin>'+label+'</button>' : '';
+    const evidenceCard = row => '<article class="case-board-card case-attachment" data-attachment="'+row.id+'">'+
       '<span class="micro-label">'+(manage?statusLabel(row.published):'EVIDÊNCIA')+'</span><h4>'+escape(row.title)+'</h4>'+
       (row.body?'<div class="case-document-body">'+readDocument(row.body)+'</div>':'')+
-      (row.object_path?'<div class="case-file-preview"></div><button type="button" data-original>Baixar original</button>':(!row.body&&manage?'<p>Aguardando arquivo original.</p>':''))+
-      '<div class="case-archive-actions">'+add+(manage?'<button type="button" data-edit-attachment>Editar evidência</button>':'')+'</div></article>').join(''));
+      (row.object_path?'<div class="case-file-preview"></div>':(!row.body&&manage?'<p>Aguardando arquivo original.</p>':''))+
+      '<div class="case-archive-actions">'+add(evidenceImage(row.mime)?'Adicionar imagem ao quadro':'Adicionar evidência ao quadro')+
+      (row.object_path?'<button type="button" data-original>Baixar original</button>':'')+
+      (manage?'<button type="button" data-edit-attachment>Editar evidência</button>':'')+'</div></article>';
+    show('<span class="micro-label">'+escape(investigation.title)+'</span><h3>'+escape(doc.title)+'</h3>'+
+      (manage?'<p>'+statusLabel(doc.published && investigation.published)+' · acesso dos agentes</p>':'')+
+      '<div class="case-archive-actions">'+add('Adicionar documento ao quadro')+
+      (manage?'<button type="button" data-edit-doc>Editar documento</button><button type="button" data-add-attachment>Nova evidência</button>':'')+
+      '</div><p role="status"></p>'+
+      (body.overview || mainPhoto ? '<div class="occurrence-layout">'+body.overview+(mainPhoto?evidenceCard(mainPhoto):'')+'</div>' : '')+
+      (body.details?'<div class="case-document-body">'+body.details+'</div>':'')+
+      attach.filter(row => row !== mainPhoto).map(evidenceCard).join(''));
     const current = view;
-    dialog.querySelector('[data-jump-evidence]')?.addEventListener('click', () => {
-      const first = dialog.querySelector('.case-attachment');
-      first.tabIndex = -1;
-      first.focus();
-      first.scrollIntoView({block:'start'});
-    });
     dialog.querySelector('[data-edit-doc]')?.addEventListener('click', () => editDocument(doc, doc.investigation_id));
     dialog.querySelector('[data-add-attachment]')?.addEventListener('click', () => editAttachment(doc));
     dialog.querySelectorAll('[data-pin]').forEach(button => button.onclick = action(async () => {
