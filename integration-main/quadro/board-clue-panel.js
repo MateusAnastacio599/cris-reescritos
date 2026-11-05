@@ -17,7 +17,7 @@ export function mountCluePanel({panel,item,onChange}){
  if(window.CRISBridge?.archiveId&&canPrepareItem(item)){
   const section=document.createElement('section');section.className='cris-evidence-config';
   const prepare=document.createElement('button');prepare.type='button';prepare.textContent='Preparar evidência do acervo';
-  const hint=document.createElement('small');hint.textContent='Vincule este item à objeto ou pista que o jogador pode escolher nos Arquivos.';
+  const hint=document.createElement('small');hint.textContent='Associe este item a uma evidência que o jogador pode escolher nos Arquivos.';
   prepare.onclick=()=>window.CRIS_PREPARE_EVIDENCE?.(item.id);section.append(prepare,hint);host.prepend(section);
  }
 

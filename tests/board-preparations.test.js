@@ -107,3 +107,19 @@ test('case-sheet answers and spawned object outputs survive private reload',()=>
  assert.equal(restored.state.items[1].parent,restored.state.items[0].id);assert.equal(restored.state.items[1].crisOwner,'player');
  assert.equal(restored.state.items[1].text,'Resultado do objeto');
 });
+
+test('recorder preparations retain cassette and both active/previous audio references',()=>{
+ const snapshot={state:{items:[
+  {id:'recorder',type:'cont',kind:'gravador',tapeId:'cassette',audioId:'tape-audio',prevAudio:'device-audio',opts:{label:'Gravador de teste'},x:0,y:0,w:320,w0:320,rot:0,scale:1,z:1},
+  {id:'cassette',type:'cont',kind:'fita',inside:'recorder',audioId:'tape-audio',opts:{label:'Fita de teste'},x:0,y:0,w:170,w0:170,rot:0,scale:1,z:2},
+  {id:'unrelated',type:'cont',kind:'radio',audioId:'private-audio'}
+ ],pins:[],strings:[]},imgs:{'tape-audio':'data:audio/wav;base64,YQ==','device-audio':'data:audio/wav;base64,Yg==','private-audio':'data:audio/wav;base64,Yw=='}};
+ const prepared=prepareEvidence(snapshot,'recorder');
+ assert.deepEqual(prepared.state.items.map(item=>item.id),['recorder','cassette']);
+ assert.deepEqual(Object.keys(prepared.imgs).sort(),['device-audio','tape-audio']);
+ const placed=placePreparation(prepared,{id:'own-pin',attachment:{document_id:'doc'},layout:{}},'player',{x:100,y:100});
+ assert.equal(placed.state.items[0].tapeId,placed.state.items[1].id);
+ assert.equal(placed.state.items[1].inside,placed.state.items[0].id);
+ assert.equal(placed.imgs[placed.state.items[0].prevAudio],snapshot.imgs['device-audio']);
+ assert.equal(placed.imgs[placed.state.items[1].audioId],snapshot.imgs['tape-audio']);
+});

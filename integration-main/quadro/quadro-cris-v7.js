@@ -2988,7 +2988,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     const h2 = m2.createLinearGradient(0, f2 - 14, 0, f2 + 14);
     return h2.addColorStop(0, "rgba(0,0,0,0)"), h2.addColorStop(0.5, "rgba(0,0,0,.22)"), h2.addColorStop(1, "rgba(255,255,255,.12)"), m2.fillStyle = h2, m2.fillRect(0, f2 - 14, n2, 28), { c: s2, box: { x: 0, y: 0, w: p2 + 18, h: f2 + 18 } };
   } } });
-  const Ba = ["luminaria", "pager", "celular", "bussola", "frasco", "vela", "isqueiro", "fosforo", "chave"];
+  const Ba = ["luminaria", "pager", "celular", "gravador", "radio", "antigo", "bussola", "frasco", "vela", "isqueiro", "fosforo", "chave"];
   function Oa(e2, t2, o2, a2) {
     return `<div class="glow" style="left:${100 * t2}%;top:${100 * o2}%;width:${260 * a2}%;padding-top:${260 * a2}%"></div><div class="flame" style="left:${100 * t2}%;top:${100 * o2}%;width:${40 * a2}%;padding-top:${95 * a2}%"></div>`;
   }
