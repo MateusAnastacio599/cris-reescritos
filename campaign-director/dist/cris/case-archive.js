@@ -17,6 +17,10 @@ export async function mountCaseArchive(bridge, identity) {
   const root = document.getElementById('caseArchive');
   if (!root) return;
   const master = identity.isMaster;
+  const {parseBlocks, renderReadBlocks} = await import(new URL('markdown.js', bridge.directorURL));
+  const readDocument = markdown => renderReadBlocks(parseBlocks(markdown.replace(/\\(?=\r?$)/gm, ''))
+    .filter(block => !['clue','cue','note'].includes(block.type))
+    .map(block => block.type === 'todo' ? {...block,type:'list'} : block));
   const api = new CaseArchive(await archiveClient(bridge), bridge.campaignId);
   const boards = await bridge.boardLibrary();
   let preview = false, data = {investigations:[], documents:[]}, destinations = [];
@@ -168,14 +172,21 @@ export async function mountCaseArchive(bridge, identity) {
     const add = !master ? '<button type="button" data-pin>Adicionar ao quadro</button>' : '';
     show('<span class="micro-label">'+escape(investigation.title)+'</span><h3>'+escape(doc.title)+'</h3>'+
       (manage?'<p>'+statusLabel(doc.published && investigation.published)+' · acesso dos agentes</p>':'')+
-      (doc.body?'<div class="case-document-body">'+escape(doc.body)+'</div>':'')+
+      (attach.length ? '<p><button type="button" data-jump-evidence>Ver evidências</button></p>' : '')+
+      (doc.body?'<div class="case-document-body">'+readDocument(doc.body)+'</div>':'')+
       '<div class="case-archive-actions">'+add+(manage?'<button type="button" data-edit-doc>Editar documento</button><button type="button" data-add-attachment>Nova evidência</button>':'')+
       '</div><p role="status"></p>'+attach.map(row => '<article class="case-board-card case-attachment" data-attachment="'+row.id+'">'+
       '<span class="micro-label">'+(manage?statusLabel(row.published):'EVIDÊNCIA')+'</span><h4>'+escape(row.title)+'</h4>'+
-      (row.body?'<div class="case-document-body">'+escape(row.body)+'</div>':'')+
+      (row.body?'<div class="case-document-body">'+readDocument(row.body)+'</div>':'')+
       (row.object_path?'<div class="case-file-preview"></div><button type="button" data-original>Baixar original</button>':(!row.body&&manage?'<p>Aguardando arquivo original.</p>':''))+
       '<div class="case-archive-actions">'+add+(manage?'<button type="button" data-edit-attachment>Editar evidência</button>':'')+'</div></article>').join(''));
     const current = view;
+    dialog.querySelector('[data-jump-evidence]')?.addEventListener('click', () => {
+      const first = dialog.querySelector('.case-attachment');
+      first.tabIndex = -1;
+      first.focus();
+      first.scrollIntoView({block:'start'});
+    });
     dialog.querySelector('[data-edit-doc]')?.addEventListener('click', () => editDocument(doc, doc.investigation_id));
     dialog.querySelector('[data-add-attachment]')?.addEventListener('click', () => editAttachment(doc));
     dialog.querySelectorAll('[data-pin]').forEach(button => button.onclick = action(async () => {
@@ -187,13 +198,14 @@ export async function mountCaseArchive(bridge, identity) {
       card.querySelector('[data-edit-attachment]')?.addEventListener('click', () => editAttachment(doc,row));
       if (!row.object_path) continue;
       const original = card.querySelector('[data-original]');
-      const load = async () => {
+      let pending;
+      const load = () => pending ||= (async () => {
         const blob = await api.original(row);
         if (view !== current) return null;
         const url = URL.createObjectURL(blob);
         urls.push(url);
         return url;
-      };
+      })().catch(error => { pending = null; throw error; });
       original.onclick = action(async () => {
         const url = await load();
         if (!url) return;
@@ -207,7 +219,15 @@ export async function mountCaseArchive(bridge, identity) {
         const img = document.createElement('img');
         img.src = url;
         img.alt = row.title;
-        card.querySelector('.case-file-preview').append(img);
+        const enlarge = document.createElement('a');
+        enlarge.href = url;
+        enlarge.target = '_blank';
+        enlarge.rel = 'noopener';
+        enlarge.setAttribute('aria-label','Ampliar imagem: '+row.title);
+        enlarge.append(img);
+        const caption = document.createElement('small');
+        caption.textContent = 'Imagem ampliável · Arquivo original';
+        card.querySelector('.case-file-preview').append(enlarge, caption);
       }).catch(() => { if (view === current) card.querySelector('.case-file-preview').textContent = 'Imagem indisponível.'; });
     }
   }
