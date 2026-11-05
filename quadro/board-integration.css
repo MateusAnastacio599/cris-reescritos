@@ -57,3 +57,5 @@ body.cris-archive-reader :is(#fxEm,#fxDust,#qiAcel,#qiVerTag){display:none!impor
 
 #qa a{color:inherit;font:12px/1.4 "Courier New",monospace;text-decoration:none;padding:7px 10px;align-self:center}#qa a[hidden],#qa.cris-pin-actions a{display:none!important}
 .cris-preparation-dialog{max-width:580px;font:14px/1.7 "Courier New",monospace}.cris-preparation-dialog label{display:grid;gap:10px;margin:20px 0}.cris-preparation-dialog select{width:100%;padding:12px;background:#0d0914;color:#e9d9f3;border:1px solid #624577;font:inherit}.cris-preparation-dialog [role=status]{color:#cda6ed}
+
+#props .cris-evidence-config{display:grid;gap:8px;margin:0 0 12px;padding:12px;border:1px solid #92704c;background:#2b2118;border-radius:6px;flex:none}#props .cris-evidence-config>button{width:100%;padding:11px 10px;border:1px solid #ae895c;background:#4a3522;color:#fff1d6;border-radius:4px;font:600 12px/1.5 system-ui;cursor:pointer}#props .cris-evidence-config>small{font:11px/1.6 system-ui;color:#d4c1a5}.cris-archive-actions>[data-prepare-evidence]{border-color:#ae895c;background:#4a3522;color:#fff1d6;font-weight:600}
