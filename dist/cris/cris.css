@@ -3449,7 +3449,14 @@ body.master-access .board-launch-button { background: #21152f; border-color: #6f
 .case-archive-dialog a{display:inline-block;border:1px solid #57416f;background:#17101f;color:#dcc7f7;padding:10px 13px;text-decoration:none}
 .case-archive-dialog [role=status]:empty{display:none}
 .case-archive-dialog [role=status]{color:#e8b2be}
-.case-document-body{white-space:pre-wrap;margin:16px 0;color:#e7dfef}
+.case-document-body{margin:20px 0;color:#e7dfef;font:14px/1.7 "Courier New",monospace}
+.case-document-body :is(h1,h2,h3){font:700 1.1em/1.4 "Courier New",monospace;letter-spacing:.03em;color:#efe4fa;margin:24px 0 10px}
+.case-document-body h1{font-size:1.25em}
+.case-document-body p,.case-boards .case-document-body p{font:inherit;color:inherit;margin:0 0 12px}
+.case-document-body :is(ul,ol){padding-inline-start:24px;margin:0 0 16px}
+.case-document-body hr{border:0;border-top:1px solid #493455;margin:20px 0}
+.case-file-preview a{display:block;padding:0;cursor:zoom-in}
+.case-file-preview small{display:block;margin:8px 0;color:#c8b6d7}
 .case-attachment{margin-top:16px}
 .case-attachment .case-archive-actions{margin-top:12px}
 .case-attachment .case-file-preview{display:block}
