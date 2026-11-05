@@ -65,6 +65,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   }
   let T = 0, C = 0;
   function E() {
+    if (crisPersonal) return;
     void 0 !== co && co && (clearTimeout(C), C = setTimeout(go, 120)), clearTimeout(T), T = setTimeout(async () => {
       const e2 = {};
       u.items.forEach((t2) => {
@@ -624,7 +625,14 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     Ct(true);
     try {
       await document.fonts.ready;
-      const a2 = await ge(o2), n2 = await Ce[e2.filter].run(a2, e2.opts || {}, e2.seed);
+      const a2 = await ge(o2);
+      if (e2.crisEvidence && o2.startsWith('blob:')) {
+        e2.aspect = a2.naturalHeight / a2.naturalWidth;
+        f[e2.id] = { key: t2, url: o2, aspect: e2.aspect };
+        m[e2.id] = le(e2, a2);
+        return f[e2.id];
+      }
+      const n2 = await Ce[e2.filter].run(a2, e2.opts || {}, e2.seed);
       f[e2.id] = { key: t2, url: n2.toDataURL("image/png"), aspect: n2.height / n2.width }, e2.aspect = n2.height / n2.width, m[e2.id] = le(e2, n2);
     } finally {
       Ct(false);
@@ -925,6 +933,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   function ft(e2) {
     const t2 = K(e2);
     if (!t2) return;
+    if (t2.crisEvidence) return St("Esta evidência já está no quadro.");
     const o2 = JSON.parse(JSON.stringify(t2));
     if(!window.CRIS_IDENTITY.isMaster){o2.crisOwner=window.CRIS_IDENTITY.userId;o2.by=Os.me;}
     o2.id = r(), o2.x += 30, o2.y += 30, o2.z = st(), o2.seed = (o2.seed || 1) + 7, o2.parent = null, delete o2.box, delete o2.hid, $(), u.items.push(o2), Fe(o2), mt(o2.id), E();
@@ -29529,8 +29538,8 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
   const crisQA=t('#qa'),crisEdit=document.createElement('button');
   crisEdit.id='crisEditText';crisEdit.type='button';crisEdit.title='Editar texto';crisEdit.setAttribute('aria-label','Editar texto');crisEdit.textContent='✎';crisQA.prepend(crisEdit);
   const crisFinishNote=()=>{const el=document.querySelector('#view .note[contenteditable=true]');if(el){const item=h&&K(h);if(item)item.text=el.innerText;el.contentEditable='false';el.blur();_e(item?.id);u.strings.forEach(et);at();nt();E();if(crisPersonal)void crisSavePersonalNow();}crisUpdateNoteActions();};
-  function crisUpdateNoteActions(){const item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me),editing=!!document.querySelector('#view .note[contenteditable=true]');crisEdit.hidden=!item||item.type!=='note'||!own;crisEdit.textContent=editing?'✓':'✎';crisEdit.title=editing?'Concluir texto':'Editar texto';crisEdit.setAttribute('aria-label',crisEdit.title);}
-  function crisEditNote(item){if(!item||!window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me))return;const el=document.getElementById('it-'+item.id)?.querySelector('.note');if(!el)return;$();el.contentEditable='true';el.setAttribute('role','textbox');el.setAttribute('aria-label','Texto do post-it');el.focus();const range=document.createRange();range.selectNodeContents(el);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);crisUpdateNoteActions();}
+  function crisUpdateNoteActions(){const item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me),editing=!!document.querySelector('#view .note[contenteditable=true]');crisEdit.hidden=!item||item.type!=='note'||!!item.crisEvidence||!own;crisEdit.textContent=editing?'✓':'✎';crisEdit.title=editing?'Concluir texto':'Editar texto';crisEdit.setAttribute('aria-label',crisEdit.title);}
+  function crisEditNote(item){if(!item||item.crisEvidence||!window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me))return;const el=document.getElementById('it-'+item.id)?.querySelector('.note');if(!el)return;$();el.contentEditable='true';el.setAttribute('role','textbox');el.setAttribute('aria-label','Texto do post-it');el.focus();const range=document.createRange();range.selectNodeContents(el);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);crisUpdateNoteActions();}
   crisEdit.onclick=()=>document.querySelector('#view .note[contenteditable=true]')?crisFinishNote():crisEditNote(h&&K(h));
   crisEdit.onpointerdown=e=>{e.preventDefault();e.stopPropagation();};
   window.addEventListener('pointerdown',e=>{const active=document.activeElement;if(active?.matches('#view .note[contenteditable=true]')&&!active.contains(e.target)&&!crisQA.contains(e.target))crisFinishNote();},true);
@@ -29538,13 +29547,58 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
   const crisSelectNote=mt;mt=function(){const result=crisSelectNote.apply(this,arguments);crisUpdateNoteActions();return result;};
   const crisCreateNote=dt;dt=function(){const item=crisCreateNote.apply(this,arguments);if(Wr())requestAnimationFrame(()=>crisEditNote(item));return item;};
   const crisDrawQA=$a;$a=function(){crisDrawQA();const pin=v&&u.pins.find(p=>p.id===v),item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(pin||item,window.CRIS_IDENTITY,Os.me);crisQA.classList.toggle('cris-pin-actions',!!pin);crisQA.classList.toggle('cris-own-note',!!item&&item.type==='note'&&own);if(pin&&x&&!bt){crisQA.classList.add('show');const point=X(D(pin)),width=crisQA.offsetWidth||50;crisQA.style.transform=`translate(${c(point.x-width/2,8,innerWidth-width-8)}px,${c(point.y-80,70,innerHeight-150)}px)`;}const del=crisQA.querySelector('[data-q=del]');if(del)del.hidden=!own;crisUpdateNoteActions();};
-  window.addEventListener('click',e=>{if(!v||!e.target.closest?.('#qa [data-q=del]'))return;e.preventDefault();e.stopImmediatePropagation();const pin=u.pins.find(p=>p.id===v);if(window.CRIS_BOARD_RULES.ownsBoardItem(pin,window.CRIS_IDENTITY,Os.me)){$();Ye(v);vt();E();if(crisPersonal)void crisSavePersonalNow();crisQA.classList.remove('show');}},true);
-  window.addEventListener('keydown',e=>{if(!v||!['Delete','Backspace'].includes(e.key)||e.target.closest?.('input,textarea,[contenteditable=true]'))return;e.preventDefault();e.stopImmediatePropagation();const pin=u.pins.find(p=>p.id===v);if(window.CRIS_BOARD_RULES.ownsBoardItem(pin,window.CRIS_IDENTITY,Os.me)){$();Ye(v);E();if(crisPersonal)void crisSavePersonalNow();}},true);
-  let crisSaveTimer;
+  function crisDeleteSelectedPin(pin){
+    const item=pin.item&&K(pin.item);
+    if(item?.crisEvidence&&pin.id==='evidence-pin-'+item.crisEvidence){pt(item.id);return;}
+    $();Ye(pin.id);vt();E();
+  }
+  window.addEventListener('click',event=>{
+    if(!v||!event.target.closest?.('#qa [data-q=del]'))return;
+    event.preventDefault();event.stopImmediatePropagation();
+    const pin=u.pins.find(p=>p.id===v);
+    if(window.CRIS_BOARD_RULES.ownsBoardItem(pin,window.CRIS_IDENTITY,Os.me))crisDeleteSelectedPin(pin);
+    crisQA.classList.remove('show');
+  },true);
+  window.addEventListener('keydown',event=>{
+    if(!v||!['Delete','Backspace'].includes(event.key)||event.target.closest?.('input,textarea,[contenteditable=true]'))return;
+    event.preventDefault();event.stopImmediatePropagation();
+    const pin=u.pins.find(p=>p.id===v);
+    if(window.CRIS_BOARD_RULES.ownsBoardItem(pin,window.CRIS_IDENTITY,Os.me))crisDeleteSelectedPin(pin);
+  },true);
+  let crisSaveTimer, crisEvidence, crisEvidencePending=false, crisEvidenceGeneration=0;
+  const crisSource=document.createElement('a');
+  crisSource.textContent='Abrir no acervo';
+  crisSource.target='_blank';
+  crisSource.rel='noopener';
+  crisSource.hidden=true;
+  crisQA.prepend(crisSource);
+  crisSource.addEventListener('pointerdown',event=>event.stopPropagation());
+  crisSource.addEventListener('click',event=>event.stopPropagation());
+  const crisPreviousActions=crisUpdateNoteActions;
+  crisUpdateNoteActions=function(){
+    crisPreviousActions();
+    const item=h&&K(h);
+    crisSource.hidden=!item?.crisDocument;
+    if(item?.crisDocument)crisSource.href='../?document='+encodeURIComponent(item.crisDocument)+'#arquivos';
+  };
   const crisSnapshot=()=>({state:JSON.parse(JSON.stringify(u)),imgs:Hl(),viewport:{width:innerWidth,height:innerHeight}});
-  async function crisSavePersonalNow(){if(!crisPersonalReady)return;clearTimeout(crisSaveTimer);const layer=window.CRIS_BOARD_RULES.personalBoardLayer(crisPublishedBase,crisSnapshot(),window.CRIS_IDENTITY.userId);await new Promise((resolve,reject)=>{if(!A)return reject(Error('Armazenamento local indisponível'));const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(layer,crisBoardStorageKey()+':personal');tx.oncomplete=resolve;tx.onerror=tx.onabort=()=>reject(tx.error||Error('Falha ao salvar anotações'));});window.CRIS_BOARD_SESSION.status('Suas anotações estão salvas neste navegador');}
-  function crisSavePersonal(){if(!crisPersonalReady)return;clearTimeout(crisSaveTimer);crisSaveTimer=setTimeout(()=>crisSavePersonalNow().catch(()=>window.CRIS_BOARD_SESSION.status('Não foi possível salvar neste navegador. Exporte uma imagem antes de sair.',true)),180);}
-  if(crisPersonal){document.addEventListener('visibilitychange',()=>{if(document.hidden)crisSavePersonalNow().catch(()=>{});});addEventListener('pagehide',()=>crisSavePersonalNow().catch(()=>{}));}
+  async function crisSavePersonalNow(){if(!crisPersonalReady)return;clearTimeout(crisSaveTimer);const current=crisSnapshot();
+    const layer=window.CRIS_BOARD_RULES.personalBoardLayer(crisPublishedBase,current,window.CRIS_IDENTITY.userId);
+    const evidenceIds=new Set(layer.items.filter(item=>item.crisEvidence).map(item=>item.id));
+    layer.items=layer.items.filter(item=>!evidenceIds.has(item.id));
+    layer.pins=layer.pins.filter(pin=>!evidenceIds.has(pin.item));
+    for(const id of evidenceIds)delete layer.imgs[id];
+    await new Promise((resolve,reject)=>{if(!A)return reject(Error('Armazenamento local indisponível'));const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(layer,crisBoardStorageKey()+':personal');tx.oncomplete=resolve;tx.onerror=tx.onabort=()=>reject(tx.error||Error('Falha ao salvar anotações'));});
+    await crisEvidence?.save(current.state);
+    if(generation===crisEvidenceGeneration)crisEvidencePending=false;
+    window.CRIS_BOARD_SESSION.status(crisEvidence?'Evidências sincronizadas · anotações salvas neste navegador':'Suas anotações estão salvas neste navegador');
+  }
+  function crisSavePersonal(){if(!crisPersonalReady)return;clearTimeout(crisSaveTimer);if(crisEvidence?.hasChanges(u)){crisEvidenceGeneration++;crisEvidencePending=true;window.CRIS_BOARD_SESSION.status('Sincronizando evidências…');}crisSaveTimer=setTimeout(()=>crisSavePersonalNow().catch(()=>window.CRIS_BOARD_SESSION.status('Não foi possível salvar todas as alterações. Confira a conexão antes de fechar.',true)),180);}
+  if(crisPersonal){
+    addEventListener('beforeunload',event=>{
+      if(crisEvidencePending){event.preventDefault();event.returnValue='';}
+    });
+    addEventListener('online',crisSavePersonal);document.addEventListener('visibilitychange',()=>{if(document.hidden)crisSavePersonalNow().catch(()=>{});});addEventListener('pagehide',()=>crisSavePersonalNow().catch(()=>{}));}
   let frame = 0;
   !(function e2() {
     requestAnimationFrame(e2);
@@ -29563,7 +29617,22 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
     }
   })(), (async function() {
     at();
-    if(crisPersonal){document.body.classList.add('player','cris-archive-reader');try{await k();const saved=await window.CRISBridge.loadBoard();crisPublishedBase=structuredClone(saved);const layer=await M(crisBoardStorageKey()+':personal');const combined=window.CRIS_BOARD_RULES.mergePersonalBoard(saved,layer,window.CRIS_IDENTITY.userId);u.cam=combined.state.cam||u.cam;await cr({s:JSON.stringify(combined.state),imgs:combined.imgs});if(layer?.cam&&layer.viewport?.width===innerWidth&&layer.viewport?.height===innerHeight){u.cam=layer.cam;q();}u.sound=localStorage.getItem('cris:board:interaction-sounds')!=='off';crisPersonalReady=true;window.CRIS_PERSONAL_BOARD={snapshot:crisSnapshot,save:crisSavePersonalNow};window.CRIS_BOARD_SESSION.status('Anotações pessoais · salvas neste navegador');Dl();t('#sceneBtn').title='Exportar imagem (PNG)';t('#sceneBtn').onclick=()=>Jl();}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}document.body.classList.remove('cris-loading');window.QIL?.pronto();return;}
+    if(crisPersonal){document.body.classList.add('player','cris-archive-reader');try{await k();const saved=await window.CRISBridge.loadBoard();crisPublishedBase=structuredClone(saved);const layer=await M(crisBoardStorageKey()+':personal');const combined=window.CRIS_BOARD_RULES.mergePersonalBoard(saved,layer,window.CRIS_IDENTITY.userId);
+      const focus=new URLSearchParams(location.search).get('evidence');
+      try {
+        crisEvidence=await window.CRIS_BOARD_EVIDENCE.open(window.CRISBridge,window.CRIS_IDENTITY.userId);
+        const camera=combined.state.cam||u.cam;
+        await crisEvidence.insertInto(combined,{x:camera.x+innerWidth/2/camera.z,y:camera.y+innerHeight/2/camera.z});
+      } catch(error) {
+        console.warn('CRIS: evidências indisponíveis',error.message);
+        St('Não foi possível carregar as evidências do acervo.');
+      }
+      u.cam=combined.state.cam||u.cam;
+      await cr({s:JSON.stringify(combined.state),imgs:combined.imgs});
+      if(layer?.cam&&layer.viewport?.width===innerWidth&&layer.viewport?.height===innerHeight){u.cam=layer.cam;q();}
+      const focused=focus&&K('evidence-'+focus);
+      if(focused){u.cam.x=focused.x-innerWidth/2/u.cam.z;u.cam.y=focused.y-innerHeight/2/u.cam.z;q();mt(focused.id);}
+      else if(focus)St('Esta evidência não está disponível no quadro.');u.sound=localStorage.getItem('cris:board:interaction-sounds')!=='off';crisPersonalReady=true;window.CRIS_PERSONAL_BOARD={snapshot:crisSnapshot,save:crisSavePersonalNow};window.CRIS_BOARD_SESSION.status('Anotações pessoais · salvas neste navegador');Dl();t('#sceneBtn').title='Exportar imagem (PNG)';t('#sceneBtn').onclick=()=>Jl();}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}document.body.classList.remove('cris-loading');window.QIL?.pronto();return;}
 
     if ((location.search.includes("obs") || location.hash.includes("obs")) && kt(false), at(), yt("select"), await document.fonts.ready, await Promise.all(["700 30px Hand", "30px Marker", "30px Typewriter", "700 30px News", "17px NewsR", "600 20px Cond", "40px Sigil"].map((e3) => document.fonts.load(e3).catch(() => 0))), Bs) return u = d(), u.items = [], u.pins = [], u.strings = [], await ze(), void kr();
                 const snapshot=()=>{const imgs={};for(const i of u.items)for(const k of ['imgId','audioId'])if(i[k]&&p[i[k]])imgs[i[k]]=p[i[k]];return {state:JSON.parse(JSON.stringify(u)),imgs};};

@@ -38,7 +38,7 @@ test('cópia local anterior é preservada separadamente antes de abrir a nuvem',
  const map=new Map([[STORAGE_KEY,'original']]);preserveBeforeCloudLoad({getItem:k=>map.get(k),setItem:(k,v)=>map.set(k,v)});assert.equal(map.get(STORAGE_KEY),'original');assert.equal(map.get(STORAGE_KEY+':before-cloud-load'),'original');
 });
 test('CRIS integrado usa módulos, identidade autenticada e não contém mapas de credenciais',()=>{
- const root=new URL('../integration-main/',import.meta.url),html=readFileSync(new URL('index.html',root),'utf8');assert.match(html,/type="module" src="cris.js"/);
+ const root=new URL('../integration-main/',import.meta.url),html=readFileSync(new URL('index.html',root),'utf8');assert.match(html,/type="module" src="cris\.js(?:\?v=\d+)?"/);
  for(const path of ['cris.js','quadro/quadro-cris-v7.js','quadro/quadro-alpha0298-cris-v6.js','quadro/quadro.js']){const s=readFileSync(new URL(path,root),'utf8');assert.doesNotMatch(s,/const CREDENTIALS|const CRIS_AGENTS|MASTER_KEY\s*=/);}
  assert.match(readFileSync(new URL('cris.js',root),'utf8'),/CRISBridge.login/);assert.match(readFileSync(new URL('cris.js',root),'utf8'),/cris_ficha_v2:'\+uid/);
 });

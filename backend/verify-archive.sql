@@ -1,0 +1,76 @@
+-- Transactional role check. All synthetic rows are rolled back.
+begin;
+insert into auth.users(id) values
+ ('da261070-2a24-4eae-8a51-000000000001'), ('da261070-2a24-4eae-8a51-000000000002'),
+ ('da261070-2a24-4eae-8a51-000000000003');
+insert into public.campaigns(id,owner_id,title) values
+ ('da261070-2a24-4eae-8a51-000000000004','da261070-2a24-4eae-8a51-000000000001','Archive verification');
+insert into public.campaign_members(campaign_id,user_id,role) values
+ ('da261070-2a24-4eae-8a51-000000000004','da261070-2a24-4eae-8a51-000000000002','player'),
+ ('da261070-2a24-4eae-8a51-000000000004','da261070-2a24-4eae-8a51-000000000003','player');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','da261070-2a24-4eae-8a51-000000000001',true);
+insert into public.investigation_boards(id,campaign_id,title) values
+ ('da261070-2a24-4eae-8a51-000000000005','da261070-2a24-4eae-8a51-000000000004','Board');
+insert into public.case_investigations(id,campaign_id,title,board_id) values
+ ('da261070-2a24-4eae-8a51-000000000006','da261070-2a24-4eae-8a51-000000000004','Investigation','da261070-2a24-4eae-8a51-000000000005');
+insert into public.case_documents(id,campaign_id,investigation_id,title,published) values
+ ('da261070-2a24-4eae-8a51-000000000007','da261070-2a24-4eae-8a51-000000000004','da261070-2a24-4eae-8a51-000000000006','Document',true);
+insert into public.case_attachments(id,campaign_id,document_id,title,published,object_path,mime) values
+ ('da261070-2a24-4eae-8a51-000000000008','da261070-2a24-4eae-8a51-000000000004','da261070-2a24-4eae-8a51-000000000007','Photo',true,'da261070-2a24-4eae-8a51-000000000004/da261070-2a24-4eae-8a51-000000000008','image/png');
+insert into storage.objects(bucket_id,name) values
+ ('cris-case-evidence','da261070-2a24-4eae-8a51-000000000004/da261070-2a24-4eae-8a51-000000000008');
+do $$ begin
+ if not exists(select 1 from public.case_investigations where id='da261070-2a24-4eae-8a51-000000000006') then raise exception 'GM cannot see draft'; end if;
+end $$;
+select set_config('request.jwt.claim.sub','da261070-2a24-4eae-8a51-000000000002',true);
+do $$ begin
+ if exists(select 1 from public.case_documents where id='da261070-2a24-4eae-8a51-000000000007')
+ or exists(select 1 from public.case_attachments where id='da261070-2a24-4eae-8a51-000000000008')
+ or exists(select 1 from storage.objects where bucket_id='cris-case-evidence' and name='da261070-2a24-4eae-8a51-000000000004/da261070-2a24-4eae-8a51-000000000008')
+ then raise exception 'Draft ancestor exposed'; end if;
+end $$;
+select set_config('request.jwt.claim.sub','da261070-2a24-4eae-8a51-000000000001',true);
+update public.case_investigations set published=true where id='da261070-2a24-4eae-8a51-000000000006';
+insert into public.investigation_board_publications(id,campaign_id,title,payload,revision) values
+ ('da261070-2a24-4eae-8a51-000000000005','da261070-2a24-4eae-8a51-000000000004','Board','{}',1);
+select set_config('request.jwt.claim.sub','da261070-2a24-4eae-8a51-000000000002',true);
+do $$ begin
+ if not exists(select 1 from storage.objects where bucket_id='cris-case-evidence' and name='da261070-2a24-4eae-8a51-000000000004/da261070-2a24-4eae-8a51-000000000008') then raise exception 'Published image unavailable'; end if;
+end $$;
+insert into public.case_evidence_pins(id,campaign_id,board_id,attachment_id) values
+ ('da261070-2a24-4eae-8a51-000000000009','da261070-2a24-4eae-8a51-000000000004','da261070-2a24-4eae-8a51-000000000005','da261070-2a24-4eae-8a51-000000000008');
+do $$ begin
+ begin
+ insert into public.case_evidence_pins(campaign_id,board_id,attachment_id) values
+ ('da261070-2a24-4eae-8a51-000000000004','da261070-2a24-4eae-8a51-000000000005','da261070-2a24-4eae-8a51-000000000008');
+ raise exception 'Duplicate allowed';
+ exception when unique_violation then null; end;
+ update public.case_evidence_pins set layout='{"pose":{"x":25,"scale":2}}' where id='da261070-2a24-4eae-8a51-000000000009';
+ if not found then raise exception 'Owner cannot edit pin'; end if;
+end $$;
+select set_config('request.jwt.claim.sub','da261070-2a24-4eae-8a51-000000000003',true);
+do $$ begin
+ if exists(select 1 from public.case_evidence_pins where id='da261070-2a24-4eae-8a51-000000000009') then raise exception 'Another player can read the pin'; end if;
+ delete from public.case_evidence_pins where id='da261070-2a24-4eae-8a51-000000000009';
+ if found then raise exception 'Another player can remove the pin'; end if;
+end $$;
+select set_config('request.jwt.claim.sub','da261070-2a24-4eae-8a51-000000000001',true);
+update public.case_documents set published=false where id='da261070-2a24-4eae-8a51-000000000007';
+select set_config('request.jwt.claim.sub','da261070-2a24-4eae-8a51-000000000002',true);
+do $$ begin
+ if exists(select 1 from public.case_evidence_pins where id='da261070-2a24-4eae-8a51-000000000009')
+ or exists(select 1 from storage.objects where bucket_id='cris-case-evidence' and name='da261070-2a24-4eae-8a51-000000000004/da261070-2a24-4eae-8a51-000000000008')
+ then raise exception 'Revoked document leaves evidence available'; end if;
+end $$;
+select set_config('request.jwt.claim.sub','da261070-2a24-4eae-8a51-000000000001',true);
+update public.case_documents set published=true where id='da261070-2a24-4eae-8a51-000000000007';
+select set_config('request.jwt.claim.sub','da261070-2a24-4eae-8a51-000000000002',true);
+do $$ begin
+ if (select layout->'pose'->>'x' from public.case_evidence_pins where id='da261070-2a24-4eae-8a51-000000000009') is distinct from '25'
+ then raise exception 'Layout did not persist'; end if;
+ delete from public.case_evidence_pins where id='da261070-2a24-4eae-8a51-000000000009';
+ if not found then raise exception 'Owner cannot remove pin'; end if;
+end $$;
+rollback;
+select 'Archive permissions, deduplication and layout verified' as result;

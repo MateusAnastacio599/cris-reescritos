@@ -2,17 +2,17 @@
 <html lang="pt-BR">
     <head>
 
-        <meta name="qi-ver" content="CRIS 3.23">
+        <meta name="qi-ver" content="CRIS 3.24">
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔍</text></svg>">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
         <title>Quadro Investigativo</title>
-        <link rel="preload" href="quadro-cris-v7.js?v=319" as="script">
+        <link rel="preload" href="quadro-cris-v7.js?v=324" as="script">
         <style>body.cris-loading>:not(#crisLoading):not(.cris-board-toolbar){visibility:hidden!important}#crisLoading{position:fixed;inset:0;display:grid;place-items:center;background:#1c1612;color:#e6d5b1;font:16px system-ui;z-index:70}body:not(.cris-loading)>#crisLoading{display:none}</style>
         <link rel="stylesheet" href="base.css">
         <link rel="stylesheet" href="Halloween2026-1.css">
         <link rel="stylesheet" href="Halloween2026-2.css">
-<link rel="stylesheet" href="board-integration.css?v=319"><link rel="stylesheet" href="board-polish.css">
+<link rel="stylesheet" href="board-integration.css?v=324"><link rel="stylesheet" href="board-polish.css">
     </head>
     <body class="ui cris-loading">
         <div id="crisLoading" role="status">Abrindo quadro…</div>
@@ -430,8 +430,10 @@
         <input type="file" id="fileArt" accept="image/*" hidden>
         <input type="file" id="fileAud" accept="audio/*" hidden>
         <input type="file" id="fileInto" accept="image/*" multiple hidden>
-        <script>self.QI_VER_SITE="CRIS 3.23";self.QI_BUILD_SITE="CRIS 3.23";</script>
+        <script>self.QI_VER_SITE="CRIS 3.24";self.QI_BUILD_SITE="CRIS 3.24";</script>
         <script type="module">
+        import {BoardEvidence} from "./board-evidence.js?v=324";
+        window.CRIS_BOARD_EVIDENCE=BoardEvidence;
         import {sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard} from './board-rules.js?v=319';
         window.CRIS_BOARD_RULES={sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard};
         import {CRISBridge} from '../integration-bridge.js';
@@ -439,7 +441,7 @@
         import {mountCluePanel} from './board-clue-panel.js';
         window.CRISMOUNT_CLUE_PANEL=mountCluePanel;
         window.CRISBridge=CRISBridge;
-        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=319';document.body.append(script);}}
+        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=324';document.body.append(script);}}
         catch(error){document.body.textContent='Não foi possível confirmar o acesso. Volte ao CRIS e entre novamente.';}
         </script>
 </body>
