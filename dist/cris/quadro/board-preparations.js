@@ -67,13 +67,14 @@ export async function choosePreparation({bridge,snapshot,itemId,onSaved}){
  save.onclick=async()=>{save.disabled=true;try{
   if(select.value==='new'&&(!name.value.trim()||!doc.value))throw Error('Informe um título e escolha o documento da evidência.');
   const payload=await new BoardAssets(client,campaign).pack(prepared);
-  let attachmentId=select.value;
+  let attachmentId=select.value;const publishNew=attachmentId==='new'&&publish.checked;
   if(attachmentId==='new'){
    const row=await api.save('case_attachments',null,{document_id:doc.value,title:name.value.trim(),body:description.value.trim(),mime:object?'application/x-cris-object':undefined,published:false,position:0});attachmentId=row.id;
    const option=document.createElement('option');option.value=row.id;option.textContent=row.title;select.append(option);select.value=row.id;fields.hidden=true;
   }
   checked(await client.from('case_evidence_preparations').upsert({campaign_id:campaign,board_id:bridge.archiveId,attachment_id:attachmentId,payload,source_ids:payload.state.items.map(item=>item.id),updated_at:new Date().toISOString()},{onConflict:'board_id,attachment_id'}));
-  await api.save('case_attachments',attachmentId,{...(!rows.find(row=>row.id===attachmentId)?.object_path&&object?{mime:'application/x-cris-object'}:{}),...(publish.checked?{published:true}:{})});
+  const metadata={...(!rows.find(row=>row.id===attachmentId)?.object_path&&object?{mime:'application/x-cris-object'}:{}),...(publishNew?{published:true}:{})};
+  if(Object.keys(metadata).length)await api.save('case_attachments',attachmentId,metadata);
   await onSaved?.(payload.state.items.map(item=>item.id));
   status.textContent='Preparação salva e escondida do quadro publicado. Com a evidência, o documento e o quadro publicados, o jogador poderá adicioná-la pelo acervo.';save.textContent='Salvo';cancel.textContent='Fechar';
  }catch(error){status.textContent=error.message;save.disabled=false;}};

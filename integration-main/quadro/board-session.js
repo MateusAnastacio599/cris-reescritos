@@ -1,4 +1,4 @@
-import {canPrepareItem} from './board-preparations.js?v=330';
+import {canPrepareItem} from './board-preparations.js?v=332';
 import {openBoardSheet} from './board-sheet.js';
 import {CRISBridge} from '../integration-bridge.js?v=328';
 export const boardStamp=value=>{const text=JSON.stringify(value,function(key,value){return value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value;});let a=2166136261,b=2246822519;for(let i=0;i<text.length;i++){a=Math.imul(a^text.charCodeAt(i),16777619);b=Math.imul(b^text.charCodeAt(i),3266489917);}return text.length+':'+(a>>>0).toString(16)+':'+(b>>>0).toString(16);};
@@ -58,6 +58,6 @@ export async function mountBoardSession(identity,{bridge=CRISBridge,client}={}){
  const showSheet=()=>{setOpen(false);openBoardSheet({bridge,identity});};
  toolbar.querySelector('#openOwnSheet').onclick=showSheet;
 
- import('../notifications.js?v=328').then(({mountNotifications})=>mountNotifications({bridge,identity,anchor:menu})).catch(()=>{});
+ import('../notifications.js?v=332').then(({mountNotifications})=>mountNotifications({bridge,identity,anchor:menu})).catch(()=>{});
  return session;
 }

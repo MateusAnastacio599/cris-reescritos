@@ -1,15 +1,35 @@
 export const TEST_NOTICE=Object.freeze({title:'Teste de notificação — CRIS',summary:'Canal de operações conectado. Este teste foi enviado somente para a sua conta.',code:'TESTE',date:'',location:'Ambiente de teste',nature:'Teste do sistema',situation:'Sem ocorrência real',preliminary:'Mensagem de verificação do CRIS. Nenhuma informação da campanha foi enviada aos jogadores.',guidance:'Você pode fechar este aviso. O recebimento está funcionando.',imagePath:'',imageCaption:''});
 export const UUID=/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+export const NOTICE_TYPES=Object.freeze({occurrence:'Nova ocorrência',investigation:'Atualização de investigação',operational:'Comunicado operacional',evidence:'Nova evidência ou documento'});
 export function normalizeNotice(raw={},campaign){
- const out={},limits={title:120,summary:300,code:32,date:10,occurrenceTime:5,address:500,location:160,nature:100,situation:100,preliminary:5000,guidance:3000,imageCaption:240,imagePath:240};
+ const type=raw.type||'occurrence';if(!Object.hasOwn(NOTICE_TYPES,type))throw Error('Tipo de notificação inválido.');
+ const out={type},limits={title:120,summary:300,code:32,date:10,occurrenceTime:5,address:500,location:160,nature:100,situation:100,preliminary:5000,guidance:3000,imageCaption:240,imagePath:240};
  for(const [key,limit] of Object.entries(limits)){const value=String(raw[key]??'').trim();if(value.length>limit)throw Error('Campo muito longo: '+key);out[key]=value;}
- for(const key of ['title','summary','code','nature','situation','preliminary','guidance'])if(!out[key])throw Error('Preencha os campos da ocorrência.');
+ if(type!=='occurrence')for(const key of ['code','date','occurrenceTime','address','location','nature','situation'])out[key]='';
+ for(const key of (type==='occurrence'?['title','summary','code','nature','situation','preliminary','guidance']:['title','summary']))if(!out[key])throw Error('Preencha os campos da ocorrência.');
  if(out.date&&(!/^\d{4}-\d{2}-\d{2}$/.test(out.date)||!Number.isFinite(Date.parse(out.date+'T12:00:00Z'))||new Date(out.date+'T12:00:00Z').toISOString().slice(0,10)!==out.date))throw Error('Data da ocorrência inválida.');
  if(out.occurrenceTime&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(out.occurrenceTime))throw Error('Informe o horário local de Paris no formato HH:mm.');
  if(out.imagePath&&(!out.imagePath.startsWith(campaign+'/')||!/^[-a-zA-Z0-9/_.]+$/.test(out.imagePath)||out.imagePath.includes('..')))throw Error('Fotografia fora da campanha.');
+ if(raw.target){if(!['investigation','document','evidence','board'].includes(raw.target.kind)||!UUID.test(raw.target.id))throw Error('Destino inválido.');out.target={kind:raw.target.kind,id:raw.target.id};}
  return out;
 }
 export function payloadForAudience(raw,audience,campaign,testKind='connection'){if(!['self','campaign'].includes(audience))throw Error('Destinatários inválidos.');if(audience==='campaign')return normalizeNotice(raw,campaign);if(testKind==='connection')return {...TEST_NOTICE};if(testKind==='draft')return {...normalizeNotice(raw,campaign),previewKind:'draft'};throw Error('Tipo de teste inválido.');}
 export function allowedAppBase(value){const u=new URL(value);if(u.username||u.password||u.search||u.hash)throw Error('Origem inválida.');const valid=(u.origin==='https://mateusanastacio599.github.io'&&u.pathname==='/cris-reescritos/')||(u.origin==='https://cris-campaign-director-v3.mateusfernando599.chatgpt.site'&&u.pathname==='/cris/');if(!valid)throw Error('Origem não autorizada.');return u.href;}
 export function validPushSubscription(value){const u=new URL(value?.endpoint);if(u.protocol!=='https:'||u.username||u.password||u.port||u.hash)throw Error('Canal push inválido.');const host=u.hostname;if(!['fcm.googleapis.com','web.push.apple.com','updates.push.services.mozilla.com'].includes(host)&&!host.endsWith('.push.services.mozilla.com')&&!host.endsWith('.push.apple.com')&&!host.endsWith('.notify.windows.com'))throw Error('Serviço push não suportado.');if(u.href.length>3000||!/^[-_A-Za-z0-9]{87}$/.test(value?.keys?.p256dh||'')||!/^[-_A-Za-z0-9]{22}$/.test(value?.keys?.auth||''))throw Error('Inscrição push inválida.');return {endpoint:u.href,keys:{p256dh:value.keys.p256dh,auth:value.keys.auth}};}
 export function noticeLink(base,id){if(!UUID.test(id))throw Error('Ocorrência inválida.');const u=new URL(base);u.searchParams.set('notice',id);return u.href;}
+
+export function targetLink(base,target){
+ if(!target||!UUID.test(target.id)||!['investigation','document','evidence','board'].includes(target.kind))throw Error('Destino inválido.');
+ const u=new URL(target.kind==='board'?'quadro/':'./',base);u.search='';u.hash='';
+ u.searchParams.set(target.kind==='board'?'board':target.kind,target.id);if(target.kind!=='board')u.hash='arquivos';return u.href;
+}
+export async function resolveNoticeTarget(client,campaign,target){
+ if(!target)return null;
+ const tables={investigation:'case_investigations',document:'case_documents',evidence:'case_attachments',board:'investigation_board_publications'};
+ if(!tables[target.kind]||!UUID.test(target.id))throw Error('Destino inválido.');
+ const get=async(table,id)=>{const r=await client.from(table).select(({case_investigations:'id,title,published',case_documents:'id,title,published,investigation_id',case_attachments:'id,title,published,document_id',investigation_board_publications:'id,title'})[table]).eq('campaign_id',campaign).eq('id',id).maybeSingle();if(r.error)throw r.error;if(!r.data||(table!=='investigation_board_publications'&&!r.data.published))throw Error('O destino não está publicado ou não está disponível.');return r.data;};
+ const row=await get(tables[target.kind],target.id);
+ if(target.kind==='evidence'){const doc=await get('case_documents',row.document_id);await get('case_investigations',doc.investigation_id);}
+ if(target.kind==='document')await get('case_investigations',row.investigation_id);
+ return {...target,title:row.title};
+}

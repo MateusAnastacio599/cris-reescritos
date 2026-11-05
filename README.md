@@ -165,3 +165,16 @@ A preparação inclui o item selecionado, os conteúdos dos recipientes, peças 
 O jogador recebe sua própria cópia ao escolher **Adicionar ao quadro**. O estado interativo (como combinações, desbloqueios, respostas e abertura de recipientes) fica no progresso individual do pin. Marcas rasterizadas, como grafite e raspagem, ficam em registros privados imutáveis por hash, com remoção em cascata ao excluir o pin. Os originais dos anexos permanecem no armazenamento existente. Anotações avulsas continuam no navegador, como antes.
 
 Validação desta integração: testes automatizados e verificações transacionais com papéis de mestre e jogador; teste do motor real com decalque, celular, ficha de caso e maleta com conteúdo, incluindo recarga. Os demais objetos nativos usam a mesma serialização, mas não foram todos exercitados individualmente na interface.
+
+
+### Central de notificações — rascunhos e destinos (3.32)
+
+O sino do mestre oferece **Rascunhos**. Cada rascunho é privado, persistido em `operation_notice_drafts`, e pode ser editado, duplicado e excluído. Salvar não envia. O conteúdo antigo da Ocorrência 010 continua disponível para recuperação no navegador original, sem ser sobrescrito pela recuperação das novas edições.
+
+O fluxo mantém **Salvar rascunho**, **Enviar somente para mim**, **Revisar envio à equipe** e a confirmação final separados. A publicação real usa o id do rascunho como chave idempotente; avisos enviados ficam bloqueados para edição, mas podem ser duplicados. Alterações concorrentes exigem reabrir/revisar. Os status de envio descrevem a gravação na caixa de entrada; a aceitação pelo push é informada separadamente e não comprova entrega física ao aparelho.
+
+Os tipos Atualização de investigação, Comunicado operacional e Nova evidência ou documento dispensam campos policiais. O destino interno pode apontar a investigação, documento, evidência ou quadro publicado; a validação ocorre no servidor antes do envio e novamente com RLS ao abrir o conteúdo. Não há envio agendado/automático. Fotografias continuam opcionais e privadas antes da publicação.
+
+Banco: `schema/notification-drafts.sql`. Backend: `backend/cris-notifications/`. Validação real de RLS e persistência com usuários sintéticos, em transação revertida: `backend/verify-notification-drafts.sql`. Testes do publicador usam o handler real com clientes simulados, sem enviar push. A revisão visual usa módulos reais em fixtures descartáveis desktop e viewport 390px; não substitui um teste físico de push/vibração no Android/iOS.
+
+Acervo: leitor compacto aceita os dois formatos de relatório existentes, preserva dados/narrativa, reúne anexos em galeria e consome links diretos para não reabrir documentos em recargas posteriores. O vínculo da preparação a anexos com imagem não envia mais atualização vazia ao PostgREST nem muda a publicação do anexo existente.
