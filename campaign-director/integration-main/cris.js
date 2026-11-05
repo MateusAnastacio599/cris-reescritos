@@ -65,6 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
     topAgentClearance.textContent = agent.clearance.replace('NÍVEL DE ACESSO:', 'NÍVEL');
     applyAccessMode(key, agent);
     mountCaseBoards(agent).catch(()=>{});
+    import('./case-archive.js?v=324').then(({mountCaseArchive}) => mountCaseArchive(CRISBridge, agent)).catch(() => {
+      const archive = document.getElementById('caseArchive');
+      if (archive) archive.textContent = 'Não foi possível carregar as investigações. Reabra o CRIS para tentar novamente.';
+    });
     import('./notifications.js?v=323').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
 
     login.classList.add('authenticated');

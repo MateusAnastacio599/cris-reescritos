@@ -54,3 +54,5 @@ body.cris-archive-reader #tools{max-width:calc(100vw - 16px)}
 @media(max-width:760px){body .cris-board-toolbar{left:10px;right:auto;bottom:calc(88px + env(safe-area-inset-bottom))}body .cris-board-menu{left:0;right:auto}body .cris-menu-toggle span{display:none}body .cris-board-toolbar .cris-menu-toggle{min-width:46px;width:46px;padding:10px}body.cris-archive-reader #top{max-width:calc(100vw - 16px)}}
 
 body.cris-archive-reader :is(#fxEm,#fxDust,#qiAcel,#qiVerTag){display:none!important}
+
+#qa a{color:inherit;font:12px/1.4 "Courier New",monospace;text-decoration:none;padding:7px 10px;align-self:center}#qa a[hidden],#qa.cris-pin-actions a{display:none!important}
