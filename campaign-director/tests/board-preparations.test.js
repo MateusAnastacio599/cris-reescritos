@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {prepareEvidence,placePreparation,preparationLayout} from '../integration-main/quadro/board-preparations.js';
+import {prepareEvidence,placePreparation,preparationLayout,preparationRuntime} from '../integration-main/quadro/board-preparations.js';
 import {BoardEvidence} from '../integration-main/quadro/board-evidence.js';
 import {personalBoardLayer,mergePersonalBoard} from '../integration-main/quadro/board-rules.js';
 
@@ -66,4 +66,44 @@ test('withdrawing a master item removes its pins and threads while preserving pe
  const merged=mergePersonalBoard(fresh,layer,'me');
  assert.deepEqual(merged.state.items.map(i=>i.id),['note']);
  assert.deepEqual(merged.state.pins.map(i=>i.id),['mine']);assert.deepEqual(merged.state.strings,[]);
+});
+
+test('native objects preserve their contained props, locks, media references and player interactions',()=>{
+ const source={state:{items:[
+  {id:'case',type:'cont',kind:'maleta',opts:{etiqueta:'Teste'},open:false,x:100,y:100,w:300,w0:300,scale:1,rot:0,z:1},
+  {id:'lock',type:'cont',kind:'cadeado',parent:'case',opts:{senha:'042',libera:'phone'},x:110,y:120,w:120,w0:120,scale:1,rot:0,z:2},
+  {id:'phone',type:'cont',kind:'smartphone',box:'case',hid:true,opts:{senha:'1998',msgs:'Mensagem da campanha'},imgId:'gallery',x:100,y:100,w:170,w0:170,scale:1,rot:0,z:3},
+  {id:'pad',type:'cont',kind:'bloco',box:'case',hid:true,opts:{txt:'Texto preparado'},x:100,y:100,w:220,w0:220,scale:1,rot:0,z:4},
+  {id:'unrelated',type:'cont',kind:'cofre',gm:true,opts:{senha:'segredo'},x:800,y:900}
+ ],pins:[],strings:[]},imgs:{gallery:'data:image/png;base64,YQ==',hidden:'data:image/png;base64,Yg=='}};
+ const prepared=prepareEvidence(source,'case');
+ assert.deepEqual(prepared.state.items.map(i=>i.id),['case','lock','phone','pad']);
+ assert.deepEqual(Object.keys(prepared.imgs),['gallery']);
+ const row={id:'player-pin',attachment:{document_id:'doc'},preparation:prepared,layout:{}};
+ const placed=placePreparation(prepared,row,'player',{x:500,y:500});
+ const lock=placed.state.items.find(i=>i.crisPart==='lock'),phone=placed.state.items.find(i=>i.crisPart==='phone'),pad=placed.state.items.find(i=>i.crisPart==='pad');
+ assert.equal(lock.opts.libera,phone.id);assert.equal(lock.parent,placed.state.items[0].id);
+ lock.solved=true;lock.combo=['0','4','2'];phone.solved=true;phone.ci=2;phone.hid=false;pad.rub='data:image/png;base64,Yw==';placed.state.items[0].open=true;
+ row.layout={runtime:preparationRuntime(row,placed.state,placed.imgs)};
+ assert.deepEqual(row.layout.runtime.images,{});
+ const restored=placePreparation(prepared,row,'player',{x:-500,y:-500});
+ assert.equal(restored.state.items[0].open,true);
+ assert.equal(restored.state.items.find(i=>i.crisPart==='lock').solved,true);
+ assert.equal(restored.state.items.find(i=>i.crisPart==='phone').ci,2);
+ assert.equal(restored.state.items.find(i=>i.crisPart==='pad').rub,'data:image/png;base64,Yw==');
+ assert.equal(restored.state.items[0].x,500);
+ assert.equal(source.state.items[0].open,false);
+});
+
+test('case-sheet answers and spawned object outputs survive private reload',()=>{
+ const prepared={state:{items:[{id:'sheet',type:'cont',kind:'fichacaso',opts:{perguntas:'Pergunta = Resposta'},x:0,y:0,w:300,w0:300,scale:1,rot:0,z:1}],pins:[],strings:[]},imgs:{}};
+ const row={id:'p',attachment:{document_id:'doc'},preparation:prepared,layout:{}};
+ const board=placePreparation(prepared,row,'player',{x:100,y:100});
+ board.state.items[0].ans=['Resposta'];board.state.items[0].solved=true;
+ board.state.items.push({id:'generated',type:'note',text:'Resultado do objeto',x:150,y:200,w:200,scale:1,rot:0,z:4,crisOwner:'player',crisEvidence:'p',crisPart:'spawn:generated',parent:board.state.items[0].id});
+ row.layout={runtime:preparationRuntime(row,board.state,board.imgs)};
+ const restored=placePreparation(prepared,row,'player',{x:0,y:0});
+ assert.equal(restored.state.items.length,2);assert.equal(restored.state.items[0].solved,true);assert.deepEqual(restored.state.items[0].ans,['Resposta']);
+ assert.equal(restored.state.items[1].parent,restored.state.items[0].id);assert.equal(restored.state.items[1].crisOwner,'player');
+ assert.equal(restored.state.items[1].text,'Resultado do objeto');
 });

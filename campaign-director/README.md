@@ -27,6 +27,18 @@ As edições são locais a cada navegador/origem, sem sincronização automátic
 
 Novos módulos: `audio-fades.js` (envelope dos efeitos, sem timers) e `fade-ui.js` (controles compartilhados). O motor e a interface permanecem independentes para a futura integração ao CRIS.
 
+## Atualização 3.7.0 — CRIS integrado e dados privados no Supabase
+
+- Importação real concluída do backup de 20/10: 1 campanha, 2 páginas, 6 cenas, 33 itens de áudio, 3 playlists, 4 ambientes e 5 cues compostas. Os 23 arquivos (51.555.008 bytes) foram enviados ao bucket privado e lidos de volta com verificação SHA-256. A cópia JSON original ficou preservada em director_backups; o estado canônico em director_workspaces é igual ao original importado.
+- Director permite abrir a cópia do Supabase e salvar alterações manualmente. A abertura verifica os áudios antes de aplicar o estado e preserva o JSON local anterior em cris-campaign-director:v3:before-cloud-load. Arquivo local com o mesmo ID e conteúdo divergente bloqueia a abertura. O salvamento envia arquivos novos, lê de volta e verifica hash; só depois confirma a revisão. Não há sincronização automática de texto em tempo real.
+- director_workspaces é a fonte da edição corrente. As tabelas normalizadas existentes registram a importação inicial e ficam como base para evoluir os serviços de cenas/biblioteca; o editor atual não deve ser reconstruído a partir delas após novas edições do workspace.
+- Preview completo do CRIS em dist/cris/ usa o código existente, com o motor ativo quadro-cris-v7, LUME e assets preservados. integration-main/ contém as alterações portáveis para a raiz do repositório principal; a única diferença de caminho do preview está em integration-bridge.js.
+- Credenciais antigas removidas do login principal e dos três motores do quadro. Nomes, identidade e acesso de mestre vêm do backend. Criadas as contas iris, andre, matias, celine e convidado com seus perfis de agente e associação à campanha. O administrador mateus preservou UUID/senha. Novas senhas dos amigos devem ser definidas pelo mestre em Conta e nuvem; não foram reaproveitadas as credenciais públicas antigas.
+- Fichas mantêm todas as regras e campos personalizados, com acesso por usuário e campanha. Salvamento compara revisão e preserva cópia local por UUID de usuário. A ficha antiga sem dono permanece local e só é vinculada por ação explícita do usuário. Rascunhos do assistente de criação permanecem locais. O mestre pode consultar fichas pela permissão de banco; a interface atual ainda mostra a própria ficha.
+- Quadro mantém PeerJS/WebRTC e objetos interativos. Mestre pode salvar um snapshot privado no banco pelo botão SALVAR NA NUVEM; outro dispositivo carrega o snapshot quando não tem quadro local. O quadro local tem preferência e não é apagado automaticamente. Não é ainda uma substituição do transporte PeerJS por Realtime autenticado. Os binários de itens ocultos foram filtrados do snapshot inicial enviado a jogadores. Jogadores podem abrir sua própria ficha dentro do quadro.
+- A importação no servidor usou autorização temporária; o endpoint de importação foi desativado após a conclusão. Nenhum backup pessoal, áudio adicionado, senha ou chave administrativa foi incluído no GitHub.
+- Validação: 150 testes, sintaxe dos módulos e do motor ativo, testes de RLS no banco para mestre/jogador, isolamento de fichas e conflitos de revisão. Testes de banco foram revertidos. Teste visual em navegador, uso com dois monitores e partida real continuam pendentes.
+
 ## Atualização 3.6.1 — usuários e senhas para uma mesa fechada
 
 - O acesso visível passa a ser por nome de usuário e senha. Cadastro público e recuperação por e-mail foram removidos da interface.
@@ -142,3 +154,14 @@ node --test tests/*.test.js
 Os testes verificam preservação integral das cenas e hashes dos WAVs, persistência, backup, renderização/links, URLs do YouTube, independência da navegação, crossfade, timeline/pausa, mixer e cancelamento de eventos. O AudioEngine é exercitado com uma interface de mídia simulada; isso não confirma saída sonora real, codecs ou autoplay em um aparelho físico.
 
 Nesta entrega, o preview supervisionado do Work não iniciou por falha de infraestrutura (`bwrap` sem permissão de montagem). A validação visual no navegador e a reprodução real no celular ficaram pendentes. Os testes de código e a publicação são independentes dessa limitação.
+
+
+### Evidências interativas nos arquivos
+
+No quadro salvo da investigação, selecione um objeto e abra **CRIS → Preparar evidência do acervo**. Escolha uma evidência existente ou **Criar nova evidência deste objeto**, informe o título e o documento, e decida se deseja publicar. Não é necessário anexar uma imagem para cadastrar um objeto nativo. A investigação, o documento e o quadro de destino também devem estar publicados para os jogadores.
+
+A preparação inclui o item selecionado, os conteúdos dos recipientes, peças do mesmo quebra-cabeça e objetos explicitamente vinculados, até 32 itens por preparação. Não inclui itens soltos sem vínculo. Ativadores e ferramentas administrativas continuam reservados ao mestre. Para modificar a preparação entregue, salve-a novamente após editar o objeto.
+
+O jogador recebe sua própria cópia ao escolher **Adicionar ao quadro**. O estado interativo (como combinações, desbloqueios, respostas e abertura de recipientes) fica no progresso individual do pin. Marcas rasterizadas, como grafite e raspagem, ficam em registros privados imutáveis por hash, com remoção em cascata ao excluir o pin. Os originais dos anexos permanecem no armazenamento existente. Anotações avulsas continuam no navegador, como antes.
+
+Validação desta integração: testes automatizados e verificações transacionais com papéis de mestre e jogador; teste do motor real com decalque, celular, ficha de caso e maleta com conteúdo, incluindo recarga. Os demais objetos nativos usam a mesma serialização, mas não foram todos exercitados individualmente na interface.

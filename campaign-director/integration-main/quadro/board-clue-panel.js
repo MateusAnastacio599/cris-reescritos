@@ -1,3 +1,4 @@
+import {canPrepareItem} from './board-preparations.js?v=330';
 // Names are metadata on the existing item: IDs and clue cues stay stable.
 export function setClueMetadata(item,{name,enabled}){
  item.crisClueName=String(name||'').trim().slice(0,100);item.crisClue=!!enabled;return item;
@@ -13,10 +14,10 @@ export function mountCluePanel({panel,item,onChange}){
  name.oninput=()=>{if(name.value.trim())enabled.checked=true;save();};enabled.onchange=save;
  box.querySelector('button').onclick=async e=>{try{await navigator.clipboard.writeText(item.id);e.currentTarget.textContent='Código copiado';}catch{e.currentTarget.textContent='Selecione o código acima para copiar';}};
  box.addEventListener('keydown',e=>e.stopPropagation());const host=panel.querySelector('.pp-body')||panel;host.prepend(box);
- if(window.CRISBridge?.archiveId&&['img','note'].includes(item.type)){
+ if(window.CRISBridge?.archiveId&&canPrepareItem(item)){
   const section=document.createElement('section');section.className='cris-evidence-config';
   const prepare=document.createElement('button');prepare.type='button';prepare.textContent='Preparar evidência do acervo';
-  const hint=document.createElement('small');hint.textContent='Vincule este item à foto ou pista que o jogador pode escolher nos Arquivos.';
+  const hint=document.createElement('small');hint.textContent='Vincule este item à objeto ou pista que o jogador pode escolher nos Arquivos.';
   prepare.onclick=()=>window.CRIS_PREPARE_EVIDENCE?.(item.id);section.append(prepare,hint);host.prepend(section);
  }
 

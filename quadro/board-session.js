@@ -1,3 +1,4 @@
+import {canPrepareItem} from './board-preparations.js?v=330';
 import {openBoardSheet} from './board-sheet.js';
 import {CRISBridge} from '../integration-bridge.js?v=328';
 export const boardStamp=value=>{const text=JSON.stringify(value,function(key,value){return value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value;});let a=2166136261,b=2246822519;for(let i=0;i<text.length;i++){a=Math.imul(a^text.charCodeAt(i),16777619);b=Math.imul(b^text.charCodeAt(i),3266489917);}return text.length+':'+(a>>>0).toString(16)+':'+(b>>>0).toString(16);};
@@ -44,7 +45,7 @@ export async function mountBoardSession(identity,{bridge=CRISBridge,client}={}){
   if(!session.api||typeof window.CRIS_PREPARE_EVIDENCE!=='function')throw Error('Aguarde o quadro carregar.');
   const id=document.querySelector('#items .it.sel')?.dataset.id;
   const item=session.api.snapshot().state.items.find(item=>item.id===id);
-  if(!item||!['img','note'].includes(item.type))throw Error('Selecione uma foto, nota ou pedaço de papel no quadro e tente novamente.');
+  if(!canPrepareItem(item))throw Error('Selecione o objeto ou pista no quadro e tente novamente.');
   await window.CRIS_PREPARE_EVIDENCE(item.id);
  }));
  actions.querySelector('[data-publish]')?.addEventListener('click',e=>action(e.currentTarget,async()=>{if(!session.api)throw Error('Aguarde o quadro carregar.');await session.flush();const count=await(await bridge.boardLibrary()).publish(bridge.archiveId);session.status('Versão publicada · '+count+' itens visíveis');}));
