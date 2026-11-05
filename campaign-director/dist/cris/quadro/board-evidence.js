@@ -1,4 +1,6 @@
-import {archiveClient, CaseArchive, checked, evidenceImage} from '../case-archive-data.js';
+import {BoardAssets} from '../board-assets.js?v=328';
+import {placePreparation,preparationLayout} from './board-preparations.js?v=328';
+import {archiveClient, CaseArchive, checked, evidenceImage} from '../case-archive-data.js?v=328';
 
 const itemId = id => 'evidence-' + id;
 const pinId = id => 'evidence-pin-' + id;
@@ -23,7 +25,10 @@ export class BoardEvidence {
   static async open(bridge, user) {
     const client = await archiveClient(bridge);
     const api = new CaseArchive(client, bridge.campaignId);
-    return new BoardEvidence(api, bridge.archiveId, user, await api.boardPins(bridge.archiveId));
+    const [rows,preparations]=await Promise.all([api.boardPins(bridge.archiveId),api.rows('case_evidence_preparations').eq('board_id',bridge.archiveId)]);
+    const templates=checked(preparations);
+    for(const row of rows)row.preparation=templates.find(template=>template.attachment_id===row.attachment?.id)?.payload;
+    const result=new BoardEvidence(api,bridge.archiveId,user,rows);result.assets=new BoardAssets(client,bridge.campaignId);return result;
   }
 
   constructor(api, boardId, user, rows) {
@@ -41,9 +46,16 @@ export class BoardEvidence {
       if (!source) return;
       const id = itemId(row.id);
       const offset = {x: center.x + [0,320,-320][index % 3], y: center.y + Math.floor(index / 3) * 235};
+      if(row.preparation){
+        const prepared=placePreparation(await this.assets.unpack(row.preparation),row,this.user,offset);
+        state.items.push(...prepared.state.items);Object.assign(imgs,prepared.imgs);
+        const target=prepared.state.items[0];
+        if(target&&row.layout.pin!==false)state.pins.push({id:pinId(row.id),item:target.id,crisOwner:this.user,lx:row.layout.pin?.lx||0,ly:row.layout.pin?.ly||-55,size:row.layout.pin?.size||1,color:colors.test(row.layout.pin?.color)?row.layout.pin.color:'#c3161c'});
+        state.z=Math.max(state.z||1,...prepared.state.items.map(item=>(item.z||0)+1));return;
+      }
       const pose = geometry(row.layout.pose || {}, offset);
       const item = {id, ...pose, z: Math.max(startingZ + index + 1,pose.z), rot: pose.rot, seed: 1,
-        parent:null, crisOwner:this.user, crisEvidence:row.id, crisDocument:row.attachment?.document_id || source.id};
+        parent:null, flipped:!!row.layout.flipped, crisOwner:this.user, crisEvidence:row.id, crisDocument:row.attachment?.document_id || source.id};
       Object.assign(item, {type:'note', style:'postit', text:[source.title, source.body?.slice(0,180)].filter(Boolean).join('\n\n'),
         font:'Typewriter', size:24, color:'#1d2a55', h:200, fita:false});
       if (row.attachment?.object_path && evidenceImage(source.mime)) {
@@ -80,12 +92,12 @@ export class BoardEvidence {
         links.add(link.id);
       }
     }
-    this.baseline = new Map(this.rows.filter(row => state.items.some(item => item.id === itemId(row.id)))
+    this.baseline = new Map(this.rows.filter(row => state.items.some(item => item.crisEvidence === row.id))
       .map(row => [row.id, JSON.stringify(this.layout(row, state))]));
   }
 
   layout(row, state) {
-    const item = state.items.find(item => item.id === itemId(row.id));
+    const item = state.items.find(item => item.crisEvidence === row.id);
     if (!item) return null;
     const id = pinId(row.id);
     const pin = state.pins.find(pin => pin.id === id);
@@ -98,7 +110,7 @@ export class BoardEvidence {
       const other = link?.a === id ? link.b : link?.a;
       if (link && (link.a === id || link.b === id) && !pins.has(other) && !links.some(value => value.id === link.id)) links.push(link);
     }
-    return {pose:geometry(item,{x:0,y:0}), pin:pin ? {lx:pin.lx,ly:pin.ly,size:pin.size,color:pin.color} : false, links:links.slice(0,100)};
+    return {...(row.preparation?{parts:preparationLayout(row,state)}:{flipped:!!item.flipped}),pose:geometry(item,{x:0,y:0}), pin:pin ? {lx:pin.lx,ly:pin.ly,size:pin.size,color:pin.color} : false, links:links.slice(0,100)};
   }
 
   hasChanges(state) {

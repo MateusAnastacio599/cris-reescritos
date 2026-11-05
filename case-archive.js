@@ -1,5 +1,5 @@
-import {archiveClient, CaseArchive, evidenceImage} from './case-archive-data.js?v=327';
-import {mountCaseBoards} from './case-boards.js?v=327';
+import {archiveClient, CaseArchive, evidenceImage} from './case-archive-data.js?v=328';
+import {mountCaseBoards} from './case-boards.js?v=328';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
@@ -61,6 +61,7 @@ export async function mountCaseArchive(bridge, identity) {
   dialog.addEventListener('close', () => { if (!dialog.open) release(); });
   function show(html) {
     release();
+    dialog.classList.toggle('archive-compact',!html.startsWith('<header class="dossier-header"'));
     dialog.innerHTML = '<button type="button" class="case-close" data-close aria-label="Fechar">×</button>'+html;
     dialog.querySelector('[data-close]').onclick = () => dialog.close();
     if (!dialog.open) dialog.showModal();
@@ -97,35 +98,56 @@ export async function mountCaseArchive(bridge, identity) {
     render();
   }
 
+  let active = new URLSearchParams(location.search).get('investigation') || 'home';
+  const independent = document.getElementById('caseBoards');
+  const sources = document.querySelector('#arquivos .external-source');
+  function navigate(next) {
+    active=next;
+    const url=new URL(location.href);
+    if(next==='home')url.searchParams.delete('investigation');else url.searchParams.set('investigation',next);
+    url.hash='arquivos';history.pushState(null,'',url);render();
+  }
+  addEventListener('popstate',()=>{active=new URLSearchParams(location.search).get('investigation')||'home';render();});
   function render() {
     const manage = master && !preview;
     const investigations = data.investigations.filter(row => !preview || row.published);
     const associated = new Set(investigations.map(row => row.board_id).filter(Boolean));
-    mountCaseBoards({...identity,isMaster:manage}, associated).catch(report);
-    root.innerHTML = '<div class="case-boards-head"><div><span class="micro-label">CASO 26-107</span><h3>Investigações</h3></div>'+
-      '<div class="case-archive-actions">'+(master ? '<button type="button" data-preview aria-pressed="'+preview+'">'+
-      (preview?'Voltar à gestão':'Ver como jogador')+'</button>' : '')+(manage?'<button type="button" data-new>Nova investigação</button>':'')+
-      '</div></div><p role="status"></p><div class="case-boards-list">'+
-      investigations.map(row => {
-        const board = (manage ? drafts : destinations).find(item => item.id === row.board_id);
-        const docs = data.documents.filter(doc => doc.investigation_id === row.id && (!preview || doc.published));
-        const published = new Set(docs.filter(doc => row.published && doc.published).map(doc => doc.id));
-        const count = data.attachments.filter(attachment => published.has(attachment.document_id)).length;
-        return '<article class="case-board-card"><span class="micro-label">'+(manage?statusLabel(row.published):'INVESTIGAÇÃO')+
-          '</span><h4>'+escape(row.title)+'</h4>'+(row.description?'<p>'+escape(row.description)+'</p>':'')+
-          '<p class="dossier-counts">'+published.size+(published.size===1?' documento':' documentos')+' · '+count+(count===1?' evidência publicada':' evidências publicadas')+'</p>'+
-          (docs.length ? '<ul class="case-document-list">'+docs.map(doc => '<li><button type="button" data-document="'+doc.id+'">'+
-          escape(doc.title)+(manage?' · '+statusLabel(doc.published):'')+'</button></li>').join('')+'</ul>' : '<p>Sem documentos disponíveis.</p>')+
-          '<div>'+(board?'<a href="'+linkBoard(board.id)+'">'+(manage?'Preparar quadro · ':'Abrir quadro · ')+escape(board.title)+' ↗</a>'+(manage?'<span class="linked-board-controls" data-linked-board="'+board.id+'"></span>':''):'')+
-          (manage?'<details class="archive-admin"><summary>Gerenciar dossiê</summary><div class="case-archive-actions"><button type="button" data-edit="'+row.id+'">Editar investigação</button><button type="button" data-add="'+row.id+'">Novo documento</button></div></details>':'')+
-          '</div></article>';
-      }).join('')+'</div>';
-    if (!investigations.length) root.querySelector('[role=status]').textContent = 'Nenhuma investigação disponível.';
+    const selected=investigations.find(row=>row.id===active);
+    if(!selected&&!['home','boards','sources'].includes(active))active='home';
+    if(independent)independent.hidden=active!=='boards';
+    if(sources)sources.hidden=active!=='sources';
+    const dossier = row => {
+      const board = (manage ? drafts : destinations).find(item => item.id === row.board_id);
+      const docs = data.documents.filter(doc => doc.investigation_id === row.id && (!preview || doc.published));
+      const published = new Set(docs.filter(doc => row.published && doc.published).map(doc => doc.id));
+      const count = data.attachments.filter(attachment => published.has(attachment.document_id)).length;
+      return '<article class="case-board-card dossier-card"><span class="micro-label">'+(manage?statusLabel(row.published):'DOSSIÊ DE INVESTIGAÇÃO')+
+        '</span><h4>'+escape(row.title)+'</h4>'+(row.description?'<p>'+escape(row.description)+'</p>':'')+
+        '<p class="dossier-counts">'+published.size+(published.size===1?' documento':' documentos')+' · '+count+(count===1?' evidência publicada':' evidências publicadas')+'</p>'+
+        (selected ? (docs.length ? '<ul class="case-document-list">'+docs.map(doc => '<li><button type="button" data-document="'+doc.id+'"><span>RELATÓRIO / DOCUMENTO</span><strong>'+
+          escape(doc.title)+'</strong>'+(manage?'<small>'+statusLabel(doc.published)+'</small>':'')+'<b aria-hidden="true">→</b></button></li>').join('')+'</ul>' : '<p>Sem documentos disponíveis.</p>') :
+          '<button type="button" class="dossier-open" data-open="'+row.id+'">Consultar investigação <span aria-hidden="true">→</span></button>')+
+        (selected&&board?'<div class="dossier-board"><div><span class="micro-label">QUADRO DA INVESTIGAÇÃO</span><p>Reúna as pistas que você escolher. Suas anotações são pessoais.</p></div><a href="'+linkBoard(board.id)+'">'+(manage?'Preparar quadro':'Abrir quadro')+' ↗</a>'+(manage?'<span class="linked-board-controls" data-linked-board="'+board.id+'"></span>':'')+'</div>':'')+
+        (selected&&!board?'<p class="case-no-board">O quadro desta investigação ainda não foi liberado.</p>':'')+
+        (manage?'<details class="archive-admin"><summary>Gerenciar dossiê</summary><div class="case-archive-actions"><button type="button" data-edit="'+row.id+'">Editar investigação</button><button type="button" data-add="'+row.id+'">Novo documento</button></div></details>':'')+'</article>';
+    };
+    const heading=selected?'Documentos da investigação':active==='boards'?'Quadros independentes':active==='sources'?'Fontes externas':'Escolha um assunto';
+    root.innerHTML = '<nav class="archive-breadcrumb" aria-label="Caminho do acervo"><button type="button" data-home '+(active==='home'?'disabled':'')+'>Acervo</button>'+
+      (active!=='home'?'<span aria-hidden="true">/</span><span>'+escape(selected?.title||heading)+'</span>':'')+'</nav>'+
+      '<div class="case-boards-head"><div><span class="micro-label">CASO 26-107</span><h3>'+heading+'</h3></div><div class="case-archive-actions">'+
+      (master?'<button type="button" data-preview aria-pressed="'+preview+'">'+(preview?'Voltar à gestão':'Ver como jogador')+'</button>':'')+
+      (manage&&active==='home'?'<button type="button" data-new>Nova investigação</button>':'')+'</div></div><p role="status"></p>'+
+      (selected?dossier(selected):active==='home'?'<div class="archive-subjects">'+investigations.map(dossier).join('')+
+        '<article class="case-board-card archive-utility"><span class="micro-label">ESPAÇO PESSOAL</span><h4>Quadros independentes</h4><p>Organize anotações e explore pistas fora dos dossiês.</p><button type="button" data-open="boards">Consultar quadros →</button></article>'+
+        '<article class="case-board-card archive-utility"><span class="micro-label">PESQUISA</span><h4>Fontes externas</h4><p>Links e sites relacionados ao caso, incluindo a LUME.</p><button type="button" data-open="sources">Consultar fontes →</button></article></div>':'');
+    root.querySelector('[data-home]').onclick=()=>navigate('home');
+    root.querySelectorAll('[data-open]').forEach(button=>button.onclick=()=>navigate(button.dataset.open));
     root.querySelector('[data-new]')?.addEventListener('click', action(() => editInvestigation()));
     root.querySelector('[data-preview]')?.addEventListener('click', () => { preview = !preview; render(); });
     root.querySelectorAll('[data-edit]').forEach(button => button.onclick = action(() => editInvestigation(data.investigations.find(row => row.id === button.dataset.edit))));
     root.querySelectorAll('[data-add]').forEach(button => button.onclick = () => editDocument(null, button.dataset.add));
     root.querySelectorAll('[data-document]').forEach(button => button.onclick = action(() => openDocument(button.dataset.document)));
+    mountCaseBoards({...identity,isMaster:manage}, associated).catch(report);
   }
 
   async function editInvestigation(row) {
@@ -306,7 +328,7 @@ export async function mountCaseArchive(bridge, identity) {
       '<form><label>Quadro de destino<select name="board">'+options(available,investigation.board_id)+'</select></label>'+
       (preview ? '<p>Prévia do jogador. Apenas uma conta de jogador pode salvar o pin.</p>' : '<button type="submit">Adicionar</button>')+'</form>';
     show('<h3>Adicionar ao quadro</h3><p role="status"></p>'+content+
-      '<button type="button" data-back>Voltar ao documento</button>');
+      '<div class="case-archive-actions archive-dialog-footer"><button type="button" data-back>Voltar ao documento</button></div>');
     dialog.querySelector('[data-back]').onclick = action(back);
     const form = dialog.querySelector('form');
     if (!form || preview) return;

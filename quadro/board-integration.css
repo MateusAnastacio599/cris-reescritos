@@ -56,3 +56,4 @@ body.cris-archive-reader #tools{max-width:calc(100vw - 16px)}
 body.cris-archive-reader :is(#fxEm,#fxDust,#qiAcel,#qiVerTag){display:none!important}
 
 #qa a{color:inherit;font:12px/1.4 "Courier New",monospace;text-decoration:none;padding:7px 10px;align-self:center}#qa a[hidden],#qa.cris-pin-actions a{display:none!important}
+.cris-preparation-dialog{max-width:580px;font:14px/1.7 "Courier New",monospace}.cris-preparation-dialog label{display:grid;gap:10px;margin:20px 0}.cris-preparation-dialog select{width:100%;padding:12px;background:#0d0914;color:#e9d9f3;border:1px solid #624577;font:inherit}.cris-preparation-dialog [role=status]{color:#cda6ed}

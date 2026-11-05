@@ -4,7 +4,7 @@ import {NoticeAttention} from './notice-attention.js?v=322';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>globalThis.crypto.randomUUID?.()||'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(Number(c)^crypto.getRandomValues(new Uint8Array(1))[0]&15>>Number(c)/4).toString(16));
 const ROOT=new URL('./',import.meta.url),DRAFT='cris:notice:draft:';
-const icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>';
+const icon='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>';
 export const occurrenceExample=()=>({title:'Nova ocorrência — Paris',summary:'Possível suicídio registrado. Equipes policiais no local. Relatório preliminar disponível.',code:'010',date:'2026-10-07',occurrenceTime:'',address:'Edifício nº 113, ao lado do Café des Lilas\nPorte de Montreuil · Paris, 20º arrondissement',location:'Paris, França',nature:'Morte suspeita',situation:'Local isolado',preliminary:'Uma morte com suspeita inicial de suicídio foi registrada em um edifício residencial na região de Porte de Montreuil, Paris.\n\nEquipes policiais permanecem no local. A identificação da vítima e as circunstâncias da morte ainda estão sendo apuradas.',guidance:'Ocorrência ativa. Recomenda-se avaliação da equipe responsável enquanto o local permanece preservado.',imagePath:'',imageCaption:'Imagem da ocorrência · Fonte: autoridades locais'});
 export function prepareNoticeDraft(stored){const example=occurrenceExample();if(!stored)return example;const legacy=stored.preliminary==='Uma morte com suspeita inicial de suicídio foi registrada nas proximidades de um estabelecimento comercial em Paris.\n\nEquipes policiais permanecem no local. A identificação da vítima e as circunstâncias da morte ainda estão sendo apuradas.';const result={...example,...stored,occurrenceTime:stored.occurrenceTime||'',address:stored.address??(legacy?example.address:'')};if(legacy){result.preliminary=example.preliminary;if(stored.code==='013')result.code=example.code;}return result;}
 export function occurrenceMarkup(p,{imageURL='',test=false}={}){
@@ -13,7 +13,7 @@ export function occurrenceMarkup(p,{imageURL='',test=false}={}){
 }
 export async function mountNotifications({bridge,identity,anchor,client:providedClient}={}){
  if(!identity||document.querySelector('#crisNotificationButton'))return;
- const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('notifications.css?v=323',ROOT);document.head.append(css);
+ if(!document.querySelector('link[href*="notifications.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('notifications.css?v=328',ROOT);document.head.append(css);}
  const client=providedClient||await (await import(new URL('cloud-account.js',bridge.directorURL))).getCloudClient(),campaign=bridge.campaignId;
  let alive=true,notices=[],read=new Set(),known=new Set(),first=true,loading=false,mode='inbox',draft=occurrenceExample(),requestId=newId(),sending=false,photo='',lastTrigger;
  try{const stored=JSON.parse(localStorage.getItem(DRAFT+identity.userId+':'+campaign)||'null');if(stored){draft=prepareNoticeDraft(stored);if(UUID.test(stored._requestId||''))requestId=stored._requestId;}}catch{}

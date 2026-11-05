@@ -3496,3 +3496,50 @@ body.master-access .board-launch-button { background: #21152f; border-color: #6f
 .evidence-zoom img{display:block;max-width:100%;max-height:80dvh;object-fit:contain;margin:8px auto 0}
 .evidence-zoom button{background:#17101f;color:#dcc7f7;border:1px solid #57416f;padding:8px;font:inherit;cursor:pointer}
 @media(max-width:600px){.case-archive-dialog{width:calc(100vw - 16px);max-height:94dvh}.occurrence-facts,.evidence-gallery{grid-template-columns:1fr}}
+
+/* Stable header grid: reserve the notification slot before its module loads. */
+.topbar{display:grid;grid-template-columns:minmax(250px,1fr) auto minmax(150px,210px) 42px;grid-template-areas:"brand status agent notices";gap:24px;height:88px;padding:0 28px}
+.topbar .system-brand{grid-area:brand;min-width:0;justify-self:start}
+.topbar .system-brand>span{min-width:0}
+.topbar .system-brand small{max-width:400px;line-height:1.6}
+.topbar .top-status{grid-area:status;white-space:nowrap;font-size:9px}
+.topbar .top-agent{grid-area:agent;display:grid;align-content:center;gap:3px;margin:0;padding-left:18px;min-width:0}
+.topbar .top-agent strong{max-width:100%;line-height:1.5}
+.topbar .cris-notification-trigger{grid-area:notices;margin:0;width:42px;height:42px;min-width:0;padding:9px;align-self:center}
+.topbar .cris-notification-trigger svg{display:block;width:22px;height:22px;flex:none}
+.topbar .cris-notification-trigger>span{display:none}
+.topbar .menu-toggle{grid-area:menu}
+#caseBoards[hidden],#arquivos .external-source[hidden]{display:none!important}
+.archive-breadcrumb{display:flex;align-items:center;gap:12px;margin-bottom:26px;font-size:11px;color:#ac96c0;flex-wrap:wrap}
+.archive-breadcrumb button{padding:0;border:0;background:none;color:#d4b4f0;font:inherit;min-height:28px}
+.archive-breadcrumb button:disabled{color:#ac96c0;cursor:default}
+.archive-subjects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:24px}
+.dossier-card{padding:24px;display:flex;flex-direction:column;align-items:stretch}
+.dossier-card h4{font-size:19px;line-height:1.5;margin:12px 0}
+.dossier-card .dossier-counts{font-size:11px;margin:6px 0 20px}
+.dossier-card .dossier-open{display:flex;justify-content:space-between;text-align:left;margin-top:auto;padding:13px 14px}
+.archive-utility{border-left-color:#4c3a5c}
+.archive-utility>button{margin-top:auto;text-align:left}
+.dossier-card>.dossier-board{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:20px;padding:18px;border:1px solid #3a2b49;background:#15101d}
+.dossier-board>div{flex:1;min-width:180px}.dossier-board p{margin:6px 0 0}.dossier-board>a{white-space:nowrap}
+.dossier-card .case-document-list{margin:16px 0 0}
+.case-document-list button{position:relative;display:grid;gap:7px;padding:17px 40px 17px 17px;min-height:76px;background:#130e1b}
+.case-document-list button>span{font-size:8px;letter-spacing:.12em;color:#ad87c8}
+.case-document-list button>strong{font-size:14px;line-height:1.5}.case-document-list button>small{font-size:9px;color:#aa96bb}
+.case-document-list button>b{position:absolute;right:18px;top:50%;transform:translateY(-50%);color:#c69ce8}
+.archive-admin{margin-top:22px;border-top:1px solid #2c2236;padding-top:13px;font-size:11px;color:#a58ab9}
+.archive-admin summary{cursor:pointer;line-height:1.8}.archive-admin[open]>.case-archive-actions{margin-top:12px}
+.case-archive-dialog{padding:30px;scrollbar-gutter:stable;max-height:calc(100dvh - 48px)}
+.case-archive-dialog.archive-compact{width:min(600px,calc(100vw - 32px))}
+.case-archive-dialog .case-close{display:grid;place-items:center;min-width:36px;height:36px;padding:0;line-height:1}
+.case-archive-dialog>h3{margin:4px 46px 20px 0;font-size:22px}
+.case-archive-dialog form{clear:none}.case-archive-dialog form>button[type=submit]{margin-top:4px}
+.archive-dialog-footer{border-top:1px solid #30243c;padding-top:16px;margin-top:20px}
+.case-archive-dialog .case-archive-actions button,.case-archive-dialog .case-archive-actions a{min-height:40px;box-sizing:border-box}
+.case-boards :is(button,a):focus-visible,.case-archive-dialog :is(button,a,summary):focus-visible{outline:2px solid #b987e4;outline-offset:3px}
+@media(max-width:1250px){.topbar{grid-template-columns:minmax(220px,1fr) minmax(150px,210px) 42px;grid-template-areas:"brand agent notices";gap:20px}.topbar .top-status{display:none}}
+@media(max-width:900px){.topbar{grid-template-columns:minmax(0,1fr) 42px;height:110px;grid-template-areas:"brand notices" "agent agent";gap:8px 16px;padding:12px 20px}.topbar .brand-logo{width:36px;height:36px}.topbar .system-brand strong{font-size:18px}.topbar .top-agent{display:flex;align-items:center;gap:10px;border:0;padding:4px 0 0;border-top:1px solid #30243c;overflow:hidden}.topbar .top-agent-label{font-size:8px}.topbar .top-agent strong{font-size:11px;flex:1;min-width:0}.topbar .top-agent span:last-child{margin:0;font-size:8px;white-space:nowrap}.topbar .cris-notification-trigger{margin:0}.layout{min-height:calc(100dvh - 110px)}.archive-subjects{grid-template-columns:1fr}.dossier-card{padding:20px}.dossier-card>.dossier-board{align-items:flex-start;padding:15px}.dossier-board>a{white-space:normal}.case-archive-dialog{padding:20px;max-height:calc(100dvh - 24px)}}
+@media(max-width:500px){.topbar{padding:12px 16px}.archive-breadcrumb{margin-bottom:16px}.dossier-card{padding:17px}.dossier-card h4{font-size:17px}.case-boards-head{gap:12px}.case-archive-dialog.archive-compact{width:calc(100vw - 20px)}.case-archive-dialog>h3{font-size:19px}.case-archive-actions{gap:8px}.dossier-board>div{min-width:100%}}
+.topbar .top-agent{max-width:none;width:100%;box-sizing:border-box}
+#arquivos>h2{line-height:1.15;margin-bottom:22px}
+@media(max-width:600px){#arquivos{padding-top:30px;scroll-margin-top:110px}#arquivos>.section-topline{margin-bottom:24px}#arquivos>h2{font-size:29px;line-height:1.15;margin-bottom:20px}#arquivos>.archive-intro{font-size:12px;margin-bottom:18px}}
