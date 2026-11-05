@@ -1,10 +1,12 @@
-import {presentDocument} from './document-presentation.js?v=332';
+import {presentDocument} from './document-presentation.js?v=333';
 import {archiveClient, CaseArchive, evidenceImage} from './case-archive-data.js?v=328';
-import {mountCaseBoards} from './case-boards.js?v=328';
+import {mountCaseBoards} from './case-boards.js?v=333';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
 }[char]));
+const backIcon='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg>';
+const clipIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m8 12 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l9-9M6 14l8-8"/></svg>';
 const statusLabel = published => published ? 'PUBLICADO' : 'RASCUNHO';
 const uid = /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i;
 const position = row => '<label>Ordem<input name="position" type="number" min="0" max="99999" required value="'+(row?.position ?? 0)+'"></label>';
@@ -113,15 +115,15 @@ export async function mountCaseArchive(bridge, identity) {
         (manage?'<details class="archive-admin"><summary>Gerenciar dossiê</summary><div class="case-archive-actions"><button type="button" data-edit="'+row.id+'">Editar investigação</button><button type="button" data-add="'+row.id+'">Novo documento</button></div></details>':'')+'</article>';
     };
     const heading=selected?'Documentos da investigação':active==='boards'?'Quadros independentes':active==='sources'?'Fontes externas':'Escolha um assunto';
-    root.innerHTML = '<nav class="archive-breadcrumb" aria-label="Caminho do acervo"><button type="button" data-home '+(active==='home'?'disabled':'')+'>Acervo</button>'+
-      (active!=='home'?'<span aria-hidden="true">›</span><span>'+escape(selected?.title||heading)+'</span>':'')+'</nav>'+
+    root.innerHTML = '<nav class="archive-breadcrumb" aria-label="Caminho do acervo">'+
+      (active==='home'?'<span>Acervo</span>':'<button type="button" class="archive-back" data-home aria-label="Voltar ao acervo" title="Voltar ao acervo">'+backIcon+'</button><span>'+escape(selected?.title||heading)+'</span>')+'</nav>'+
       '<div class="case-boards-head"><div><span class="micro-label">CASO 26-107</span><h3>'+(selected?'Registros disponíveis':heading)+'</h3></div><div class="case-archive-actions">'+
       (master?'<button type="button" data-preview aria-pressed="'+preview+'">'+(preview?'Voltar à gestão':'Ver como jogador')+'</button>':'')+
       (manage&&active==='home'?'<button type="button" data-new>Nova investigação</button>':'')+'</div></div><p role="status"></p>'+
       (selected?dossier(selected):active==='home'?'<div class="archive-subjects">'+investigations.map(dossier).join('')+
         '<article class="case-board-card archive-utility"><span class="micro-label">ESPAÇO PESSOAL</span><h4>Quadros independentes</h4><p>Organize anotações e explore pistas fora dos dossiês.</p><button type="button" data-open="boards">Consultar quadros →</button></article>'+
         '<article class="case-board-card archive-utility"><span class="micro-label">PESQUISA</span><h4>Fontes externas</h4><p>Links e sites relacionados ao caso, incluindo a LUME.</p><button type="button" data-open="sources">Consultar fontes →</button></article></div>':'');
-    root.querySelector('[data-home]').onclick=()=>navigate('home');
+    root.querySelector('[data-home]')?.addEventListener('click',()=>navigate('home'));
     root.querySelectorAll('[data-open]').forEach(button=>button.onclick=()=>navigate(button.dataset.open));
     root.querySelector('[data-new]')?.addEventListener('click', action(() => editInvestigation()));
     root.querySelector('[data-preview]')?.addEventListener('click', () => { preview = !preview; render(); });
@@ -182,16 +184,16 @@ export async function mountCaseArchive(bridge, identity) {
         }
         if (row) await api.completeAttachment(row, fields, original);
         else await api.attach(document.id, fields, original);
-        await openDocument(document.id);
-      }, action(() => openDocument(document.id)));
+        await openDocument(document.id,true);
+      }, action(() => openDocument(document.id,true)));
     dialog.querySelector('[data-remove]')?.addEventListener('click', action(async () => {
       if (!confirm('Excluir esta evidência e os pins que a referenciam?')) return;
       await api.remove('case_attachments', row.id);
-      await openDocument(document.id);
+      await openDocument(document.id,true);
     }));
   }
 
-  async function openDocument(id) {
+  async function openDocument(id, expandAnnexes = false) {
     const result = await api.document(id);
     const doc = result.document;
     const investigation = data.investigations.find(row => row.id === doc?.investigation_id);
@@ -201,7 +203,7 @@ export async function mountCaseArchive(bridge, identity) {
     }
     const manage = master && !preview;
     const attach = result.attachments.filter(row => !preview || row.published);
-    const body = doc.body ? occurrenceBody(doc.body) : {overview:'',details:''};
+    const body = doc.body ? occurrenceBody(doc.body) : {overview:'',details:'',annex:''};
     const available = await boards.list(false);
     const add = !master || preview
       ? (available.length
@@ -219,10 +221,12 @@ export async function mountCaseArchive(bridge, identity) {
     show('<header class="dossier-header"><span class="micro-label">'+escape(investigation.title)+'</span><h3>'+escape(doc.title)+'</h3>'+
       (manage?'<small>'+statusLabel(doc.published && investigation.published)+' · acesso dos agentes</small>':'')+'</header>'+
       body.overview+'<p role="status"></p>'+
-      (attach.length?'<section class="dossier-evidence"><h4>Evidências e anexos</h4><div class="evidence-gallery">'+attach.map(evidenceCard).join('')+'</div></section>':'')+
+      ((attach.length||body.annex)?'<details class="dossier-annexes"><summary>'+clipIcon+'<strong>Anexos</strong>'+(attach.length?'<span>'+attach.length+(attach.length===1?' evidência':' evidências')+'</span>':'')+'<svg class="annex-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="dossier-annexes-body">'+(attach.length?'<div class="evidence-gallery">'+attach.map(evidenceCard).join('')+'</div>':'')+(body.annex?'<div class="annex-manifest case-document-body">'+body.annex+'</div>':'')+'</div></details>':'')+
       (body.details?'<section class="dossier-complement"><h4>Informações complementares</h4><div class="case-document-body">'+body.details+'</div></section>':'')+
       ((!master || preview) && available.length ? '<button type="button" data-pin-document>Adicionar documento ao quadro</button>' : '')+
       (manage?'<details class="archive-admin"><summary>Gerenciar documento</summary><div class="case-archive-actions"><button type="button" data-edit-doc>Editar documento</button><button type="button" data-add-attachment>Nova evidência</button></div></details>':''));
+    const annexes=dialog.querySelector('.dossier-annexes');
+    if(expandAnnexes&&annexes)annexes.open=true;
     const current = view;
     dialog.querySelector('[data-edit-doc]')?.addEventListener('click', () => editDocument(doc, doc.investigation_id));
     dialog.querySelector('[data-add-attachment]')?.addEventListener('click', () => editAttachment(doc));
@@ -293,7 +297,7 @@ export async function mountCaseArchive(bridge, identity) {
   async function chooseBoard(investigation, kind, sourceId, documentId) {
     const available = [...await boards.list(false)];
     available.sort((a,b) => Number(b.id === investigation.board_id) - Number(a.id === investigation.board_id));
-    const back = () => openDocument(documentId);
+    const back = () => openDocument(documentId,kind==='attachment');
     async function addTo(boardId) {
       const result = await api.pin(boardId,kind,sourceId);
       show('<h3>'+(result.existing?'Evidência já está no quadro':'Evidência adicionada')+'</h3>'+
@@ -325,6 +329,6 @@ export async function mountCaseArchive(bridge, identity) {
   const params=new URLSearchParams(location.search),target=params.get('document'),evidence=params.get('evidence');
   if(location.hash==='#arquivos'||params.has('investigation')||target||evidence){document.getElementById('arquivos')?.classList.add('is-open');document.querySelector('.content')?.classList.add('view-restricted');}
   if(target||evidence){const consumed=new URL(location.href);consumed.searchParams.delete('document');consumed.searchParams.delete('evidence');history.replaceState(null,'',consumed);}
-  if(evidence&&uid.test(evidence)){const r=await api.rows('case_attachments','id,document_id').eq('id',evidence).maybeSingle();if(r.data){await openDocument(r.data.document_id);dialog.querySelector('[data-attachment="'+evidence+'"]')?.scrollIntoView({block:'nearest'});}else show('<h3>Evidência indisponível</h3><p>Este conteúdo não está disponível para esta conta.</p>');}
+  if(evidence&&uid.test(evidence)){const r=await api.rows('case_attachments','id,document_id').eq('id',evidence).maybeSingle();if(r.data){await openDocument(r.data.document_id,true);dialog.querySelector('[data-attachment="'+evidence+'"]')?.scrollIntoView({block:'nearest'});}else show('<h3>Evidência indisponível</h3><p>Este conteúdo não está disponível para esta conta.</p>');}
   else if(target&&uid.test(target))await openDocument(target);
 }
