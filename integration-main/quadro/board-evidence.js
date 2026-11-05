@@ -1,5 +1,6 @@
 import {BoardAssets} from '../board-assets.js?v=328';
-import {placePreparation,preparationLayout} from './board-preparations.js?v=328';
+import {EvidenceProgress} from './evidence-progress.js?v=330';
+import {placePreparation,preparationLayout,preparationRuntime} from './board-preparations.js?v=330';
 import {archiveClient, CaseArchive, checked, evidenceImage} from '../case-archive-data.js?v=328';
 
 const itemId = id => 'evidence-' + id;
@@ -28,7 +29,9 @@ export class BoardEvidence {
     const [rows,preparations]=await Promise.all([api.boardPins(bridge.archiveId),api.rows('case_evidence_preparations').eq('board_id',bridge.archiveId)]);
     const templates=checked(preparations);
     for(const row of rows)row.preparation=templates.find(template=>template.attachment_id===row.attachment?.id)?.payload;
-    const result=new BoardEvidence(api,bridge.archiveId,user,rows);result.assets=new BoardAssets(client,bridge.campaignId);return result;
+    const result=new BoardEvidence(api,bridge.archiveId,user,rows);result.assets=new BoardAssets(client,bridge.campaignId);result.progress=new EvidenceProgress(client,bridge.campaignId,user,bridge.archiveId);
+    for(const row of rows)if(row.layout.runtime)row.layout=await result.progress.unpack(row.layout,row.id);
+    return result;
   }
 
   constructor(api, boardId, user, rows) {
@@ -50,6 +53,7 @@ export class BoardEvidence {
         const prepared=placePreparation(await this.assets.unpack(row.preparation),row,this.user,offset);
         state.items.push(...prepared.state.items);Object.assign(imgs,prepared.imgs);
         const target=prepared.state.items[0];
+        state.pins.push(...prepared.state.pins);
         if(target&&row.layout.pin!==false)state.pins.push({id:pinId(row.id),item:target.id,crisOwner:this.user,lx:row.layout.pin?.lx||0,ly:row.layout.pin?.ly||-55,size:row.layout.pin?.size||1,color:colors.test(row.layout.pin?.color)?row.layout.pin.color:'#c3161c'});
         state.z=Math.max(state.z||1,...prepared.state.items.map(item=>(item.z||0)+1));return;
       }
@@ -93,16 +97,17 @@ export class BoardEvidence {
       }
     }
     this.baseline = new Map(this.rows.filter(row => state.items.some(item => item.crisEvidence === row.id))
-      .map(row => [row.id, JSON.stringify(this.layout(row, state))]));
+      .map(row => [row.id, JSON.stringify(this.layout(row, state, imgs))]));
   }
 
-  layout(row, state) {
+  layout(row, state, imgs={}) {
     const item = state.items.find(item => item.crisEvidence === row.id);
     if (!item) return null;
     const id = pinId(row.id);
     const pin = state.pins.find(pin => pin.id === id);
     const pins = new Set(state.pins.map(pin => pin.id));
-    const links = state.strings.filter(link => link.a === id || link.b === id).map(connection).filter(Boolean);
+    const evidencePins=new Set(state.pins.filter(pin=>pin.id===id||state.items.some(item=>item.id===pin.item&&item.crisEvidence===row.id)).map(pin=>pin.id));
+    const links = state.strings.filter(link => evidencePins.has(link.a) || evidencePins.has(link.b)).map(connection).filter(Boolean);
     // Connections to local annotations can be restored on their original device.
     const old = this.layouts.get(row.id)?.links;
     if (pin && Array.isArray(old)) for (const raw of old) {
@@ -110,17 +115,17 @@ export class BoardEvidence {
       const other = link?.a === id ? link.b : link?.a;
       if (link && (link.a === id || link.b === id) && !pins.has(other) && !links.some(value => value.id === link.id)) links.push(link);
     }
-    return {...(row.preparation?{parts:preparationLayout(row,state)}:{flipped:!!item.flipped}),pose:geometry(item,{x:0,y:0}), pin:pin ? {lx:pin.lx,ly:pin.ly,size:pin.size,color:pin.color} : false, links:links.slice(0,100)};
+    return {...(row.preparation?{parts:preparationLayout(row,state),runtime:preparationRuntime(row,state,imgs)}:{flipped:!!item.flipped}),pose:geometry(item,{x:0,y:0}), pin:pin ? {lx:pin.lx,ly:pin.ly,size:pin.size,color:pin.color} : false, links:links.slice(0,100)};
   }
 
-  hasChanges(state) {
+  hasChanges(state,imgs={}) {
     if (!this.baseline) return false;
     return this.rows.some(row => this.baseline.has(row.id)
-      && this.baseline.get(row.id) !== JSON.stringify(this.layout(row,state)));
+      && this.baseline.get(row.id) !== JSON.stringify(this.layout(row,state,imgs)));
   }
 
-  save(state) {
-    const layouts = new Map(this.rows.map(row => [row.id,this.layout(row,state)]));
+  save(state,imgs={}) {
+    const layouts = new Map(this.rows.map(row => [row.id,this.layout(row,state,imgs)]));
     this.queue = this.queue.catch(() => {}).then(async () => {
       for (const row of this.rows) {
         if (!this.baseline.has(row.id)) continue;
@@ -129,7 +134,8 @@ export class BoardEvidence {
         if (stamp === this.baseline.get(row.id)) continue;
         const query = this.api.client.from('case_evidence_pins');
         if (layout) {
-          checked(await query.update({layout}).eq('id',row.id).eq('board_id',this.boardId));
+          const packed=this.progress?await this.progress.pack(layout,row.id):layout;
+          checked(await query.update({layout:packed}).eq('id',row.id).eq('board_id',this.boardId));
           this.layouts.set(row.id,layout);
           this.baseline.set(row.id,stamp);
         } else {

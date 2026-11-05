@@ -154,3 +154,14 @@ node --test tests/*.test.js
 Os testes verificam preservação integral das cenas e hashes dos WAVs, persistência, backup, renderização/links, URLs do YouTube, independência da navegação, crossfade, timeline/pausa, mixer e cancelamento de eventos. O AudioEngine é exercitado com uma interface de mídia simulada; isso não confirma saída sonora real, codecs ou autoplay em um aparelho físico.
 
 Nesta entrega, o preview supervisionado do Work não iniciou por falha de infraestrutura (`bwrap` sem permissão de montagem). A validação visual no navegador e a reprodução real no celular ficaram pendentes. Os testes de código e a publicação são independentes dessa limitação.
+
+
+### Evidências interativas nos arquivos
+
+No quadro salvo da investigação, selecione um objeto e abra **CRIS → Preparar evidência do acervo**. Escolha uma evidência existente ou **Criar nova evidência deste objeto**, informe o título e o documento, e decida se deseja publicar. Não é necessário anexar uma imagem para cadastrar um objeto nativo. A investigação, o documento e o quadro de destino também devem estar publicados para os jogadores.
+
+A preparação inclui o item selecionado, os conteúdos dos recipientes, peças do mesmo quebra-cabeça e objetos explicitamente vinculados, até 32 itens por preparação. Não inclui itens soltos sem vínculo. Ativadores e ferramentas administrativas continuam reservados ao mestre. Para modificar a preparação entregue, salve-a novamente após editar o objeto.
+
+O jogador recebe sua própria cópia ao escolher **Adicionar ao quadro**. O estado interativo (como combinações, desbloqueios, respostas e abertura de recipientes) fica no progresso individual do pin. Marcas rasterizadas, como grafite e raspagem, ficam em registros privados imutáveis por hash, com remoção em cascata ao excluir o pin. Os originais dos anexos permanecem no armazenamento existente. Anotações avulsas continuam no navegador, como antes.
+
+Validação desta integração: testes automatizados e verificações transacionais com papéis de mestre e jogador; teste do motor real com decalque, celular, ficha de caso e maleta com conteúdo, incluindo recarga. Os demais objetos nativos usam a mesma serialização, mas não foram todos exercitados individualmente na interface.

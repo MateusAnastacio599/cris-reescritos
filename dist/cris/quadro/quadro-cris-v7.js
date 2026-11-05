@@ -5531,12 +5531,12 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
   if (Ks) {
     E = function() {
       void 0 !== co && co && (clearTimeout(C), C = setTimeout(go, 120)), nr();
-    }, $o.lacre.tick = function(e2, t2) {
+    }; if(!crisPersonal)$o.lacre.tick = function(e2, t2) {
       const o2 = t2.querySelector(".lheat");
       o2 && (o2.style.opacity = "0");
     };
     const Jm2 = $o.balanca.tick;
-    $o.balanca.tick = function(e2, t2) {
+    if(!crisPersonal)$o.balanca.tick = function(e2, t2) {
       const o2 = e2.solved, a2 = ii;
       ii = () => {
       };
@@ -7185,7 +7185,7 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
     const t2 = c(+(e2.opts && e2.opts.n || 4), 3, 8), o2 = 40 + 220 * t2;
     return [...Array(t2)].map((t3, a2) => `<i class="tlslot ${e2.solved ? "ok" : ""}" style="${qa((30 + 220 * a2) / o2, 0.08, 200 / o2, 190 / 300)}"></i>`).join("");
   }, tick(e2, t2) {
-    if (frame % 15 || Ks) return;
+    if (frame % 15 || Ks&&!crisPersonal) return;
     const o2 = c(+(e2.opts && e2.opts.n || 4), 3, 8), a2 = 40 + 220 * o2, n2 = B(e2);
     let i2 = true;
     for (let t3 = 0; t3 < o2; t3++) {
@@ -7248,7 +7248,7 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
       if (frame % 10) return;
       if (!e2.tEnd || e2.solved) return void (e2.solved && e2.tEnd && (e2.tEnd = null, Fa(e2)));
       const o2 = Math.max(0, Math.ceil((e2.tEnd - Date.now()) / 1e3)), a2 = t2.querySelector(".ftimer");
-      if (a2 ? a2.textContent = `${String(o2 / 60 | 0).padStart(2, "0")}:${String(o2 % 60).padStart(2, "0")}` : Fa(e2), o2 <= 10 && o2 > 0 && e2._lb !== o2 && (e2._lb = o2, Nt("beepT")), o2 <= 0 && !Ks && !e2._bm) {
+      if (a2 ? a2.textContent = `${String(o2 / 60 | 0).padStart(2, "0")}:${String(o2 % 60).padStart(2, "0")}` : Fa(e2), o2 <= 10 && o2 > 0 && e2._lb !== o2 && (e2._lb = o2, Nt("beepT")), o2 <= 0 && (!Ks||crisPersonal) && !e2._bm) {
         e2._bm = true, Nt("boom");
         const t3 = X(e2);
         ya(t3.x, t3.y, "#ff7a2a", 40), wi = performance.now() + 700, Pa(e2), e2.tEnd = null, ti.it === e2 && ai(), "explode" === (e2.opts && e2.opts.boom) ? (e2.burnt = true, St("BOOM! O painel queimou.")) : (e2.wires = null, St("O tempo acabou! Os fios soltaram.")), Fe(e2), setTimeout(() => {
@@ -7340,7 +7340,7 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
   function Hl() {
     const e2 = {};
     return u.items.forEach((t2) => {
-      ["imgId", "audioId"].forEach((o2) => {
+      ["imgId", "audioId", "prevAudio"].forEach((o2) => {
         t2[o2] && p[t2[o2]] && (e2[t2[o2]] = p[t2[o2]]);
       });
     }), e2;
@@ -29500,6 +29500,7 @@ setTimeout(()=>{const button=t('#sndBtn');button.title='Sons de interação · l
 
 Lt=function(){u=d();u.items=[];u.pins=[];u.strings=[];};
 window.CRIS_PREPARE_EVIDENCE=async itemId=>{try{if(!window.CRIS_IDENTITY.isMaster||!window.CRISBridge.archiveId)return;await window.CRIS_BOARD_SESSION.flush();await window.CRIS_PREPARATION_DIALOG({bridge:window.CRISBridge,snapshot:window.CRIS_BOARD_API.snapshot(),itemId,onSaved:async ids=>{for(const id of ids){const item=K(id);if(item){item.gm=true;Fe(item);}}E();ar();await window.CRIS_BOARD_SESSION.flush();}});}catch(error){St(error.message);}};
+const crisOriginalCreateNote=dt;dt=function(){const item=crisOriginalCreateNote.apply(this,arguments);if(crisPersonal&&crisLastEvidence&&item){const source=crisEvidence?.rows.find(row=>row.id===crisLastEvidence);if(source){Object.assign(item,{crisEvidence:source.id,crisPart:'spawn:'+item.id,crisOwner:window.CRIS_IDENTITY.userId,crisDocument:source.attachment?.document_id||source.document?.id});}}return item;};
 const crisProps=vt;
 vt=function(){const result=crisProps.apply(this,arguments);if(!Ks&&h){const item=K(h),panel=t('#props');if(item&&panel)window.CRISMOUNT_CLUE_PANEL?.({panel,item,onChange:()=>{E();ar();}});}return result;};
 
@@ -29548,6 +29549,16 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
   const crisSelectNote=mt;mt=function(){const result=crisSelectNote.apply(this,arguments);crisUpdateNoteActions();return result;};
   const crisCreateNote=dt;dt=function(){const item=crisCreateNote.apply(this,arguments);if(Wr())requestAnimationFrame(()=>crisEditNote(item));return item;};
   const crisDrawQA=$a;$a=function(){crisDrawQA();const pin=v&&u.pins.find(p=>p.id===v),item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(pin||item,window.CRIS_IDENTITY,Os.me);crisQA.classList.toggle('cris-pin-actions',!!pin);crisQA.classList.toggle('cris-own-note',!!item&&item.type==='note'&&own);if(pin&&x&&!bt){crisQA.classList.add('show');const point=X(D(pin)),width=crisQA.offsetWidth||50;crisQA.style.transform=`translate(${c(point.x-width/2,8,innerWidth-width-8)}px,${c(point.y-80,70,innerHeight-150)}px)`;}const del=crisQA.querySelector('[data-q=del]');if(del)del.hidden=!own;crisUpdateNoteActions();};
+  const crisNativeDelete=pt;
+  pt=function(id){
+    const item=K(id);
+    if(crisPersonal&&item?.crisEvidence&&item.type==='cont'){
+      const related=new Set([id]);let changed=true;
+      while(changed){changed=false;for(const child of u.items)if(child.crisEvidence===item.crisEvidence&&!related.has(child.id)&&['parent','box','inside','clipBy','lidOf'].some(key=>related.has(child[key]))){related.add(child.id);changed=true;}}
+      for(const childId of [...related].reverse())if(childId!==id)crisNativeDelete(childId);
+    }
+    return crisNativeDelete(id);
+  };
   function crisDeleteSelectedPin(pin){
     const item=pin.item&&K(pin.item);
     if(item?.crisEvidence&&pin.id==='evidence-pin-'+item.crisEvidence){for(const part of [...u.items])if(part.crisEvidence===item.crisEvidence)pt(part.id);return;}
@@ -29567,6 +29578,30 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
     if(window.CRIS_BOARD_RULES.ownsBoardItem(pin,window.CRIS_IDENTITY,Os.me))crisDeleteSelectedPin(pin);
   },true);
   let crisSaveTimer, crisEvidence, crisEvidencePending=false, crisEvidenceGeneration=0;
+  let crisKnownItems=new Set(),crisLastEvidence=null;
+  function crisRememberEvidence(event){
+    if(!crisPersonalReady)return;
+    const node=event.target.closest?.('.it');
+    const active=node?K(node.dataset.id):event.target.closest?.('#puz,#qa,#lockUI,#dialUI')?(ti.it||h&&K(h)):null;
+    crisLastEvidence=active?.crisEvidence||null;
+  }
+  document.addEventListener('pointerdown',crisRememberEvidence,true);
+  document.addEventListener('keydown',event=>{if(crisPersonalReady){const active=ti.it||h&&K(h);crisLastEvidence=active?.crisEvidence||null;}},true);
+  function crisAdoptCreatedItems(){
+    if(!crisPersonalReady)return;
+    for(const item of u.items){
+      if(crisKnownItems.has(item.id))continue;
+      if(!item.crisEvidence){
+        const parent=['parent','box','inside','lidOf','deck','clipBy'].map(key=>K(item[key])).find(value=>value?.crisEvidence);
+        const evidence=parent?.crisEvidence||(!item.crisOwner?crisLastEvidence:null);
+        if(evidence&&crisEvidence?.rows.some(row=>row.id===evidence)){
+          const row=crisEvidence.rows.find(row=>row.id===evidence);
+          Object.assign(item,{crisEvidence:evidence,crisPart:'spawn:'+item.id,crisOwner:window.CRIS_IDENTITY.userId,crisDocument:row.attachment?.document_id||row.document?.id});
+        }else if(!item.crisOwner)item.crisOwner=window.CRIS_IDENTITY.userId;
+      }
+      crisKnownItems.add(item.id);
+    }
+  }
   const crisSource=document.createElement('a');
   crisSource.textContent='Abrir no acervo';
   crisSource.target='_blank';
@@ -29583,7 +29618,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
     if(item?.crisDocument)crisSource.href='../?document='+encodeURIComponent(item.crisDocument)+'#arquivos';
   };
   const crisSnapshot=()=>({state:JSON.parse(JSON.stringify(u)),imgs:Hl(),viewport:{width:innerWidth,height:innerHeight}});
-  async function crisSavePersonalNow(){if(!crisPersonalReady)return;clearTimeout(crisSaveTimer);const current=crisSnapshot(),generation=crisEvidenceGeneration;
+  async function crisSavePersonalNow(){if(!crisPersonalReady)return;crisAdoptCreatedItems();clearTimeout(crisSaveTimer);const current=crisSnapshot(),generation=crisEvidenceGeneration;
     const layer=window.CRIS_BOARD_RULES.personalBoardLayer(crisPublishedBase,current,window.CRIS_IDENTITY.userId);
     const evidenceIds=new Set(layer.items.filter(item=>item.crisEvidence).map(item=>item.id));
     layer.items=layer.items.filter(item=>!evidenceIds.has(item.id));
@@ -29591,7 +29626,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
     const evidenceImages=new Set(current.state.items.filter(item=>item.crisEvidence).flatMap(item=>[item.imgId,item.audioId]).filter(Boolean));
     for(const id of evidenceImages)delete layer.imgs[id];
     await new Promise((resolve,reject)=>{if(!A)return reject(Error('Armazenamento local indisponível'));const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(layer,crisBoardStorageKey()+':personal');tx.oncomplete=resolve;tx.onerror=tx.onabort=()=>reject(tx.error||Error('Falha ao salvar anotações'));});
-    await crisEvidence?.save(current.state);
+    await crisEvidence?.save(current.state,current.imgs);
     if(generation===crisEvidenceGeneration)crisEvidencePending=false;
     window.CRIS_BOARD_SESSION.status(crisEvidence?'Evidências sincronizadas · anotações salvas neste navegador':'Suas anotações estão salvas neste navegador');
   }
@@ -29623,16 +29658,16 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
       const camera={...u.cam};combined.state.cam=camera;
       await replacement.insertInto(combined,{x:camera.x+innerWidth/2/camera.z,y:camera.y+innerHeight/2/camera.z});
       // Never replace a board while the player is dragging or has made a newer edit.
-      if(crisPointerDown||editVersion!==crisPersonalEditVersion||crisEvidence?.hasChanges(u)){replacement.release();return;}
+      if(crisPointerDown||editVersion!==crisPersonalEditVersion||crisEvidence?.hasChanges(u,Hl())){replacement.release();return;}
       crisPersonalReady=false;
       await cr({s:JSON.stringify(combined.state),imgs:combined.imgs});
       u.cam=camera;R.length=0;q();
       crisEvidence?.release();crisEvidence=replacement;crisPublishedBase=structuredClone(saved);crisReleaseStamp=stamp;
-      crisPersonalReady=true;q();window.CRIS_BOARD_SESSION.status('Quadro atualizado · suas anotações foram preservadas');
+      crisKnownItems=new Set(u.items.map(item=>item.id));crisPersonalReady=true;q();window.CRIS_BOARD_SESSION.status('Quadro atualizado · suas anotações foram preservadas');
     }catch(error){replacement?.release();window.CRIS_BOARD_SESSION.status('Não foi possível atualizar o quadro: '+error.message,true);}
     finally{crisRefreshing=false;}
   }
-  function crisSavePersonal(){if(!crisPersonalReady)return;crisPersonalEditVersion++;clearTimeout(crisSaveTimer);if(crisEvidence?.hasChanges(u)){crisEvidenceGeneration++;crisEvidencePending=true;window.CRIS_BOARD_SESSION.status('Sincronizando evidências…');}crisSaveTimer=setTimeout(()=>crisSavePersonalNow().catch(()=>window.CRIS_BOARD_SESSION.status('Não foi possível salvar todas as alterações. Confira a conexão antes de fechar.',true)),180);}
+  function crisSavePersonal(){if(!crisPersonalReady)return;crisAdoptCreatedItems();crisPersonalEditVersion++;clearTimeout(crisSaveTimer);if(crisEvidence?.hasChanges(u,Hl())){crisEvidenceGeneration++;crisEvidencePending=true;window.CRIS_BOARD_SESSION.status('Sincronizando evidências…');}crisSaveTimer=setTimeout(()=>crisSavePersonalNow().catch(()=>window.CRIS_BOARD_SESSION.status('Não foi possível salvar todas as alterações. Confira a conexão antes de fechar.',true)),180);}
   if(crisPersonal){
     addEventListener('beforeunload',event=>{
       if(crisEvidencePending){event.preventDefault();event.returnValue='';}
@@ -29644,7 +29679,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
     try {
       frame++, frame % 8 == 0 && Ps(), frame % 20 == 0 && os(), Wi(), frame % 30 == 0 && Nn();
       const e3 = performance.now();
-      if(!crisPersonal)So(e3);
+      So(e3);
       const n2 = crisPersonal?false:Ha(e3);
       if (frame % 2 == 0 && rn(n2), Tn(), Yt(), ba(), $a(), tt(), nt(), frame % 6 == 0 && io(), co) {
         (bt || Vt.size) && frame % 5 == 0 ? go() : vo();
@@ -29671,10 +29706,10 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
       if(layer?.cam&&layer.viewport?.width===innerWidth&&layer.viewport?.height===innerHeight){u.cam=layer.cam;q();}
       const focused=focus&&(K('evidence-'+focus)||u.items.find(item=>item.crisEvidence===focus));
       if(focused){u.cam.x=focused.x-innerWidth/2/u.cam.z;u.cam.y=focused.y-innerHeight/2/u.cam.z;q();mt(focused.id);}
-      else if(focus)St('Esta evidência não está disponível no quadro.');u.sound=localStorage.getItem('cris:board:interaction-sounds')!=='off';crisPersonalReady=true;window.CRIS_PERSONAL_BOARD={snapshot:crisSnapshot,save:crisSavePersonalNow,refresh:crisRefreshPublication};let refreshTimer=setInterval(crisRefreshPublication,15000);addEventListener('focus',crisRefreshPublication);addEventListener('online',crisRefreshPublication);addEventListener('pagehide',()=>clearInterval(refreshTimer),{once:true});window.CRIS_BOARD_SESSION.status('Anotações pessoais · salvas neste navegador');Dl();t('#sceneBtn').title='Exportar imagem (PNG)';t('#sceneBtn').onclick=()=>Jl();}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}document.body.classList.remove('cris-loading');window.QIL?.pronto();return;}
+      else if(focus)St('Esta evidência não está disponível no quadro.');u.sound=localStorage.getItem('cris:board:interaction-sounds')!=='off';crisKnownItems=new Set(u.items.map(item=>item.id));crisPersonalReady=true;window.CRIS_PERSONAL_BOARD={snapshot:crisSnapshot,save:crisSavePersonalNow,refresh:crisRefreshPublication};let refreshTimer=setInterval(crisRefreshPublication,15000);addEventListener('focus',crisRefreshPublication);addEventListener('online',crisRefreshPublication);addEventListener('pagehide',()=>clearInterval(refreshTimer),{once:true});window.CRIS_BOARD_SESSION.status('Anotações pessoais · salvas neste navegador');Dl();t('#sceneBtn').title='Exportar imagem (PNG)';t('#sceneBtn').onclick=()=>Jl();}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}document.body.classList.remove('cris-loading');window.QIL?.pronto();return;}
 
     if ((location.search.includes("obs") || location.hash.includes("obs")) && kt(false), at(), yt("select"), await document.fonts.ready, await Promise.all(["700 30px Hand", "30px Marker", "30px Typewriter", "700 30px News", "17px NewsR", "600 20px Cond", "40px Sigil"].map((e3) => document.fonts.load(e3).catch(() => 0))), Bs) return u = d(), u.items = [], u.pins = [], u.strings = [], await ze(), void kr();
-                const snapshot=()=>{const imgs={};for(const i of u.items)for(const k of ['imgId','audioId'])if(i[k]&&p[i[k]])imgs[i[k]]=p[i[k]];return {state:JSON.parse(JSON.stringify(u)),imgs};};
+                const snapshot=()=>{const imgs={};for(const i of u.items)for(const k of ['imgId','audioId','prevAudio'])if(i[k]&&p[i[k]])imgs[i[k]]=p[i[k]];return {state:JSON.parse(JSON.stringify(u)),imgs};};
                 window.CRIS_BOARD_API={snapshot,persistLocal:value=>new Promise((resolve,reject)=>{if(!A){reject(Error('Não foi possível guardar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));return;}try{const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(value,crisBoardStorageKey());tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(Error('Não foi possível salvar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));}catch(error){reject(error);}}),save:()=>window.CRISBridge.saveBoard(snapshot()),visibility:async(id,visible)=>{
                     const it=K(id);if(!it||it.hand){const error=Error('Pista não encontrada neste quadro: '+id);error.code='CLUE_MISSING';throw error;}
                     if(visible){if(it.gm)Zl(it);}else if(!it.gm){$();it.gm=true;Fe(it);E();ar();}

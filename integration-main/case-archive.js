@@ -196,7 +196,7 @@ export async function mountCaseArchive(bridge, identity) {
         const file = fd.get('file');
         if (file?.size > 26214400) throw Error('O arquivo deve ter até 25 MB.');
         const original = file?.size ? file : null;
-        if (!row?.object_path && !original && !fields.body.trim() && (!row || fields.published)) {
+        if (row?.mime!=='application/x-cris-object' && !row?.object_path && !original && !fields.body.trim() && (!row || fields.published)) {
           throw Error('Anexe um arquivo ou escreva o conteúdo da evidência.');
         }
         if (row) await api.completeAttachment(row, fields, original);
@@ -229,9 +229,9 @@ export async function mountCaseArchive(bridge, identity) {
       : '';
     const evidenceCard = row => '<article class="case-board-card case-attachment" data-attachment="'+row.id+'">'+
       (row.object_path && evidenceImage(row.mime)?'<div class="case-file-preview" aria-busy="true"></div>':'')+
-      '<span class="micro-label">'+(manage?statusLabel(row.published):'EVIDÊNCIA')+'</span><h4>'+escape(row.title)+'</h4>'+
+      '<span class="micro-label">'+(row.mime==='application/x-cris-object'?'OBJETO INTERATIVO · ':'')+(manage?statusLabel(row.published):'EVIDÊNCIA')+'</span><h4>'+escape(row.title)+'</h4>'+
       (row.body?'<div class="case-document-body">'+readDocument(row.body)+'</div>':'')+
-      (!row.object_path&&!row.body&&manage?'<p>Aguardando arquivo original.</p>':'')+
+      (row.mime!=='application/x-cris-object'&&!row.object_path&&!row.body&&manage?'<p>Aguardando arquivo original.</p>':'')+
       '<div class="case-archive-actions">'+add+
       (row.object_path?'<button type="button" data-original>Arquivo original</button>':'')+'</div>'+
       (manage?'<details class="archive-admin"><summary>Gerenciar evidência</summary><button type="button" data-edit-attachment>Editar evidência</button></details>':'')+'</article>';

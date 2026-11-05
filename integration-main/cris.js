@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     topAgentName.textContent = agent.name;
     topAgentClearance.textContent = agent.clearance.replace('NÍVEL DE ACESSO:', 'NÍVEL');
     applyAccessMode(key, agent);
-    import('./case-archive.js?v=328').then(({mountCaseArchive}) => mountCaseArchive(CRISBridge, agent)).catch(() => {
+    import('./case-archive.js?v=330').then(({mountCaseArchive}) => mountCaseArchive(CRISBridge, agent)).catch(() => {
       mountCaseBoards(agent).catch(()=>{});
       const archive = document.getElementById('caseArchive');
       if (archive) archive.textContent = 'Não foi possível carregar as investigações. Reabra o CRIS para tentar novamente.';
