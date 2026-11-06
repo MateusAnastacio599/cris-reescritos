@@ -29645,7 +29645,13 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
     crisPreviousActions();
     const item=h&&K(h);
     crisSource.hidden=!item?.crisDocument;
-    if(item?.crisDocument)crisSource.href='../?document='+encodeURIComponent(item.crisDocument)+'#arquivos';
+    if(item?.crisDocument){
+      const source=crisEvidence?.rows.find(row=>row.id===item.crisEvidence);
+      const params=new URLSearchParams({document:item.crisDocument});
+      if(source?.attachment)params.set('evidence',source.attachment.id);
+      if(source?.attachment?.record_id)params.set('record',source.attachment.record_id);
+      crisSource.href='../?'+params+'#arquivos';
+    }
   };
   const crisSnapshot=()=>({state:JSON.parse(JSON.stringify(u)),imgs:Hl(),viewport:{width:innerWidth,height:innerHeight}});
   async function crisSavePersonalNow(){if(!crisPersonalReady)return;crisAdoptCreatedItems();clearTimeout(crisSaveTimer);const current=crisSnapshot(),generation=crisEvidenceGeneration;

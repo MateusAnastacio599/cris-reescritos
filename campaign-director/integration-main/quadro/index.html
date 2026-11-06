@@ -7,7 +7,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
         <title>Quadro Investigativo</title>
-        <link rel="preload" href="quadro-cris-v7.js?v=334" as="script">
+        <link rel="preload" href="quadro-cris-v7.js?v=336" as="script">
         <style>body.cris-loading>:not(#crisLoading):not(.cris-board-toolbar){visibility:hidden!important}#crisLoading{position:fixed;inset:0;display:grid;place-items:center;background:#1c1612;color:#e6d5b1;font:16px system-ui;z-index:70}body:not(.cris-loading)>#crisLoading{display:none}</style>
         <link rel="stylesheet" href="base.css">
         <link rel="stylesheet" href="Halloween2026-1.css">
@@ -432,7 +432,7 @@
         <input type="file" id="fileInto" accept="image/*" multiple hidden>
         <script>self.QI_VER_SITE="CRIS 3.24";self.QI_BUILD_SITE="CRIS 3.24";</script>
         <script type="module">
-        import {BoardEvidence} from "./board-evidence.js?v=332";
+        import {BoardEvidence} from "./board-evidence.js?v=336";
         window.CRIS_BOARD_EVIDENCE=BoardEvidence;
         import {choosePreparation} from "./board-preparations.js?v=332";
         window.CRIS_PREPARATION_DIALOG=choosePreparation;
@@ -443,7 +443,7 @@
         import {mountCluePanel} from './board-clue-panel.js?v=332';
         window.CRISMOUNT_CLUE_PANEL=mountCluePanel;
         window.CRISBridge=CRISBridge;
-        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=334';document.body.append(script);}}
+        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=336';document.body.append(script);}}
         catch(error){document.body.textContent='Não foi possível confirmar o acesso. Volte ao CRIS e entre novamente.';}
         </script>
 </body>
