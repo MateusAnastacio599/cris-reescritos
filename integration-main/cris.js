@@ -1,3 +1,4 @@
+import {playCrisMedia, readOutput, saveOutput, setMediaOutput} from './media-output.js?v=337';
 import {mountCaseBoards} from './case-boards.js';
 import {CRISBridge} from './integration-bridge.js?v=328';
 window.CRISBridge=CRISBridge;
@@ -64,12 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
     topAgentName.textContent = agent.name;
     topAgentClearance.textContent = agent.clearance.replace('NÍVEL DE ACESSO:', 'NÍVEL');
     applyAccessMode(key, agent);
-    import('./case-archive.js?v=336').then(({mountCaseArchive}) => mountCaseArchive(CRISBridge, agent)).catch(() => {
+    import('./case-archive.js?v=337').then(({mountCaseArchive}) => mountCaseArchive(CRISBridge, agent)).catch(() => {
       mountCaseBoards(agent).catch(()=>{});
       const archive = document.getElementById('caseArchive');
       if (archive) archive.textContent = 'Não foi possível carregar as investigações. Reabra o CRIS para tentar novamente.';
     });
-    import('./notifications.js?v=332').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
+    import('./notifications.js?v=337').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
 
     login.classList.add('authenticated');
 
@@ -214,6 +215,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('samuel-audio');
 
   if (samuelPlayer && samuelAudio) {
+    const volume=document.getElementById('cris-output');
+    const output=document.getElementById('cris-output-value');
+    function syncOutput(level){
+      volume.value=Math.round(level*100);
+      output.value=volume.value+'%';
+      volume.setAttribute('aria-valuetext',output.value);
+      setMediaOutput(samuelAudio,level);
+    }
+    syncOutput(readOutput());
+    volume.addEventListener('input',()=>syncOutput(saveOutput(Number(volume.value)/100)));
+    window.addEventListener('storage',()=>syncOutput(readOutput()));
 
     const timeDisplay =
       samuelPlayer.parentElement
@@ -292,9 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!samuelAudio.src) return;
 
         if (samuelAudio.paused) {
-          samuelAudio
-            .play()
-            .catch(() => {});
+          playCrisMedia(samuelAudio).catch(()=>{});
         } else {
           samuelAudio.pause();
         }

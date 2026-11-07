@@ -2,6 +2,16 @@
 (function(){
 const crisPersonal=!!window.CRISBridge.archiveId&&!window.CRIS_IDENTITY.isMaster;
 let crisPublishedBase=null,crisPersonalReady=false;
+const crisOutput=window.CRIS_MEDIA_OUTPUT;
+const crisBoot=window.CRIS_BOARD_BOOT;
+const readBoardPreference=(key,fallback)=>{try{return localStorage.getItem(key)??fallback;}catch{return fallback;}};
+const writeBoardPreference=(key,value)=>{try{localStorage.setItem(key,value);}catch{}};
+let crisBoardSound=readBoardPreference('cris:board:interaction-sounds','on')!=='off';
+let crisBoardMix;
+try{crisBoardMix=JSON.parse(readBoardPreference('cris:board:mix','{}'))||{};}catch{crisBoardMix={};}
+let crisGeneralOutput=crisOutput.readOutput();
+const crisMix=()=>({i:1,e:1,v:1,...crisBoardMix,g:crisGeneralOutput});
+addEventListener('storage',()=>{crisGeneralOutput=crisOutput.readOutput();});
 const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.CRIS_IDENTITY.userId+(window.CRISBridge.archiveId?":"+window.CRISBridge.archiveId:"");
 
   /*! Quadro Investigativo © Viquitor "Harden" Saldanha · hipsandhops.com.br · Todos os direitos reservados. */
@@ -716,6 +726,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     "scr" === e2.type && await ca(e2, t2), Ue();
   }
   async function ze() {
+    u.sound=crisBoardSound;
     Vt.clear(), t("#lampBtn") && t("#lampBtn").classList.toggle("off", !!u.lampOff), ko.length = 0, ro(), applySound(), a.innerHTML = "", n.innerHTML = "", Je.clear(), he(), oe();
     if(crisPersonal){for(let start=0;start<u.items.length;start+=6)await Promise.all(u.items.slice(start,start+6).map(Fe));}else for (const e2 of u.items) await Fe(e2);
     u.pins.forEach(Ne), u.strings.forEach((e2) => et(e2)), Xe(), Ao(), vt(), q(), co && go();
@@ -1712,9 +1723,9 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
       } catch (e2) {
         return null;
       }
-      Ut = { m: zt.createGain(), i: zt.createGain(), e: zt.createGain() }, Ut.i.connect(Ut.m), Ut.e.connect(Ut.m), Ut.m.connect(zt.destination), setTimeout(() => "function" == typeof Nn && Nn(), 0);
+      Ut = { m: zt.createGain(), i: zt.createGain(), e: zt.createGain() }, Ut.i.connect(Ut.m), Ut.e.connect(Ut.m), Ut.m.connect(crisOutput.limitedOutput(zt)), setTimeout(() => "function" == typeof Nn && Nn(), 0);
     }
-    return "suspended" === zt.state && zt.resume(), zt;
+    return "suspended" === zt.state && zt.resume().catch(()=>{}), zt;
   }
   function Ot(e2) {
     if (It) return It;
@@ -2659,7 +2670,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     a2.classList.remove(t2 || "vib"), a2.offsetWidth, a2.classList.add(t2 || "vib");
   }
   function playBoardMedia(media, onStarted) {
-    return media.play().then(() => onStarted?.()).catch(error => {
+    return crisOutput.playCrisMedia(media,boardMediaVolume(),Bt()).then(() => onStarted?.()).catch(error => {
       if (error.name === "AbortError") return;
       St(error.name === "NotAllowedError"
         ? "O navegador bloqueou a reprodução. Clique no aparelho para tentar de novo."
@@ -2667,19 +2678,20 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     });
   }
   function boardMediaVolume() {
-    const volume = Object.assign({}, On, u.vol || {});
-    return u.sound === false ? 0 : c(volume.g * volume.v, 0, 1);
+    const volume = crisMix();
+    return crisBoardSound ? volume.g * volume.v : 0;
   }
   function Fa(e2) {
     const t2 = document.getElementById("it-" + e2.id), o2 = $o[e2.kind];
     if (!t2 || !o2.ov) return;
     let a2 = t2.querySelector(".ov");
-    a2 || (a2 = document.createElement("div"), a2.className = "ov", t2.querySelector(".inner").appendChild(a2)), a2.innerHTML = o2.ov(e2);
-    const video = a2.querySelector("video.tvv");
-    if (video) {
-      video.volume = boardMediaVolume();
-      playBoardMedia(video);
-    }
+    a2 || (a2 = document.createElement("div"), a2.className = "ov", t2.querySelector(".inner").appendChild(a2));
+    const previous=a2.querySelector("video.tvv");
+    a2.innerHTML=o2.ov(e2);
+    const video=a2.querySelector("video.tvv");
+    if(previous&&video&&previous.src===video.src)video.replaceWith(previous);
+    else {previous?.pause();if(video)playBoardMedia(video);}
+
   }
   const za = (e2) => String(void 0 !== (e2.opts && e2.opts.msgs) ? e2.opts.msgs : $o[e2.kind].defMsgs || "").split("\n").map((e3) => e3.trim()).filter(Boolean);
   function Ia(e2, t2, o2, a2, n2, i2, s2, r2) {
@@ -2747,7 +2759,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   }, act(e2) {
     if (!e2.audioId || !p[e2.audioId]) return Nt("key"), void St("Carregue um \xE1udio no painel do gravador");
     let t2 = ja.get(e2.id);
-    t2 || (t2 = new Audio(p[e2.audioId]), t2.onended = () => Fa(e2), ja.set(e2.id, t2)), Nt("key"), t2.volume = boardMediaVolume();
+    t2 || (t2 = new Audio(p[e2.audioId]), t2.onended = () => Fa(e2), ja.set(e2.id, t2)), Nt("key");
     if (t2.paused) playBoardMedia(t2, () => Fa(e2));
     else {
       t2.pause();
@@ -3074,12 +3086,12 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
       const o2 = t2 && t2.querySelector(".bubble");
       if (o2 && (o2.classList.remove("show"), o2.offsetWidth, o2.classList.add("show")), e2.opts && e2.opts.voz && window.speechSynthesis) {
         const t3 = new SpeechSynthesisUtterance(e2.opts.frase || "");
-        t3.lang = "pt-BR", t3.rate = 0.95, t3.pitch = 0.8, t3.volume = false === u.sound ? 0 : c((u.vol || On).g * (u.vol || On).v, 0, 1), speechSynthesis.cancel(), speechSynthesis.speak(t3);
+        t3.lang = "pt-BR", t3.rate = 0.95, t3.pitch = 0.8, t3.volume = c(boardMediaVolume(), 0, 1), speechSynthesis.cancel(), speechSynthesis.speak(t3);
       }
       if (e2.audioId && p[e2.audioId]) {
         let t3 = ja.get(e2.id);
         t3 || (t3 = new Audio(p[e2.audioId]), ja.set(e2.id, t3)), t3.currentTime = 0;
-        t3.volume = boardMediaVolume();
+
         playBoardMedia(t3);
       }
     }, 350);
@@ -3447,17 +3459,22 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   };
   const On = { g: 0.8, i: 0.8, e: 0.8, v: 1 }, jn = /* @__PURE__ */ new Set(["beep", "sms", "key", "static", "rattle", "flick", "blow", "zippo", "zipclose", "strike", "crack", "creak", "eerie", "tickd", "latch", "unlock", "buzz", "tick", "wood"]), Dn = Nt;
   function Nn() {
-    const e2 = Object.assign({}, On, u.vol || {}), t2 = false === u.sound;
+    const e2 = crisMix(), t2 = !crisBoardSound;
     if (Ut && zt) {
       const o2 = zt.currentTime;
       Ut.m.gain.setTargetAtTime(t2 ? 0 : e2.g, o2, 0.02), Ut.i.gain.setTargetAtTime(e2.i, o2, 0.02), Ut.e.gain.setTargetAtTime(e2.e, o2, 0.02);
     }
-    ja.forEach(media => media.volume = boardMediaVolume());
-    document.querySelectorAll("video.tvv").forEach(video => video.volume = boardMediaVolume());
+    ja.forEach(media => crisOutput.setMediaOutput(media,boardMediaVolume()));
+    document.querySelectorAll("video.tvv").forEach(video => crisOutput.setMediaOutput(video,boardMediaVolume()));
+    for(const gain of crisTapeGains)gain.setTargetAtTime(boardMediaVolume(),zt.currentTime,.018);
   }
   function Hn() {
-    const e2 = Object.assign({}, On, u.vol || {});
-    t("#vMute").checked = false === u.sound, t("#vmenu").querySelectorAll("[data-v]").forEach((t2) => t2.value = Math.round(100 * e2[t2.dataset.v]));
+    const e2 = crisMix();
+    t("#vMute").checked = !crisBoardSound;
+    t("#vmenu").querySelectorAll("[data-v]").forEach(input=>{
+      input.value=Math.round(100*e2[input.dataset.v]);
+      input.setAttribute('aria-valuetext',input.value+'%');
+    });
   }
   function _n(e2, t2, o2) {
     t2 = Math.pow(c(t2, 0, 1), 1.4);
@@ -3507,16 +3524,17 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     $o[e2].btns = Object.assign({ sortear: ["Sortear apar\xEAncia", (t2) => {
       $(), t2.seed = 1e9 * Math.random() | 0, t2.opts = Object.assign(t2.opts || {}, ei[e2]()), Fe(t2), E();
     }] }, $o[e2].btns || {});
-  }), setTimeout(() => {
-    t("#sndBtn").onclick = (e2) => {
-      e2.stopPropagation(), Hn(), t("#vmenu").classList.toggle("open");
-    };
-  }, 0), addEventListener("pointerdown", (e2) => {
-    e2.target.closest("#vmenu,#sndBtn") || t("#vmenu").classList.remove("open");
+  }), addEventListener("pointerdown", (e2) => {
+    if(!e2.target.closest("#vmenu,#sndBtn"))crisVolumePanel(false);
   }, true), t("#vMute").onchange = (e2) => {
-    u.sound = !e2.target.checked, applySound(), Bt(), Nn(), E();
+    crisBoardSound=u.sound=!e2.target.checked;
+    writeBoardPreference('cris:board:interaction-sounds',crisBoardSound?'on':'off');
+    applySound();Bt();Nn();
   }, t("#vmenu").querySelectorAll("[data-v]").forEach((e2) => e2.oninput = () => {
-    u.vol = Object.assign({}, On, u.vol || {}, { [e2.dataset.v]: +e2.value / 100 }), Bt(), Nn(), E(), "v" !== e2.dataset.v && Nt("i" === e2.dataset.v ? "beep" : "pick");
+    const key=e2.dataset.v,level=Number(e2.value)/100;
+    if(key==='g')crisGeneralOutput=crisOutput.saveOutput(level);
+    else {crisBoardMix[key]=level;writeBoardPreference('cris:board:mix',JSON.stringify(crisBoardMix));}
+    Hn();Bt();Nn();
   });
   const ti = { it: null, onClose: null };
   function oi(e2, o2, a2) {
@@ -4960,6 +4978,15 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     };
   }
   const xs = /* @__PURE__ */ new Map();
+  const crisTapeGains=new Set(),crisTapeRequests=new WeakMap();
+  function crisStopTape(item) {
+    crisTapeRequests.delete(item);
+    ja.get(item.id)?.pause();
+    if(item._gsrc){
+      try{item._gsrc.stop();}catch{}
+      item._gsrc=null;item._gv=false;Fa(item);
+    }
+  }
   async function ws(e2) {
     const t2 = e2.audioId;
     if (xs.has(t2)) return xs.get(t2);
@@ -4971,15 +4998,20 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     const s2 = { fwd: n2, rev: i2 };
     return xs.set(t2, s2), s2;
   }
-  async function As(e2, t2) {
-    if (Js({ t: "grav", id: e2.id, rev: t2 }), e2._gsrc) {
+  async function As(e2, t2, restart=false) {
+    if(!Bt())return void St("Este navegador não conseguiu abrir o áudio da fita.");
+    ja.get(e2.id)?.pause();
+    if (Js({ t: "grav", id: e2.id, rev: t2, restart }), e2._gsrc) {
       try {
         e2._gsrc.stop();
       } catch (e3) {
       }
-      if (e2._gsrc = null, e2._gv = false, Fa(e2), e2._gvRev === t2) return void Nt("key");
+      if (e2._gsrc = null, e2._gv = false, Fa(e2), e2._gvRev === t2 && !restart) {crisTapeRequests.delete(e2);return void Nt("key");}
     }
+    crisTapeRequests.delete(e2);
     if (!e2.audioId || !p[e2.audioId]) return void St("Carregue ou grave um \xE1udio no painel do gravador");
+    const request={};
+    crisTapeRequests.set(e2,request);
     let o2;
     Nt("key");
     try {
@@ -4987,10 +5019,17 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     } catch (e3) {
       return void St("N\xE3o consegui ler esse \xE1udio");
     }
-    const a2 = Bt(), n2 = a2.createBufferSource(), i2 = a2.createGain(), s2 = Object.assign({}, On, u.vol || {});
-    i2.gain.value = false === u.sound ? 0 : c(s2.g * s2.v, 0, 1), n2.buffer = t2 ? o2.rev : o2.fwd, n2.connect(i2), i2.connect(a2.destination), n2.onended = () => {
-      e2._gsrc === n2 && (e2._gsrc = null, e2._gv = false, Fa(e2));
-    }, n2.start(), e2._gsrc = n2, e2._gv = true, e2._gvRev = t2, Fa(e2);
+    if(crisTapeRequests.get(e2)!==request||K(e2.id)!==e2)return;
+    const a2=Bt(),n2=a2.createBufferSource(),i2=a2.createGain();
+    crisTapeGains.add(i2.gain);
+    i2.gain.value=boardMediaVolume();
+    n2.buffer=t2?o2.rev:o2.fwd;
+    n2.connect(i2).connect(crisOutput.limitedOutput(a2));
+    n2.onended=()=>{
+      crisTapeGains.delete(i2.gain);n2.disconnect();i2.disconnect();
+      if(e2._gsrc===n2){e2._gsrc=null;e2._gv=false;Fa(e2);}
+    };
+    n2.start();e2._gsrc=n2;e2._gv=true;e2._gvRev=t2;Fa(e2);return true;
   }
   let ks = null;
   async function Ms(e2) {
@@ -5208,7 +5247,11 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
   function Qs() {
     return window.Peer ? Promise.resolve() : new Promise((e2, t2) => {
       const o2 = document.createElement("script");
-      o2.src = zs, o2.onload = e2, o2.onerror = () => t2(new Error("offline")), document.head.appendChild(o2);
+      const timer=setTimeout(()=>{o2.remove();t2(Error("PeerJS não respondeu"));},8000);
+      o2.src=zs;
+      o2.onload=()=>{clearTimeout(timer);window.Peer?e2():t2(Error("PeerJS indisponível"));};
+      o2.onerror=()=>{clearTimeout(timer);t2(Error("PeerJS indisponível"));};
+      document.head.appendChild(o2);
     });
   }
   function Ys() {
@@ -5388,7 +5431,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
         if ("snd" === e2.t) Nt(e2.k);
         else if ("grav" === e2.t) {
           const t3 = K(e2.id);
-          t3 && As(t3, e2.rev);
+          if(t3?.kind==="gravador"&&!xo(t3))e2.stop?crisStopTape(t3):As(t3,!!e2.rev&&!!t3.opts?.invertido,!!e2.restart);
         } else if ("gact" === e2.t) {
           const t3 = K(e2.id);
           t3 && $o.gravador.act(t3);
@@ -5597,7 +5640,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     } catch (e3) {
     }
     const o2 = document.createElement("div");
-    o2.id = "vwJoin", o2.innerHTML = `<div class="card"><div class="t">Quadro Investigativo</div><div class="s">Sala ${Us}</div><input id="vwName" maxlength="18" placeholder="Seu nome ou personagem" value="${gt(e2)}"><button id="vwGo">Entrar na mesa</button><div class="st" id="vwSt">Conectando\u2026</div></div>`, document.body.appendChild(o2);
+    o2.id = "vwJoin", o2.innerHTML = `<div class="card"><div class="t">Quadro Investigativo</div><div class="s">Sala ${Us}</div><input id="vwName" maxlength="18" aria-label="Seu nome ou personagem" placeholder="Seu nome ou personagem" value="${gt(e2 || Os.name)}"><button id="vwGo">Entrar na mesa</button><div class="st" id="vwSt" role="status">Conectando\u2026</div><button id="vwRetry" type="button" hidden>Reconectar</button></div>`, document.body.appendChild(o2);
     const a2 = document.createElement("div");
     a2.id = "vwBar", a2.innerHTML = '<span class="dot"></span><span id="vwTxt">Conectando\u2026</span>', document.body.appendChild(a2);
     const n2 = () => {
@@ -5619,12 +5662,15 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       const o3 = t(e3);
       o3 && (o3.style.display = "none");
     }), document.querySelectorAll("#top [data-d]").forEach((e3) => e3.style.display = "none");
-    try {
-      await Qs();
-    } catch (e3) {
-      return void Ar("Sem internet");
-    }
-    Mr(), setTimeout(() => {
+    const retry=t("#vwRetry");
+    const connect=async()=>{
+      retry.hidden=true;Ar("Conectando à mesa…");
+      try{await Qs();Mr();}
+      catch{Ar("Não foi possível conectar à mesa. Confira a internet e tente novamente.");retry.hidden=false;}
+    };
+    retry.onclick=connect;
+    await connect();
+    setTimeout(() => {
       Os.ready || Ar("Ainda n\xE3o conectou. Se demorar: troque de rede (Wi-Fi \u21C4 4G), desligue VPN ou bloqueador de an\xFAncios, ou abra no Chrome.");
     }, 15e3);
   }
@@ -10090,14 +10136,10 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     const source = disc?.audioId && p[disc.audioId];
     if (!device.playing || !source) return void xp(device);
     const existing = ja.get(device.id);
-    if (existing && existing._src === source) {
-      existing.volume = boardMediaVolume();
-      return;
-    }
+    if (existing && existing._src === source) return;
     xp(device);
     const audio = new Audio(source);
     audio._src = source;
-    audio.volume = boardMediaVolume();
     ja.set(device.id, audio);
     const seek = () => {
       if (ja.get(device.id) !== audio) return;
@@ -10137,7 +10179,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
         a2.currentTime = Math.min(+a2.dataset.off || 0, (a2.duration || 1e9) - 0.2);
       } catch (e3) {
       }
-      a2.volume = boardMediaVolume();
+
     }
   } }, $o.cd = { name: "CD", w: 150, snd: "pick", fields: [["titulo", "T\xEDtulo", "Mixtape da Helena"], ["artista", "Artista / anota\xE7\xE3o", "faixa 7 \u2605"], ["yt", "Link do YouTube (ou carregue um \xE1udio)", ""], ["cor", "Cor do r\xF3tulo", "#e9e3d4", "color"]], btns: { aud: ["Carregar \xE1udio\u2026", (e2) => gp(e2, "audio/*", 15)] }, hint: "Solte em cima do discman. \xC1udio: link do YouTube (com o site no ar) ou um arquivo de \xE1udio.", async draw(e2) {
   } }, $o.discman = { name: "Discman", dev: true, click: true, w: 220, snd: "object", fields: [["cor", "Cor", "#c9cdd2", "color"]], btns: { ej: ["Tirar o CD", (e2) => yp(e2, "disc")] }, hint: "Solte um CD em cima. Clique: toca / pausa. Todo mundo ouve.", async draw(e2) {
@@ -10888,7 +10930,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     }
   }
   setTimeout(() => {
-    ["vmenu", "pmenu", "fmenu"].forEach((e2) => {
+    ["pmenu", "fmenu"].forEach((e2) => {
       const o2 = document.getElementById(e2);
       if (!o2 || !o2.parentElement) return;
       const a2 = o2.parentElement.querySelector("button");
@@ -16651,7 +16693,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
         const e3 = new SpeechSynthesisUtterance(t2.fala);
         e3.lang = "pt-BR";
         const a3 = { grave: [0.25, 0.72, 1], demonio: [0.01, 0.55, 1], sussurro: [1.3, 0.9, 0.55], radio: [0.7, 1.05, 0.9] }[o2] || [0.3, 0.75, 1];
-        if (e3.pitch = a3[0], e3.rate = a3[1], e3.volume = c((u.vol || On).g * (u.vol || On).e * a3[2], 0, 1), speechSynthesis.cancel(), speechSynthesis.speak(e3), "radio" === o2) try {
+        if (e3.pitch = a3[0], e3.rate = a3[1], e3.volume = c(boardMediaVolume() * a3[2], 0, 1), speechSynthesis.cancel(), speechSynthesis.speak(e3), "radio" === o2) try {
           Nt("static");
         } catch (e4) {
         }
@@ -29526,7 +29568,7 @@ Clique pra mudar`, m2.innerHTML = `${Hv(f2)}<span>${u2}</span>${c2 > 1 ? `<em>${
 for(const template of Object.keys(Wl))delete Wl[template];
 Nc=function(){}; // Ambient tracks are managed in SoundPad.
 bl=function(){}; // No upstream announcements or promotional dialog in CRIS.
-setTimeout(()=>{const button=t('#sndBtn');button.title='Sons de interação · ligar/desligar';button.onclick=()=>{u.sound=u.sound===false;applySound();Nn();E();if(u.sound)Nt('pick');St(u.sound?'Sons de interação ligados':'Sons de interação desligados');};},100);
+
 
 Lt=function(){u=d();u.items=[];u.pins=[];u.strings=[];};
 window.CRIS_PREPARE_EVIDENCE=async itemId=>{try{if(!window.CRIS_IDENTITY.isMaster||!window.CRISBridge.archiveId)return;await window.CRIS_BOARD_SESSION.flush();await window.CRIS_PREPARATION_DIALOG({bridge:window.CRISBridge,snapshot:window.CRIS_BOARD_API.snapshot(),itemId,onSaved:async ids=>{for(const id of ids){const item=K(id);if(item){item.gm=true;Fe(item);}}E();ar();await window.CRIS_BOARD_SESSION.flush();}});}catch(error){St(error.message);}};
@@ -29540,12 +29582,18 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
 
   /*! Quadro Investigativo © Viquitor "Harden" Saldanha · hipsandhops.com.br · Todos os direitos reservados. */
   function applySound() {
-    try{localStorage.setItem("cris:board:interaction-sounds",u.sound===false?"off":"on");}catch{}
     const e2 = t("#sndBtn");
     e2.classList.toggle("off", false === u.sound), e2.querySelector(".w").style.display = false === u.sound ? "none" : "", e2.querySelector(".m").style.display = false === u.sound ? "" : "none";
   }
-  t("#sndBtn").onclick = () => {
-    u.sound = false === u.sound, applySound(), E(), u.sound && Nt("pick"), St(u.sound ? "Sons ligados" : "Sons desligados");
+  function crisVolumePanel(open) {
+    t("#vmenu").classList.toggle("open",open);
+    t("#sndBtn").setAttribute("aria-expanded",String(open));
+    if(open)Hn();
+  }
+  document.body.append(t("#vmenu"));
+  t("#sndBtn").onclick = event => {
+    event.stopPropagation();
+    crisVolumePanel(!t("#vmenu").classList.contains("open"));
   }, t("#panBtn").onclick = (e2) => {
     e2.stopPropagation(), t("#pmenu").classList.toggle("open");
   }, t("#pmenu").onclick = (e2) => e2.stopPropagation(), addEventListener("pointerdown", (e2) => {
@@ -29568,6 +29616,24 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
   })();
   // Keep personal editing in the existing contextual toolbar.
   const crisQA=t('#qa'),crisEdit=document.createElement('button');
+  const crisItemActions=window.CRIS_ITEM_ACTIONS({
+    toolbar:crisQA,
+    scope:[window.CRIS_IDENTITY.userId,window.CRISBridge.campaignId,window.CRISBridge.archiveId||Us||'CASO26107'].join(':'),
+    activate:Fo,playTape:(item,reversed)=>As(item,reversed,true),stopTape:item=>{crisStopTape(item);Js({t:'grav',id:item.id,stop:true});}
+  });
+  const crisRenderItem=Fe;
+  Fe=async function(item){
+    const result=await crisRenderItem(item);
+    crisItemActions.decorate(item);
+    return result;
+  };
+  function crisSelectItemAction(){
+    const item=!v&&h&&K(h);
+    if(!item||xo(item)){crisItemActions.select(null);return;}
+    const image=item.type==='img'&&!item.flipped&&document.getElementById('it-'+item.id)?.querySelector('img.main[src]')?.src;
+    const tape=item.kind==='gravador'&&!!p[item.audioId];
+    crisItemActions.select(item,{image,tape,usable:item.type==='cont'&&$o[item.kind]?.click});
+  }
   crisEdit.id='crisEditText';crisEdit.type='button';crisEdit.title='Editar texto';crisEdit.setAttribute('aria-label','Editar texto');crisEdit.textContent='✎';crisQA.prepend(crisEdit);
   const crisFinishNote=()=>{const el=document.querySelector('#view .note[contenteditable=true]');if(el){const item=h&&K(h);if(item)item.text=el.innerText;el.contentEditable='false';el.blur();_e(item?.id);u.strings.forEach(et);at();nt();E();if(crisPersonal)void crisSavePersonalNow();}crisUpdateNoteActions();};
   function crisUpdateNoteActions(){const item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me),editing=!!document.querySelector('#view .note[contenteditable=true]');crisEdit.hidden=!item||item.type!=='note'||!!item.crisEvidence||!own;crisEdit.textContent=editing?'✓':'✎';crisEdit.title=editing?'Concluir texto':'Editar texto';crisEdit.setAttribute('aria-label',crisEdit.title);}
@@ -29578,7 +29644,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
   document.addEventListener('focusout',()=>requestAnimationFrame(crisUpdateNoteActions));
   const crisSelectNote=mt;mt=function(){const result=crisSelectNote.apply(this,arguments);crisUpdateNoteActions();return result;};
   const crisCreateNote=dt;dt=function(){const item=crisCreateNote.apply(this,arguments);if(Wr())requestAnimationFrame(()=>crisEditNote(item));return item;};
-  const crisDrawQA=$a;$a=function(){crisDrawQA();const pin=v&&u.pins.find(p=>p.id===v),item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(pin||item,window.CRIS_IDENTITY,Os.me);crisQA.classList.toggle('cris-pin-actions',!!pin);crisQA.classList.toggle('cris-own-note',!!item&&item.type==='note'&&own);if(pin&&x&&!bt){crisQA.classList.add('show');const point=X(D(pin)),width=crisQA.offsetWidth||50;crisQA.style.transform=`translate(${c(point.x-width/2,8,innerWidth-width-8)}px,${c(point.y-80,70,innerHeight-150)}px)`;}const del=crisQA.querySelector('[data-q=del]');if(del)del.hidden=!own;crisUpdateNoteActions();};
+  const crisDrawQA=$a;$a=function(){crisSelectItemAction();crisDrawQA();const pin=v&&u.pins.find(p=>p.id===v),item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(pin||item,window.CRIS_IDENTITY,Os.me);crisQA.classList.toggle('cris-pin-actions',!!pin);crisQA.classList.toggle('cris-own-note',!!item&&item.type==='note'&&own);if(pin&&x&&!bt){crisQA.classList.add('show');const point=X(D(pin)),width=crisQA.offsetWidth||50;crisQA.style.transform=`translate(${c(point.x-width/2,8,innerWidth-width-8)}px,${c(point.y-80,70,innerHeight-150)}px)`;}const del=crisQA.querySelector('[data-q=del]');if(del)del.hidden=!own;crisUpdateNoteActions();};
   const crisNativeDelete=pt;
   pt=function(id){
     const item=K(id);
@@ -29742,9 +29808,21 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
       if(layer?.cam&&layer.viewport?.width===innerWidth&&layer.viewport?.height===innerHeight){u.cam=layer.cam;q();}
       const focused=focus&&(K('evidence-'+focus)||u.items.find(item=>item.crisEvidence===focus));
       if(focused){u.cam.x=focused.x-innerWidth/2/u.cam.z;u.cam.y=focused.y-innerHeight/2/u.cam.z;q();mt(focused.id);}
-      else if(focus)St('Esta evidência não está disponível no quadro.');u.sound=localStorage.getItem('cris:board:interaction-sounds')!=='off';crisKnownItems=new Set(u.items.map(item=>item.id));crisPersonalReady=true;window.CRIS_PERSONAL_BOARD={snapshot:crisSnapshot,save:crisSavePersonalNow,refresh:crisRefreshPublication};let refreshTimer=setInterval(crisRefreshPublication,15000);addEventListener('focus',crisRefreshPublication);addEventListener('online',crisRefreshPublication);addEventListener('pagehide',()=>clearInterval(refreshTimer),{once:true});window.CRIS_BOARD_SESSION.status('Anotações pessoais · salvas neste navegador');Dl();t('#sceneBtn').title='Exportar imagem (PNG)';t('#sceneBtn').onclick=()=>Jl();}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);}document.body.classList.remove('cris-loading');window.QIL?.pronto();return;}
+      else if(focus)St('Esta evidência não está disponível no quadro.');crisKnownItems=new Set(u.items.map(item=>item.id));crisPersonalReady=true;window.CRIS_PERSONAL_BOARD={snapshot:crisSnapshot,save:crisSavePersonalNow,refresh:crisRefreshPublication};let refreshTimer=setInterval(crisRefreshPublication,15000);addEventListener('focus',crisRefreshPublication);addEventListener('online',crisRefreshPublication);addEventListener('pagehide',()=>clearInterval(refreshTimer),{once:true});window.CRIS_BOARD_SESSION.status('Anotações pessoais · salvas neste navegador');Dl();t('#sceneBtn').title='Exportar imagem (PNG)';t('#sceneBtn').onclick=()=>Jl();}catch(error){window.CRIS_BOARD_SESSION.status(error.message,true);crisBoot.fail('Não foi possível abrir este quadro salvo. Confira a conexão e tente novamente.');return;}crisBoot.ready();window.QIL?.pronto();return;}
 
-    if ((location.search.includes("obs") || location.hash.includes("obs")) && kt(false), at(), yt("select"), await document.fonts.ready, await Promise.all(["700 30px Hand", "30px Marker", "30px Typewriter", "700 30px News", "17px NewsR", "600 20px Cond", "40px Sigil"].map((e3) => document.fonts.load(e3).catch(() => 0))), Bs) return u = d(), u.items = [], u.pins = [], u.strings = [], await ze(), void kr();
+    if(location.search.includes("obs")||location.hash.includes("obs"))kt(false);
+    at();yt("select");
+    const fonts=Promise.all(["700 30px Hand","30px Marker","30px Typewriter","700 30px News","17px NewsR","600 20px Cond","40px Sigil"].map(font=>document.fonts.load(font).catch(()=>{})));
+    let fontTimer;
+    await Promise.race([fonts,new Promise(resolve=>{fontTimer=setTimeout(resolve,2200);})]);
+    clearTimeout(fontTimer);
+    if(Bs){
+      u=d();
+      await ze();
+      crisBoot.ready();
+      await kr();
+      return;
+    }
                 const snapshot=()=>{const imgs={};for(const i of u.items)for(const k of ['imgId','audioId','prevAudio'])if(i[k]&&p[i[k]])imgs[i[k]]=p[i[k]];return {state:JSON.parse(JSON.stringify(u)),imgs};};
                 window.CRIS_BOARD_API={snapshot,persistLocal:value=>new Promise((resolve,reject)=>{if(!A){reject(Error('Não foi possível guardar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));return;}try{const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(value,crisBoardStorageKey());tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(Error('Não foi possível salvar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));}catch(error){reject(error);}}),save:()=>window.CRISBridge.saveBoard(snapshot()),visibility:async(id,visible)=>{
                     const it=K(id);if(!it||it.hand){const error=Error('Pista não encontrada neste quadro: '+id);error.code='CLUE_MISSING';throw error;}
@@ -29763,13 +29841,16 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
                     u = $t(Object.assign(d(), saved.state))
                 } else
                     Lt();
-                u.sound=localStorage.getItem("cris:board:interaction-sounds")!=="off";
+                u.sound=crisBoardSound;
                 await ze();
 
                 if(session)session.ready(window.CRIS_BOARD_API);
                 E();
                 if(!saved){qt();U();E();}
-                document.body.classList.remove('cris-loading');window.QIL?.pronto();
-})();
+                crisBoot.ready();window.QIL?.pronto();
+})().catch(error=>{
+  console.warn('CRIS: falha ao abrir quadro',error);
+  crisBoot.fail('Não foi possível abrir o quadro. Tente novamente ou volte ao CRIS.');
+});
 
 })();

@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/notification-icon-192.png">
   <title>C.R.I.S. // Caso 26-107</title>
-  <link rel="stylesheet" href="cris.css?v=336">
+  <link rel="stylesheet" href="cris.css?v=337">
   <link rel="stylesheet" href="notifications.css?v=332">
 </head>
 
@@ -252,6 +252,9 @@
                 class="waveform">▁▂▃▅▃▆▇▅▃▂▁▃▅▆▃▂▁▂▅▇▆▃▂</span><span class="play-label">REPRODUZIR
                 REGISTRO</span></button>
             <audio id="samuel-audio" preload="metadata" src="assets/audio/samuel-briefing.mp3"></audio>
+            <label class="cris-output-level" for="cris-output">
+              <span>Volume do CRIS</span><input id="cris-output" type="range" min="0" max="200" value="145"><output id="cris-output-value" for="cris-output">145%</output>
+            </label>
             <p>REGISTRO ANEXADO // ÁUDIO OPERACIONAL</p>
           </article>
 
@@ -661,7 +664,7 @@
       </section>
     </main>
   </div>
-  <script type="module" src="cris.js?v=336"></script>
+  <script type="module" src="cris.js?v=337"></script>
 </body>
 
 </html>
