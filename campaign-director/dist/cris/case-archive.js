@@ -1,3 +1,4 @@
+import {playCrisMedia} from './media-output.js?v=337';
 import {draftCaseRecords, groupRecordAttachments, normalizeArchiveMarkdown, recordFacts} from './case-records.js?v=336';
 import {presentDocument} from './document-presentation.js?v=333';
 import {archiveClient, CaseArchive, evidenceImage} from './case-archive-data.js?v=336';
@@ -368,7 +369,7 @@ export async function mountCaseArchive(bridge, identity) {
           audio.src = url;
           card.append(audio);
           button.remove();
-          audio.play().catch(() => {});
+          playCrisMedia(audio).catch(() => {});
         } finally { button.disabled = false; }
       }));
       card.querySelector('[data-open-file]')?.addEventListener('click', action(async event => {

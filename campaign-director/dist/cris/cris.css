@@ -3658,3 +3658,6 @@ body.master-access .board-launch-button { background: #21152f; border-color: #6f
  .record-picker-mobile{display:block;margin:0 0 14px;color:#c2a9d5;font-size:12px}
  .record-picker-mobile select{margin-top:4px}
 }
+.cris-output-level{display:grid;grid-template-columns:auto minmax(70px,1fr) 4ch;align-items:center;gap:10px;margin-block:10px;color:#d6c3e6;font:12px/1.4 "Courier New",monospace}
+.cris-output-level input{width:100%;min-width:0;min-height:32px;accent-color:#a477cd}
+.cris-output-level output{text-align:right;font-variant-numeric:tabular-nums}

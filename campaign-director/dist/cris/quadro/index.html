@@ -7,15 +7,15 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
         <title>Quadro Investigativo</title>
-        <link rel="preload" href="quadro-cris-v7.js?v=336" as="script">
-        <style>body.cris-loading>:not(#crisLoading):not(.cris-board-toolbar){visibility:hidden!important}#crisLoading{position:fixed;inset:0;display:grid;place-items:center;background:#1c1612;color:#e6d5b1;font:16px system-ui;z-index:70}body:not(.cris-loading)>#crisLoading{display:none}</style>
+        <link rel="preload" href="quadro-cris-v7.js?v=337" as="script">
+        <style>body.cris-loading>:not(#crisLoading):not(.cris-board-toolbar):not(dialog[open]){visibility:hidden!important}#crisLoading{position:fixed;inset:0;display:grid;place-items:center;background:#1c1612;color:#e6d5b1;font:16px system-ui;z-index:70}body:not(.cris-loading)>#crisLoading{display:none}</style>
         <link rel="stylesheet" href="base.css">
         <link rel="stylesheet" href="Halloween2026-1.css">
         <link rel="stylesheet" href="Halloween2026-2.css">
-<link rel="stylesheet" href="board-integration.css?v=335"><link rel="stylesheet" href="board-polish.css">
+<link rel="stylesheet" href="board-integration.css?v=337"><link rel="stylesheet" href="board-polish.css">
     </head>
     <body class="ui cris-loading">
-        <div id="crisLoading" role="status">Abrindo quadro…</div>
+        <div id="crisLoading"><div class="cris-loading-card"><p role="status">Abrindo quadro…</p><div class="cris-loading-actions" hidden><button type="button">Tentar novamente</button><a href="../#quadro">Voltar ao CRIS</a></div></div></div>
         <div id="view">
             <div id="surface"></div>
             <div id="world" class="layer">
@@ -149,32 +149,32 @@
             </div>
             <div class="sep"></div>
             <div class="g" style="position:relative">
-                <button class="b" id="sndBtn" title="Volume">
+                <button class="b" id="sndBtn" title="Volume" aria-label="Volume do quadro" aria-expanded="false" aria-controls="vmenu">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>
                         <path class="w" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>
                         <path class="m" d="M16 9l6 6M22 9l-6 6" style="display:none"/>
                     </svg>
                 </button>
-                <div id="vmenu">
+                <div id="vmenu" aria-label="Volume neste aparelho">
                     <label class="chk">
                         <input type="checkbox" id="vMute">Mudo
                     </label>
                     <div class="vr">
                         <span>Geral</span>
-                        <input type="range" data-v="g" min="0" max="100">
+                        <input type="range" data-v="g" aria-label="Volume geral" min="0" max="200">
                     </div>
                     <div class="vr">
                         <span>Itens</span>
-                        <input type="range" data-v="i" min="0" max="100">
+                        <input type="range" data-v="i" aria-label="Volume dos itens" min="0" max="100">
                     </div>
                     <div class="vr">
                         <span>Efeitos</span>
-                        <input type="range" data-v="e" min="0" max="100">
+                        <input type="range" data-v="e" aria-label="Volume dos efeitos" min="0" max="100">
                     </div>
                     <div class="vr">
                         <span>Vozes e áudios</span>
-                        <input type="range" data-v="v" min="0" max="100">
+                        <input type="range" data-v="v" aria-label="Volume de vozes e áudios" min="0" max="100">
                     </div>
                 </div>
             </div>
@@ -431,7 +431,12 @@
         <input type="file" id="fileAud" accept="audio/*" hidden>
         <input type="file" id="fileInto" accept="image/*" multiple hidden>
         <script>self.QI_VER_SITE="CRIS 3.24";self.QI_BUILD_SITE="CRIS 3.24";</script>
+        <script src="board-startup.js?v=337"></script>
         <script type="module">
+        import * as mediaOutput from "../media-output.js?v=337";
+        window.CRIS_MEDIA_OUTPUT=mediaOutput;
+        import {mountItemActions} from "./board-interactions.js?v=337";
+        window.CRIS_ITEM_ACTIONS=mountItemActions;
         import {BoardEvidence} from "./board-evidence.js?v=336";
         window.CRIS_BOARD_EVIDENCE=BoardEvidence;
         import {choosePreparation} from "./board-preparations.js?v=332";
@@ -439,12 +444,12 @@
         import {sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard} from './board-rules.js?v=328';
         window.CRIS_BOARD_RULES={sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard};
         import {CRISBridge} from '../integration-bridge.js?v=328';
-        import {mountBoardSession} from './board-session.js?v=332';
+        import {mountBoardSession} from './board-session.js?v=337';
         import {mountCluePanel} from './board-clue-panel.js?v=332';
         window.CRISMOUNT_CLUE_PANEL=mountCluePanel;
         window.CRISBridge=CRISBridge;
-        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=336';document.body.append(script);}}
-        catch(error){document.body.textContent='Não foi possível confirmar o acesso. Volte ao CRIS e entre novamente.';}
+        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=337';script.onerror=()=>window.CRIS_BOARD_BOOT.fail('O motor do quadro não carregou. Tente novamente.');document.body.append(script);}}
+        catch(error){window.CRIS_BOARD_BOOT.fail('Não foi possível confirmar o acesso. Tente novamente ou volte ao CRIS.');}
         </script>
 </body>
 </html>

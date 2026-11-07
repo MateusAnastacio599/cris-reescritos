@@ -58,6 +58,6 @@ export async function mountBoardSession(identity,{bridge=CRISBridge,client}={}){
  const showSheet=()=>{setOpen(false);openBoardSheet({bridge,identity});};
  toolbar.querySelector('#openOwnSheet').onclick=showSheet;
 
- import('../notifications.js?v=332').then(({mountNotifications})=>mountNotifications({bridge,identity,anchor:menu})).catch(()=>{});
+ import('../notifications.js?v=337').then(({mountNotifications})=>mountNotifications({bridge,identity,anchor:menu})).catch(()=>{});
  return session;
 }

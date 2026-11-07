@@ -1,7 +1,7 @@
 import {UUID,normalizeNotice,NOTICE_TYPES,targetLink,resolveNoticeTarget} from './notice-contract.js?v=332';
 import {NoticeDrafts} from './notice-drafts.js?v=332';
 import {activatePushDevice} from './push-device.js?v=323';
-import {NoticeAttention} from './notice-attention.js?v=322';
+import {NoticeAttention} from './notice-attention.js?v=337';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>globalThis.crypto.randomUUID?.()||'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(Number(c)^crypto.getRandomValues(new Uint8Array(1))[0]&15>>Number(c)/4).toString(16));
 const blankNotice=()=>Object.fromEntries(['title','summary','code','date','occurrenceTime','address','location','nature','situation','preliminary','guidance','imagePath','imageCaption'].map(key=>[key,'']));
