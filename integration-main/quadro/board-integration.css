@@ -42,7 +42,7 @@ body.tool-string .pin.pend::after{background:#ffd67822;border:2px solid #ffd678;
 
 /* Published personal boards: a small investigation workspace. */
 body.player #qiVerTag{display:none!important}
-body.cris-archive-reader :is(#gearBtn,#fxBtn,#ambBtn,#pocketBtn,#handBtn,#diceBtn,#diceMenu,#handPanel,#pocketPanel,#fxPanel,#ambPanel,#props,#qaEdit,#qaMulti,#fileBtn,#shareBtn,#lightBtn,#lampBtn,#torchBtn,#uvBtn,#objBtn,#qiSan,#hwBtn,#hwPanel,#light,#dark,#uvwash,#nightL,#flameL,#torch,#torchG,#uvMask,#grain,#fx){display:none!important}
+body.cris-archive-reader :is(#gearBtn,#fxBtn,#ambBtn,#pocketBtn,#handBtn,#diceBtn,#diceMenu,#handPanel,#pocketPanel,#fxPanel,#ambPanel,#qaMulti,#fileBtn,#shareBtn,#lightBtn,#lampBtn,#torchBtn,#uvBtn,#objBtn,#qiSan,#hwBtn,#hwPanel,#light,#dark,#uvwash,#nightL,#flameL,#torch,#torchG,#uvMask,#grain,#fx){display:none!important}
 body.cris-archive-reader #tools [data-tool]:not([data-tool=select]):not([data-tool=note]):not([data-tool=pin]):not([data-tool=string]):not([data-tool=mark]):not([data-tool=fita]){display:none!important}
 body.cris-archive-reader :is([data-qx=pocket],[data-qx=react],[data-qx=crumple],#qa [data-q=dup],#qa [data-q=back]){display:none!important}
 body.cris-archive-reader .qi-mrow:has(:is(#gearBtn,#pocketBtn,#handBtn,#fxBtn,#ambBtn,#lightBtn,#lampBtn,#torchBtn,#uvBtn)){display:none!important}
@@ -80,11 +80,18 @@ body #vmenu{position:fixed;inset:max(72px,calc(env(safe-area-inset-top) + 62px))
 #vmenu input[type=range]{min-height:32px}
 #vmenu output{font-variant-numeric:tabular-nums;text-align:right}
 body #qa{max-width:calc(100vw - 20px);box-sizing:border-box;flex-wrap:wrap}
-#qa .cris-item-action{width:auto;min-height:35px;padding:0 8px;white-space:nowrap;font:600 12px system-ui}
-.cris-item-dialog{width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;box-sizing:border-box}
-.cris-item-dialog img{display:block;max-width:100%;max-height:52dvh;object-fit:contain;margin:12px auto}
-.cris-item-dialog label{display:grid;gap:6px}
-.cris-item-dialog textarea{box-sizing:border-box;width:100%;padding:8px;background:#191510;color:#f3e7d2;border:1px solid #82694a;font:16px system-ui}
-.cris-item-dialog footer{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.cris-item-dialog button{min-height:44px}
-.cris-photo-caption{position:absolute;top:100%;left:0;right:0;z-index:1;background:#e7d8b9;color:#302316;padding:5px 7px;font:600 14px/1.3 system-ui;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:none;box-shadow:0 2px 5px #0006}
+/* Reuse the board inspector for players, with controls filtered by policy. */
+body.player #props.cris-player-inspector.show{display:flex!important}
+body.player #qa #qaEdit{display:inline-flex!important}
+body.player #props.cris-player-inspector .pp-tabs{display:none}
+body.player #props.cris-player-inspector [hidden]{display:none!important}
+body.player #props.cris-player-inspector .pp-head{flex-wrap:wrap}
+body.player #props.cris-player-inspector .pp-head h3{min-width:0;overflow-wrap:anywhere}
+.cris-menu-toggle>svg{width:22px;height:22px;flex:none;display:block;margin:0}
+.cris-board-menu #crisNotificationButton{display:flex;align-items:center;gap:10px}
+.cris-board-menu #crisNotificationButton svg,.cris-notifications svg,.cris-notice-optin>svg{width:24px!important;height:24px!important;flex:none}
+@media(max-width:760px),(max-height:520px){
+ body.player:not(.qi-ed) #props.cris-player-inspector{display:none!important}
+ body.player.qi-ed #props.cris-player-inspector.show{display:flex!important;bottom:calc(78px + env(safe-area-inset-bottom))!important;top:auto!important;left:8px!important;right:8px!important;width:auto!important;max-height:calc(65dvh - 80px)}
+ body.ui .cris-board-toolbar .cris-menu-toggle{display:flex;align-items:center;justify-content:center;line-height:1;padding:0;box-sizing:border-box}
+}

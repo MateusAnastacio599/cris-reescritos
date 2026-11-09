@@ -1,8 +1,8 @@
-import {playCrisMedia} from './media-output.js?v=337';
-import {draftCaseRecords, groupRecordAttachments, normalizeArchiveMarkdown, recordFacts} from './case-records.js?v=336';
-import {presentDocument} from './document-presentation.js?v=333';
-import {archiveClient, CaseArchive, evidenceImage} from './case-archive-data.js?v=336';
-import {mountCaseBoards} from './case-boards.js?v=333';
+import {playCrisMedia} from './media-output.js?v=338';
+import {draftCaseRecords, groupRecordAttachments, normalizeArchiveMarkdown, recordFacts} from './case-records.js?v=338';
+import {presentDocument} from './document-presentation.js?v=338';
+import {archiveClient, CaseArchive, evidenceImage} from './case-archive-data.js?v=338';
+import {mountCaseBoards} from './case-boards.js?v=338';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
   '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
@@ -42,7 +42,7 @@ export async function mountCaseArchive(bridge, identity) {
     urls.forEach(url => URL.revokeObjectURL(url));
     urls = [];
   };
-  dialog.addEventListener('close', () => { if (!dialog.open) {release();const url=new URL(location.href);url.searchParams.delete('document');url.searchParams.delete('evidence');url.searchParams.delete('record');history.replaceState(null,'',url);} });
+  dialog.addEventListener('close', () => { if (!dialog.open) {release();const url=new URL(location.href);url.searchParams.delete('document');url.searchParams.delete('evidence');url.searchParams.delete('record');history.replaceState({crisArchiveNavigation:true},'',url);} });
   document.querySelectorAll('a[href="#arquivos"]').forEach(link=>link.addEventListener('click',()=>{dialog.close();navigate('home');}));
   function show(html) {
     release();
@@ -90,7 +90,7 @@ export async function mountCaseArchive(bridge, identity) {
     dialog.close();active=next;
     const url=new URL(location.href);
     if(next==='home')url.searchParams.delete('investigation');else url.searchParams.set('investigation',next);
-    url.searchParams.delete('document');url.searchParams.delete('evidence');url.searchParams.delete('record');url.hash='arquivos';history.pushState(null,'',url);render();root.scrollIntoView({block:'start',behavior:'smooth'});
+    url.searchParams.delete('document');url.searchParams.delete('evidence');url.searchParams.delete('record');url.hash='arquivos';history.pushState({crisArchiveNavigation:true},'',url);render();root.scrollIntoView({block:'start',behavior:'smooth'});
   }
   addEventListener('popstate',()=>{active=new URLSearchParams(location.search).get('investigation')||'home';render();});
   function render() {
@@ -464,7 +464,7 @@ export async function mountCaseArchive(bridge, identity) {
   await refresh();
   const params=new URLSearchParams(location.search),target=params.get('document'),evidence=params.get('evidence'),record=params.get('record');
   if(location.hash==='#arquivos'||params.has('investigation')||target||evidence){document.getElementById('arquivos')?.classList.add('is-open');document.querySelector('.content')?.classList.add('view-restricted');}
-  if(target||evidence){const consumed=new URL(location.href);consumed.searchParams.delete('document');consumed.searchParams.delete('evidence');consumed.searchParams.delete('record');history.replaceState(null,'',consumed);}
+  if(target||evidence){const consumed=new URL(location.href);consumed.searchParams.delete('document');consumed.searchParams.delete('evidence');consumed.searchParams.delete('record');history.replaceState({crisArchiveNavigation:true},'',consumed);}
   if(evidence&&uid.test(evidence)){const r=await api.rows('case_attachments','*').eq('id',evidence).maybeSingle();if(r.data){await openDocument(r.data.document_id,true,r.data.record_id);dialog.querySelector('[data-attachment="'+evidence+'"]')?.scrollIntoView({block:'nearest'});}else show('<h3>Evidência indisponível</h3><p>Este conteúdo não está disponível para esta conta.</p>');}
   else if(target&&uid.test(target))await openDocument(target,false,uid.test(record)?record:undefined);
 }

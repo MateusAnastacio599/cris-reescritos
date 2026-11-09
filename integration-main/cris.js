@@ -1,10 +1,13 @@
-import {playCrisMedia, readOutput, saveOutput, setMediaOutput} from './media-output.js?v=337';
+import {playCrisMedia, readOutput, saveOutput, setMediaOutput} from './media-output.js?v=338';
 import {mountCaseBoards} from './case-boards.js';
-import {CRISBridge} from './integration-bridge.js?v=328';
+import {CRISBridge} from './integration-bridge.js?v=338';
 window.CRISBridge=CRISBridge;
 const STORAGE_KEY = 'cris_agente';
 
 document.addEventListener('DOMContentLoaded', () => {
+  // A restored in-app route is not a new deep link from an alert.
+  if(history.state?.crisArchiveNavigation){const url=new URL(location.href);for(const key of ['investigation','document','evidence','record'])url.searchParams.delete(key);url.hash='briefing';history.replaceState(null,'',url);}
+
   const login = document.getElementById('login-screen');
   const system = document.getElementById('system');
   const input = document.getElementById('password');
@@ -65,12 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
     topAgentName.textContent = agent.name;
     topAgentClearance.textContent = agent.clearance.replace('NÍVEL DE ACESSO:', 'NÍVEL');
     applyAccessMode(key, agent);
-    import('./case-archive.js?v=337').then(({mountCaseArchive}) => mountCaseArchive(CRISBridge, agent)).catch(() => {
+    import('./case-archive.js?v=338').then(({mountCaseArchive}) => mountCaseArchive(CRISBridge, agent)).catch(() => {
       mountCaseBoards(agent).catch(()=>{});
       const archive = document.getElementById('caseArchive');
       if (archive) archive.textContent = 'Não foi possível carregar as investigações. Reabra o CRIS para tentar novamente.';
     });
-    import('./notifications.js?v=337').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
+    import('./notifications.js?v=338').then(({mountNotifications})=>mountNotifications({bridge:CRISBridge,identity:agent})).catch(()=>{});
 
     login.classList.add('authenticated');
 
@@ -439,6 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
         link.classList.add('active');
         window.scrollTo({top:0,behavior:'smooth'});
       }else{
+        const url=new URL(location.href);for(const key of ['investigation','document','evidence','record'])url.searchParams.delete(key);url.hash=link.hash;history.replaceState(null,'',url);
         content.classList.remove('view-restricted');
         document.querySelectorAll('.restricted-section').forEach(section=>section.classList.remove('is-open'));
       }
