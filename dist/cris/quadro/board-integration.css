@@ -89,9 +89,103 @@ body.player #props.cris-player-inspector .pp-head{flex-wrap:wrap}
 body.player #props.cris-player-inspector .pp-head h3{min-width:0;overflow-wrap:anywhere}
 .cris-menu-toggle>svg{width:22px;height:22px;flex:none;display:block;margin:0}
 .cris-board-menu #crisNotificationButton{display:flex;align-items:center;gap:10px}
-.cris-board-menu #crisNotificationButton svg,.cris-notifications svg,.cris-notice-optin>svg{width:24px!important;height:24px!important;flex:none}
+.cris-notifications svg,.cris-notice-optin>svg{width:24px!important;height:24px!important;flex:none}
 @media(max-width:760px),(max-height:520px){
  body.player:not(.qi-ed) #props.cris-player-inspector{display:none!important}
  body.player.qi-ed #props.cris-player-inspector.show{display:flex!important;bottom:calc(78px + env(safe-area-inset-bottom))!important;top:auto!important;left:8px!important;right:8px!important;width:auto!important;max-height:calc(65dvh - 80px)}
  body.ui .cris-board-toolbar .cris-menu-toggle{display:flex;align-items:center;justify-content:center;line-height:1;padding:0;box-sizing:border-box}
+}
+
+
+/* ==========================================
+   CRIS - CORRECOES DE ALINHAMENTO
+   Menu mobile e sino de notificacoes
+   ========================================== */
+
+/* SINO DE NOTIFICACOES */
+
+#crisBoardMenu .cris-notification-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+
+    padding: 10px 12px;
+    text-align: left;
+    line-height: 1.2;
+}
+
+#crisBoardMenu .cris-notification-trigger > svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    flex: 0 0 18px;
+    vertical-align: middle;
+}
+
+#crisBoardMenu .cris-notification-trigger > span {
+    display: block;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+
+/* MENU MOBILE */
+
+@media (max-width: 760px) {
+
+    /* Posicao do menu acima da barra inferior */
+    body.ui .cris-board-toolbar {
+        position: fixed;
+        left: 8px;
+        right: auto;
+        top: auto;
+        bottom: calc(76px + env(safe-area-inset-bottom));
+        padding: 0;
+    }
+
+    /* Botao centralizado */
+    body.ui .cris-board-toolbar .cris-menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+
+        font-size: 19px;
+        line-height: 1;
+        text-align: center;
+    }
+
+    /* Caso o icone seja SVG */
+    body.ui .cris-board-toolbar .cris-menu-toggle svg {
+        display: block;
+        width: 20px;
+        height: 20px;
+        flex: 0 0 20px;
+    }
+
+    /* Oculta o texto CRIS no botao compacto */
+    body.ui .cris-board-toolbar .cris-menu-toggle span {
+        display: none;
+    }
+
+    /* Menu expansivel alinhado ao botao */
+    body.ui .cris-board-menu {
+        left: 0;
+        right: auto;
+        bottom: 54px;
+    }
 }
