@@ -1,4 +1,4 @@
-import {limitedOutput, readOutput} from './media-output.js?v=337';
+import {limitedOutput, readOutput} from './media-output.js?v=338';
 // A short radio/terminal signal. Audio is unlocked only after a user gesture.
 export class NoticeAttention {
  constructor({userId,storage=globalThis.localStorage,locks=globalThis.navigator?.locks,defaultEnabled=!globalThis.matchMedia?.('(pointer:coarse)').matches,contextFactory}={}){

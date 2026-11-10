@@ -1,4 +1,4 @@
-import {canPrepareItem} from './board-preparations.js?v=332';
+import {canPrepareItem} from './board-preparations.js?v=338';
 // Names are metadata on the existing item: IDs and clue cues stay stable.
 export function setClueMetadata(item,{name,enabled}){
  item.crisClueName=String(name||'').trim().slice(0,100);item.crisClue=!!enabled;return item;

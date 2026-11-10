@@ -1,6 +1,6 @@
-import {publishedBoard} from '../board-library.js?v=328';
-import {BoardAssets} from '../board-assets.js?v=328';
-import {archiveClient,checked,CaseArchive} from '../case-archive-data.js?v=328';
+import {publishedBoard} from '../board-library.js?v=338';
+import {BoardAssets} from '../board-assets.js?v=338';
+import {archiveClient,checked,CaseArchive} from '../case-archive-data.js?v=338';
 
 export const canPrepareItem=item=>!!item&&['img','note','cont','mark','tape','scr'].includes(item.type)&&item.kind!=='ativador';
 const refs=new Set(['parent','box','inside','in','clipBy','clipRoot','lidOf','lidId','pair','tapeId','tape','disc','deck','apoiada','pesaEm','prato','lk','of','parede','rev','tgt','libera','item','a','b']);

@@ -1,0 +1,8 @@
+const fixture=document.createElement('div');fixture.id='fixture';fixture.style='position:fixed;top:0;left:0;z-index:999999;background:white;color:black';fixture.innerHTML='<select aria-label="Objeto" id="kind"></select><button id="inspect">Inspecionar</button><button id="use">Usar</button><button id="audit">Auditar</button><output id="report"></output>';document.body.append(fixture);
+for(const [key,def]of Object.entries($o)){const opt=document.createElement('option');opt.value=key;opt.textContent=def.name;fixture.querySelector('select').append(opt);}
+async function create(kind){mt(null);u.items=[];await ze();const it={id:'test',type:'cont',kind,x:0,y:0,w:$o[kind].w||220,w0:$o[kind].w||220,h:200,scale:1,rot:0,z:1,seed:1,opts:{}};if(kind==='gravador'){it.opts.invertido=true;it.audioId='qa-audio';p['qa-audio']='qa-tone.wav';}u.items.push(it);await Fe(it);mt(it.id);u.cam={x:-innerWidth/2,y:-innerHeight/3,z:1};q();return it;}
+setInterval(()=>{const it=u.items[0];fixture.dataset.playback=JSON.stringify({playing:!!it?._gv,reverse:!!it?._gvRev,position:it?._gpos||0,started:it?._gstarted||0});},100);
+fixture.querySelector('#inspect').onclick=()=>create(fixture.querySelector('select').value);
+fixture.querySelector('#use').onclick=()=>Fo(u.items[0]);
+fixture.querySelector('#audit').onclick=async()=>{const result=[];for(const k of Object.keys($o)){try{await create(k);result.push({kind:k,rendered:!!document.getElementById('it-test'),master:!!t('#props').querySelector('[data-p=gm],#cForce,[data-co=senha]')});}catch(e){result.push({kind:k,error:e.message})}}mt(null);t('#report').textContent=JSON.stringify({total:result.length,failures:result.filter(x=>x.error||!x.rendered||x.master)});};
+

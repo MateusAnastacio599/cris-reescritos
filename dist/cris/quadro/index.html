@@ -7,12 +7,12 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
         <title>Quadro Investigativo</title>
-        <link rel="preload" href="quadro-cris-v7.js?v=337" as="script">
+        <link rel="preload" href="quadro-cris-v7.js?v=338" as="script">
         <style>body.cris-loading>:not(#crisLoading):not(.cris-board-toolbar):not(dialog[open]){visibility:hidden!important}#crisLoading{position:fixed;inset:0;display:grid;place-items:center;background:#1c1612;color:#e6d5b1;font:16px system-ui;z-index:70}body:not(.cris-loading)>#crisLoading{display:none}</style>
         <link rel="stylesheet" href="base.css">
         <link rel="stylesheet" href="Halloween2026-1.css">
         <link rel="stylesheet" href="Halloween2026-2.css">
-<link rel="stylesheet" href="board-integration.css?v=337"><link rel="stylesheet" href="board-polish.css">
+<link rel="stylesheet" href="board-integration.css?v=338"><link rel="stylesheet" href="board-polish.css">
     </head>
     <body class="ui cris-loading">
         <div id="crisLoading"><div class="cris-loading-card"><p role="status">Abrindo quadro…</p><div class="cris-loading-actions" hidden><button type="button">Tentar novamente</button><a href="../#quadro">Voltar ao CRIS</a></div></div></div>
@@ -431,24 +431,24 @@
         <input type="file" id="fileAud" accept="audio/*" hidden>
         <input type="file" id="fileInto" accept="image/*" multiple hidden>
         <script>self.QI_VER_SITE="CRIS 3.24";self.QI_BUILD_SITE="CRIS 3.24";</script>
-        <script src="board-startup.js?v=337"></script>
+        <script src="board-startup.js?v=338"></script>
         <script type="module">
-        import * as mediaOutput from "../media-output.js?v=337";
+        import * as mediaOutput from "../media-output.js?v=338";
         window.CRIS_MEDIA_OUTPUT=mediaOutput;
-        import {mountItemActions} from "./board-interactions.js?v=337";
-        window.CRIS_ITEM_ACTIONS=mountItemActions;
-        import {BoardEvidence} from "./board-evidence.js?v=336";
+        import {restrictNativeInspector} from "./board-interactions.js?v=338";
+        window.CRIS_RESTRICT_INSPECTOR=restrictNativeInspector;
+        import {BoardEvidence} from "./board-evidence.js?v=338";
         window.CRIS_BOARD_EVIDENCE=BoardEvidence;
-        import {choosePreparation} from "./board-preparations.js?v=332";
+        import {choosePreparation} from "./board-preparations.js?v=338";
         window.CRIS_PREPARATION_DIALOG=choosePreparation;
-        import {sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard} from './board-rules.js?v=328';
+        import {sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard} from './board-rules.js?v=338';
         window.CRIS_BOARD_RULES={sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard};
-        import {CRISBridge} from '../integration-bridge.js?v=328';
-        import {mountBoardSession} from './board-session.js?v=337';
-        import {mountCluePanel} from './board-clue-panel.js?v=332';
+        import {CRISBridge} from '../integration-bridge.js?v=338';
+        import {mountBoardSession} from './board-session.js?v=338';
+        import {mountCluePanel} from './board-clue-panel.js?v=338';
         window.CRISMOUNT_CLUE_PANEL=mountCluePanel;
         window.CRISBridge=CRISBridge;
-        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=337';script.onerror=()=>window.CRIS_BOARD_BOOT.fail('O motor do quadro não carregou. Tente novamente.');document.body.append(script);}}
+        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=338';script.onerror=()=>window.CRIS_BOARD_BOOT.fail('O motor do quadro não carregou. Tente novamente.');document.body.append(script);}}
         catch(error){window.CRIS_BOARD_BOOT.fail('Não foi possível confirmar o acesso. Tente novamente ou volte ao CRIS.');}
         </script>
 </body>

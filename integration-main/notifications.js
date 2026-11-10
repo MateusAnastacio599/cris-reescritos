@@ -1,7 +1,7 @@
-import {UUID,normalizeNotice,NOTICE_TYPES,targetLink,resolveNoticeTarget} from './notice-contract.js?v=332';
-import {NoticeDrafts} from './notice-drafts.js?v=332';
+import {UUID,normalizeNotice,NOTICE_TYPES,targetLink,resolveNoticeTarget} from './notice-contract.js?v=338';
+import {NoticeDrafts} from './notice-drafts.js?v=338';
 import {activatePushDevice} from './push-device.js?v=323';
-import {NoticeAttention} from './notice-attention.js?v=337';
+import {NoticeAttention} from './notice-attention.js?v=338';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const newId=()=>globalThis.crypto.randomUUID?.()||'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(Number(c)^crypto.getRandomValues(new Uint8Array(1))[0]&15>>Number(c)/4).toString(16));
 const blankNotice=()=>Object.fromEntries(['title','summary','code','date','occurrenceTime','address','location','nature','situation','preliminary','guidance','imagePath','imageCaption'].map(key=>[key,'']));
@@ -16,7 +16,7 @@ export function occurrenceMarkup(p,{imageURL='',test=false}={}){
 }
 export async function mountNotifications({bridge,identity,anchor,client:providedClient}={}){
  if(!identity||document.querySelector('#crisNotificationButton'))return;
- if(!document.querySelector('link[href*="notifications.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('notifications.css?v=332',ROOT);document.head.append(css);}
+ if(!document.querySelector('link[href*="notifications.css"]')){const css=document.createElement('link');css.rel='stylesheet';css.href=new URL('notifications.css?v=338',ROOT);document.head.append(css);}
  const client=providedClient||await (await import(new URL('cloud-account.js',bridge.directorURL))).getCloudClient(),campaign=bridge.campaignId;
  const draftStore=new NoticeDrafts(client,campaign,identity.userId);let savedDraft=null,dirty=false,saving=Promise.resolve(),targets=[],privateRequest=newId();
  let alive=true,notices=[],read=new Set(),known=new Set(),first=true,loading=false,mode='inbox',draft=occurrenceExample(),requestId=newId(),sending=false,photo='',lastTrigger;

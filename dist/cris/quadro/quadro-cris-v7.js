@@ -2742,7 +2742,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     Da = e2.id, t("#fileAud").click();
   }], rew: ["Voltar ao in\xEDcio", (e2) => {
     const t2 = ja.get(e2.id);
-    t2 && (t2.currentTime = 0), Nt("key");
+    if(e2.opts?.invertido||e2._gsrc)void As(e2,!!e2._gvRev,true);else if(t2)t2.currentTime=0;Nt("key");
   }] }, async draw(e2) {
     const t2 = e2.opts || {}, o2 = 620, a2 = ve(o2, 380), n2 = Ft(a2);
     ["\u25B6", "\u25A0", "\u25C0\u25C0", "\u25B6\u25B6", "\u25CF"].forEach((e3, t3) => {
@@ -4981,7 +4981,8 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
   const crisTapeGains=new Set(),crisTapeRequests=new WeakMap();
   function crisStopTape(item) {
     crisTapeRequests.delete(item);
-    ja.get(item.id)?.pause();
+    const media=ja.get(item.id);if(media){media.pause();media.currentTime=0;}
+    item._gpos=0;
     if(item._gsrc){
       try{item._gsrc.stop();}catch{}
       item._gsrc=null;item._gv=false;Fa(item);
@@ -5002,6 +5003,8 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     if(!Bt())return void St("Este navegador não conseguiu abrir o áudio da fita.");
     ja.get(e2.id)?.pause();
     if (Js({ t: "grav", id: e2.id, rev: t2, restart }), e2._gsrc) {
+      const pause=e2._gvRev===t2&&!restart;
+      e2._gpos=pause?Math.max(0,Bt().currentTime-(e2._gstarted||0)):0;
       try {
         e2._gsrc.stop();
       } catch (e3) {
@@ -5027,9 +5030,10 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     n2.connect(i2).connect(crisOutput.limitedOutput(a2));
     n2.onended=()=>{
       crisTapeGains.delete(i2.gain);n2.disconnect();i2.disconnect();
-      if(e2._gsrc===n2){e2._gsrc=null;e2._gv=false;Fa(e2);}
+      if(e2._gsrc===n2){e2._gsrc=null;e2._gv=false;e2._gpos=0;Fa(e2);}
     };
-    n2.start();e2._gsrc=n2;e2._gv=true;e2._gvRev=t2;Fa(e2);return true;
+    const offset=restart||e2._gvRev!==t2||e2._gpos>=n2.buffer.duration?0:(e2._gpos||0);
+    n2.start(0,offset);e2._gstarted=a2.currentTime-offset;e2._gpos=0;e2._gsrc=n2;e2._gv=true;e2._gvRev=t2;Fa(e2);return true;
   }
   let ks = null;
   async function Ms(e2) {
@@ -29564,6 +29568,17 @@ Clique pra mudar`, m2.innerHTML = `${Hv(f2)}<span>${u2}</span>${c2 > 1 ? `<em>${
   ;
 
 
+// Activate the existing play and stop buttons painted on the native recorder.
+{
+ const zones=$o.gravador.zones,ctl=$o.gravador.ctl;
+ $o.gravador.zones=item=>[...(zones?.(item)||[]),ss(70,6,84,46,620,380,{transport:'play'}),ss(166,6,84,46,620,380,{transport:'stop'})];
+ $o.gravador.ctl=(item,zone,event)=>{
+  if(!zone.transport)return ctl(item,zone,event);
+  if(event.type!=='click')return;
+  if(zone.transport==='play')return item.opts?.invertido&&item.audioId?As(item,item._gvRev??true):$o.gravador.act(item);
+  crisStopTape(item);Js({t:'grav',id:item.id,stop:true});
+ };
+}
 // CRIS integration: account, clues and local interaction sounds.
 for(const template of Object.keys(Wl))delete Wl[template];
 Nc=function(){}; // Ambient tracks are managed in SoundPad.
@@ -29574,7 +29589,7 @@ Lt=function(){u=d();u.items=[];u.pins=[];u.strings=[];};
 window.CRIS_PREPARE_EVIDENCE=async itemId=>{try{if(!window.CRIS_IDENTITY.isMaster||!window.CRISBridge.archiveId)return;await window.CRIS_BOARD_SESSION.flush();await window.CRIS_PREPARATION_DIALOG({bridge:window.CRISBridge,snapshot:window.CRIS_BOARD_API.snapshot(),itemId,onSaved:async ids=>{for(const id of ids){const item=K(id);if(item){item.gm=true;Fe(item);}}E();ar();await window.CRIS_BOARD_SESSION.flush();}});}catch(error){St(error.message);}};
 const crisOriginalCreateNote=dt;dt=function(){const item=crisOriginalCreateNote.apply(this,arguments);if(crisPersonal&&crisLastEvidence&&item){const source=crisEvidence?.rows.find(row=>row.id===crisLastEvidence);if(source){Object.assign(item,{crisEvidence:source.id,crisPart:'spawn:'+item.id,crisOwner:window.CRIS_IDENTITY.userId,crisDocument:source.attachment?.document_id||source.document?.id});}}return item;};
 const crisProps=vt;
-vt=function(){const result=crisProps.apply(this,arguments);if(!Ks&&h){const item=K(h),panel=t('#props');if(item&&panel)window.CRISMOUNT_CLUE_PANEL?.({panel,item,onChange:()=>{E();ar();}});}return result;};
+vt=function(){const result=crisProps.apply(this,arguments);const item=h&&K(h),panel=t('#props');if(item&&panel){if(Ks)window.CRIS_RESTRICT_INSPECTOR(panel,item,window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me));else window.CRISMOUNT_CLUE_PANEL?.({panel,item,onChange:()=>{E();ar();}});}else if(Ks&&panel&&wn.size>1)panel.classList.remove('show');return result;};
 
 
 if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.createElement('div');modal.id='masterLaunch';modal.innerHTML='<div class="master-card"><div class="master-title">C.R.I.S. · MESA INVESTIGATIVA</div><p>Prepare o quadro ou inicie a transmissão para os agentes.</p><div class="master-actions"><button id="masterStart" class="master-primary">INICIAR MESA OFICIAL</button><button id="masterOffline" class="master-secondary">EDITAR SEM TRANSMITIR</button><button id="masterBack" class="master-secondary">VOLTAR AO C.R.I.S.</button></div></div>';document.body.append(modal);t('#masterOffline').onclick=()=>modal.remove();t('#masterBack').onclick=()=>location.href='../';t('#masterStart').onclick=async()=>{if(!t('#sharePanel'))wr();await yr(false);modal.remove();};},0);}
@@ -29616,24 +29631,6 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
   })();
   // Keep personal editing in the existing contextual toolbar.
   const crisQA=t('#qa'),crisEdit=document.createElement('button');
-  const crisItemActions=window.CRIS_ITEM_ACTIONS({
-    toolbar:crisQA,
-    scope:[window.CRIS_IDENTITY.userId,window.CRISBridge.campaignId,window.CRISBridge.archiveId||Us||'CASO26107'].join(':'),
-    activate:Fo,playTape:(item,reversed)=>As(item,reversed,true),stopTape:item=>{crisStopTape(item);Js({t:'grav',id:item.id,stop:true});}
-  });
-  const crisRenderItem=Fe;
-  Fe=async function(item){
-    const result=await crisRenderItem(item);
-    crisItemActions.decorate(item);
-    return result;
-  };
-  function crisSelectItemAction(){
-    const item=!v&&h&&K(h);
-    if(!item||xo(item)){crisItemActions.select(null);return;}
-    const image=item.type==='img'&&!item.flipped&&document.getElementById('it-'+item.id)?.querySelector('img.main[src]')?.src;
-    const tape=item.kind==='gravador'&&!!p[item.audioId];
-    crisItemActions.select(item,{image,tape,usable:item.type==='cont'&&$o[item.kind]?.click});
-  }
   crisEdit.id='crisEditText';crisEdit.type='button';crisEdit.title='Editar texto';crisEdit.setAttribute('aria-label','Editar texto');crisEdit.textContent='✎';crisQA.prepend(crisEdit);
   const crisFinishNote=()=>{const el=document.querySelector('#view .note[contenteditable=true]');if(el){const item=h&&K(h);if(item)item.text=el.innerText;el.contentEditable='false';el.blur();_e(item?.id);u.strings.forEach(et);at();nt();E();if(crisPersonal)void crisSavePersonalNow();}crisUpdateNoteActions();};
   function crisUpdateNoteActions(){const item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(item,window.CRIS_IDENTITY,Os.me),editing=!!document.querySelector('#view .note[contenteditable=true]');crisEdit.hidden=!item||item.type!=='note'||!!item.crisEvidence||!own;crisEdit.textContent=editing?'✓':'✎';crisEdit.title=editing?'Concluir texto':'Editar texto';crisEdit.setAttribute('aria-label',crisEdit.title);}
@@ -29644,7 +29641,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
   document.addEventListener('focusout',()=>requestAnimationFrame(crisUpdateNoteActions));
   const crisSelectNote=mt;mt=function(){const result=crisSelectNote.apply(this,arguments);crisUpdateNoteActions();return result;};
   const crisCreateNote=dt;dt=function(){const item=crisCreateNote.apply(this,arguments);if(Wr())requestAnimationFrame(()=>crisEditNote(item));return item;};
-  const crisDrawQA=$a;$a=function(){crisSelectItemAction();crisDrawQA();const pin=v&&u.pins.find(p=>p.id===v),item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(pin||item,window.CRIS_IDENTITY,Os.me);crisQA.classList.toggle('cris-pin-actions',!!pin);crisQA.classList.toggle('cris-own-note',!!item&&item.type==='note'&&own);if(pin&&x&&!bt){crisQA.classList.add('show');const point=X(D(pin)),width=crisQA.offsetWidth||50;crisQA.style.transform=`translate(${c(point.x-width/2,8,innerWidth-width-8)}px,${c(point.y-80,70,innerHeight-150)}px)`;}const del=crisQA.querySelector('[data-q=del]');if(del)del.hidden=!own;crisUpdateNoteActions();};
+  const crisDrawQA=$a;$a=function(){crisDrawQA();const pin=v&&u.pins.find(p=>p.id===v),item=h&&K(h),own=window.CRIS_BOARD_RULES.ownsBoardItem(pin||item,window.CRIS_IDENTITY,Os.me);crisQA.classList.toggle('cris-pin-actions',!!pin);crisQA.classList.toggle('cris-own-note',!!item&&item.type==='note'&&own);if(pin&&x&&!bt){crisQA.classList.add('show');const point=X(D(pin)),width=crisQA.offsetWidth||50;crisQA.style.transform=`translate(${c(point.x-width/2,8,innerWidth-width-8)}px,${c(point.y-80,70,innerHeight-150)}px)`;}const del=crisQA.querySelector('[data-q=del]');if(del)del.hidden=!own;crisUpdateNoteActions();};
   const crisNativeDelete=pt;
   pt=function(id){
     const item=K(id);
@@ -29678,7 +29675,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
   function crisRememberEvidence(event){
     if(!crisPersonalReady)return;
     const node=event.target.closest?.('.it');
-    const active=node?K(node.dataset.id):event.target.closest?.('#puz,#qa,#lockUI,#dialUI')?(ti.it||h&&K(h)):null;
+    const active=node?K(node.dataset.id):event.target.closest?.('#puz,#qa,#props,#tuneUI,#lockUI,#dialUI')?(ti.it||h&&K(h)):null;
     crisLastEvidence=active?.crisEvidence||null;
   }
   document.addEventListener('pointerdown',crisRememberEvidence,true);

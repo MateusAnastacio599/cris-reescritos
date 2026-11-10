@@ -1,4 +1,4 @@
-import {sceneEffects} from './quadro/board-rules.js?v=328';
+import {sceneEffects} from './quadro/board-rules.js?v=338';
 // Saved case boards use independent GM drafts and explicit player publications.
 export const archiveIdFrom = search => {const id=new URLSearchParams(search).get('board');if(!id)return null;if(!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id))throw Error('Código de quadro inválido.');return id;};
 export function publishedBoard(snapshot){

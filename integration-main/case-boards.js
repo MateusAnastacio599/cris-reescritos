@@ -1,4 +1,4 @@
-import {CRISBridge as bridge} from './integration-bridge.js?v=328';
+import {CRISBridge as bridge} from './integration-bridge.js?v=338';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export async function mountCaseBoards(identity, excluded = new Set()){
  const host=document.getElementById('caseBoards');if(!host)return;host.innerHTML='<div class="case-boards-head"><div><span class="micro-label">QUADROS DO CASO</span><h3>Quadros independentes</h3><p>Consulte as pistas liberadas, mesmo fora da sessão.</p></div>'+ (identity.isMaster?'<button type="button" data-new>Novo quadro</button>':'')+'</div><p role="status">Carregando quadros…</p><div class="case-boards-list"></div>';
