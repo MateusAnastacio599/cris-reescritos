@@ -10,6 +10,15 @@ export function parseBlocks(markdown) {
   const flush=()=>{if(paragraph.length){result.push({type:'paragraph',text:paragraph.join('\n')});paragraph=[];}};
   for(let i=0;i<lines.length;i++){
     const raw=lines[i],text=raw.trim();if(!text){flush();continue;}
+    const toggle = raw.match(/^<!--cris:toggle:v1 (.+)-->$/);
+    if(toggle){
+      try {
+        const {title, text: content} = JSON.parse(toggle[1]);
+        if(typeof title==='string' && typeof content==='string'){
+          flush();result.push({type:'toggle',title,text:content});continue;
+        }
+      } catch { /* Preserve malformed markers as ordinary text. */ }
+    }
     if(text.includes('|')&&i+1<lines.length&&tableCells(lines[i+1]).every(cell=>/^:?-{3,}:?$/.test(cell))){
       flush();const headers=tableCells(text),align=tableCells(lines[++i]).map(v=>v.startsWith(':')&&v.endsWith(':')?'center':v.endsWith(':')?'right':'left'),rows=[];
       while(i+1<lines.length&&lines[i+1].trim()&&lines[i+1].includes('|')){const row=tableCells(lines[++i]);rows.push(headers.map((_,n)=>row[n]||''));}
@@ -34,6 +43,10 @@ const lineEscape=value=>String(value??'').replace(/\n/g,'<br>');
 const tableEscape=value=>lineEscape(value).replace(/\|/g,'\\|');
 export function blocksToMarkdown(blocks){return blocks.map(b=>{
   const prefix={h1:'# ',h2:'## ',h3:'### ',quote:'> ',list:'- '};
+  if(b.type==='toggle'){
+    const data=JSON.stringify({title:b.title??'',text:b.text??''}).replace(/-/g,'\\u002d').replace(/</g,'\\u003c');
+    return '<!--cris:toggle:v1 '+data+'-->';
+  }
   if(b.type==='table'){const headers=b.headers||['Coluna 1','Coluna 2'];return ['| '+headers.map(tableEscape).join(' | ')+' |','| '+headers.map((_,i)=>({left:'---',right:'---:',center:':---:'})[b.align?.[i]]||'---').join(' | ')+' |',...(b.rows||[]).map(row=>'| '+headers.map((_,i)=>tableEscape(row[i])).join(' | ')+' |')].join('\n');}
   if(b.type==='clue')return `[[clue${b.action==='hide'?'-hide':''}:${b.campaignId||''}:${encodeURIComponent(b.itemId||'')}|${lineEscape(b.text).replace(/\|/g,'·')}]]`;
   if(b.type==='cue')return `[[cue:${b.triggerId||''}|${lineEscape(b.text)}]]`;
@@ -77,6 +90,10 @@ export function renderReadBlocks(blocks,pages=[]) {
   let html='',listType=null;
   blocks.forEach((b,i)=>{
     const list=['list','numbered'].includes(b.type)?b.type:null;if(listType&&listType!==list){html+=listType==='numbered'?'</ol>':'</ul>';listType=null;}
+    if(b.type==='toggle'){
+      const paragraphs=String(b.text??'').split(/\n{2,}/).map(part=>'<p>'+escapeHTML(part)+'</p>').join('');
+      html+=`<details class="script-toggle"><summary>${escapeHTML(b.title||'Recolhível')}</summary><div class="script-toggle-content">${paragraphs}</div></details>`;return;
+    }
     const text=inlineHTML(b.text,pages);
     if(list){if(!listType){html+=list==='numbered'?`<ol class="document-list" start="${b.number||1}">`:'<ul class="document-list">';listType=list;}html+=`<li>${text}</li>`;return;}
     if(b.type==='table'){html+=renderTable(b,pages);return;}
