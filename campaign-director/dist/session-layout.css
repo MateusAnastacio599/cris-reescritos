@@ -1,5 +1,10 @@
 /* Reading, direction and navigation have independent scroll areas on desktop. */
-.sidebar .page-tree{flex:1;min-height:60px;scrollbar-width:thin;scrollbar-color:#51445e transparent}.sidebar-bottom{flex:none}.sidebar{overflow-y:auto;scrollbar-width:thin}
+.sidebar{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#51445e transparent}
+.sidebar>*{flex-shrink:0}
+.sidebar .page-tree{flex:1 0 auto}
+.sidebar .page-item-label{display:grid;min-width:0}
+.sidebar .page-item-label>span,.sidebar .page-item-label>small{overflow:hidden;text-overflow:ellipsis}
+.sidebar .page-item-label>small{font-size:11px;color:var(--muted)}
 .director-tabs{display:flex;gap:4px;align-items:center;letter-spacing:0}.director-tabs button{font:550 12px var(--sans);color:var(--muted);padding:7px 12px;border-radius:5px}.director-tabs button[aria-selected=true]{color:var(--accent-light);background:var(--accent-bg)}
 .director-panel{scrollbar-width:thin;scrollbar-color:#51445e transparent}.director-heading{gap:8px}.director-heading .director-tabs{font:inherit}.director-section{padding-top:15px;padding-bottom:15px}
 .scene-clue-list{gap:5px}.scene-clue-button{min-height:38px;padding:8px 10px;font-size:12px;line-height:1.4;gap:8px}.scene-clue-button>span{min-width:0;overflow-wrap:anywhere}.scene-clue-button small{display:none}.scene-clue-button svg{width:14px;height:14px}
@@ -47,3 +52,26 @@
 @media(min-width:761px){body.session-mode:has(.stage-layout) .workspace{padding-top:17px}.session-mode .scene-navigation{margin-top:8px;margin-bottom:14px}.session-mode .scene-tab{padding-top:10px;padding-bottom:11px}.session-mode .document-body{padding-inline:clamp(25px,3.2vw,58px)}}
 @media(min-width:961px){.session-mode{--sidebar-width:218px}.session-mode .sidebar{padding:23px 12px 14px}.session-mode .stage-layout{grid-template-columns:minmax(0,1fr) clamp(280px,20vw,320px);gap:20px}}
 @media(max-width:760px){.session-mode .document-body,.session-mode .document-body em{font-size:16px;line-height:1.8}.session-mode .document-body{padding-top:24px}.session-mode .page-title-row h1{font-size:25px}.session-mode .page-actions>.session-board-link span{display:inline}.session-mode .page-actions>.session-board-link{padding:7px 9px;font-size:10px;gap:5px}.session-mode .trigger-button{min-height:48px}.session-mode .trigger-button strong{font-size:12px}.session-mode .scene-launch{min-height:44px}.session-mode .director-heading{top:54px}}
+
+
+.desktop-sidebar-toggle{display:none}
+@media(min-width:961px){
+ .desktop-sidebar-toggle{display:inline-flex;flex:none}
+ .desktop-sidebar-toggle .icon{transform:rotate(180deg)}
+ .desktop-sidebar-toggle[aria-expanded=false] .icon{transform:none}
+ .desktop-sidebar-collapsed #sidebar{display:none}
+ .desktop-sidebar-collapsed .main-shell{margin-left:0}
+}
+
+.desktop-director-layout{display:none}
+@media(min-width:961px){
+ body:has(#directorPanel) .desktop-director-layout{display:flex;align-items:center;gap:6px;white-space:nowrap;color:var(--muted);font-size:11px}
+ .desktop-director-layout select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:5px}
+ body[data-director-layout=compact] .stage-layout{grid-template-columns:minmax(0,1fr) 210px}
+ body[data-director-layout=collapsed] .stage-layout{grid-template-columns:minmax(0,1fr)}
+ body[data-director-layout=collapsed] #directorPanel{display:none}
+ [data-director-layout=compact] #directorPanel{padding-inline:12px}
+ [data-director-layout=compact] .director-tabs button{padding-inline:7px}
+ [data-director-layout=compact] .trigger-grid{grid-template-columns:minmax(0,1fr)}
+ [data-director-layout=compact] #directorPanel :is(.crossfade-control,.scene-launch kbd,.director-footnote,[data-scene-section=layers],[data-scene-section=timeline]){display:none}
+}

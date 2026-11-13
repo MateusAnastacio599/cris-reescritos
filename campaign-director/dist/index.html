@@ -36,8 +36,8 @@
   </aside>
   <div class="main-shell">
     <header class="topbar">
-      <div class="topbar-left"><button class="icon-btn menu-toggle" id="menuToggle" aria-label="Abrir navegação"></button><span class="breadcrumbs" id="breadcrumbs"></span></div>
-      <div class="topbar-actions"><span class="audio-ready" id="audioReady"><i></i> Motor de áudio pronto</span><button class="btn subtle" id="sessionMode"></button><button class="icon-btn" id="helpButton" title="Ajuda e atalhos" aria-label="Ajuda e atalhos"></button></div>
+      <div class="topbar-left"><button type="button" class="icon-btn desktop-sidebar-toggle" id="desktopSidebarToggle" aria-controls="sidebar" aria-expanded="true" aria-label="Recolher navegação" title="Recolher navegação"></button><button class="icon-btn menu-toggle" id="menuToggle" aria-label="Abrir navegação"></button><span class="breadcrumbs" id="breadcrumbs"></span></div>
+      <div class="topbar-actions"><span class="audio-ready" id="audioReady"><i></i> Motor de áudio pronto</span><label class="desktop-director-layout">Painel de direção <select id="directorLayout" aria-controls="directorPanel"><option value="expanded">Expandido</option><option value="compact">Compacto</option><option value="collapsed">Recolhido</option></select></label><button class="btn subtle" id="sessionMode"></button><button class="icon-btn" id="helpButton" title="Ajuda e atalhos" aria-label="Ajuda e atalhos"></button></div>
     </header>
     <main id="workspace" class="workspace"></main>
   </div>

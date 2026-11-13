@@ -63,16 +63,36 @@ function renderApp(){
   updateAudioUI();
 }
 function renderTree(){
-  const groups=[...new Set(campaign().pages.map(p=>p.folder||'Páginas'))];
-  $('#pageTree').innerHTML=groups.map(folder=>`<div class="tree-folder"><button class="folder-toggle ${collapsed.has(folder)?'collapsed':''}" data-folder="${esc(folder)}">${icon('down')}<span>${esc(folder)}</span><small>${campaign().pages.filter(p=>(p.folder||'Páginas')===folder).length}</small></button>${collapsed.has(folder)?'':campaign().pages.filter(p=>(p.folder||'Páginas')===folder).map(p=>`<button class="page-item ${p.id===page().id&&state.ui.view==='document'?'active':''}" data-page="${esc(p.id)}">${icon(p.icon||'file')}<span>${esc(p.title)}</span>${p.id===page().id&&state.ui.view==='document'?'<i></i>':''}</button>`).join('')}</div>`).join('');
-  $$('[data-folder]').forEach(b=>b.onclick=()=>{collapsed.has(b.dataset.folder)?collapsed.delete(b.dataset.folder):collapsed.add(b.dataset.folder);renderTree();});
+  const tree=$('#pageTree'),sidebar=$('#sidebar'),scrollTop=sidebar.scrollTop;
+  const groups=new Map();
+  for(const p of campaign().pages){
+    const folder=p.folder||'Páginas';
+    if(!groups.has(folder))groups.set(folder,[]);
+    groups.get(folder).push(p);
+  }
+  tree.innerHTML=[...groups].map(([folder,pages],index)=>{
+    const expanded=!collapsed.has(folder),id=`page-folder-${index}`;
+    const items=expanded?pages.map(p=>{
+      const active=p.id===page().id&&state.ui.view==='document';
+      return `<button class="page-item ${active?'active':''}" data-page="${esc(p.id)}"${active?' aria-current="page"':''}>${icon(p.icon||'file')}<span class="page-item-label"><span>${esc(p.title)}</span>${active?`<small title="${esc(scene().title)}">${esc(scene().title)}</small>`:''}</span>${active?'<i></i>':''}</button>`;
+    }).join(''):'';
+    return `<div class="tree-folder"><button class="folder-toggle ${expanded?'':'collapsed'}" data-folder="${esc(folder)}" aria-expanded="${expanded}" aria-controls="${id}">${icon('down')}<span>${esc(folder)}</span><small>${pages.length}</small></button><div id="${id}" ${expanded?'':'hidden'}>${items}</div></div>`;
+  }).join('');
+  sidebar.scrollTop=scrollTop;
+  const folders=$$('[data-folder]',tree);
+  folders.forEach((button,index)=>button.onclick=()=>{
+    const folder=button.dataset.folder;
+    if(collapsed.has(folder))collapsed.delete(folder);else collapsed.add(folder);
+    renderTree();
+    $$('[data-folder]',tree)[index].focus({preventScroll:true});
+  });
   $$('[data-page]').forEach(b=>b.onclick=()=>navigate({pageId:b.dataset.page,sceneId:campaign().pages.find(p=>p.id===b.dataset.page).scenes[0].id}));
 }
 function renderDocument(){
   editor?.destroy();editor=null;
   const p=page(),s=scene(),index=p.scenes.indexOf(s),words=s.markdown.replace(/\[\[.*?\]\]/g,'').split(/\s+/).filter(Boolean).length;
   const backlinks=campaign().pages.filter(other=>other!==p&&other.scenes.some(x=>x.markdown.includes(`[[page:${p.id}`)||x.markdown.toLocaleLowerCase().includes(`[[${p.title.toLocaleLowerCase()}]]`)));
-  $('#workspace').innerHTML=`<section class="page-header"><div class="page-eyebrow"><span class="folder-label">${icon('folder')}${esc(p.folder||'Páginas')}</span><span class="page-kind">${icon('shield')} SÓ PARA O MESTRE</span></div><div class="page-title-row"><div><h1>${esc(p.title)}</h1><div class="page-tags">${(p.tags||[]).map((tag,i)=>`<span class="${i===0?'accent':''}">${esc(tag)}</span>`).join('')}<span class="scene-count">${p.scenes.length} cena${p.scenes.length>1?'s':''}</span></div></div><div class="page-actions"><a class="btn outline session-board-link" href="${new URL('quadro/',crisHome()).href}" target="crisBoard" rel="noopener">${icon('eye')}<span>Quadro ↗</span></a><button class="btn outline" id="openBoardClues">${icon('eye')}<span>Pistas do quadro</span></button><button class="icon-btn" id="pageOptions" title="Opções da página e cena" aria-label="Opções da página e cena">${icon('more')}</button><button class="btn ${editing?'outline':'primary'}" id="toggleEdit">${icon(editing?'check':'edit')}<span>${editing?'Concluir edição':'Editar página'}</span></button></div></div></section><div class="scene-navigation"><div class="scene-tabs" role="tablist" aria-label="Cenas">${p.scenes.map((x,i)=>`<button role="tab" aria-selected="${x.id===s.id}" class="scene-tab ${x.id===s.id?'active':''}" data-scene="${esc(x.id)}"><small>${String(i+1).padStart(2,'0')}</small>${esc(x.title)}${x.id===s.id?'<i></i>':''}</button>`).join('')}<button class="new-scene" id="newScene" aria-label="Adicionar cena" title="Adicionar cena">${icon('plus')}</button></div><div class="scene-position">CENA <b>${String(index+1).padStart(2,'0')}</b><span>/ ${String(p.scenes.length).padStart(2,'0')}</span></div></div><div class="mobile-panel-switch" role="group" aria-label="Painel da cena"><button type="button" class="active" data-mobile-pane="document">${icon('file')} Roteiro</button><button type="button" data-mobile-pane="director">${icon('sliders')} Direção da cena</button></div><div class="stage-layout"><section class="document-card" tabindex="0" aria-label="Roteiro da cena"><div class="document-top"><div class="doc-mode">${icon(editing?'edit':'file')}<span>${editing?'EDITOR VISUAL':'ROTEIRO DO MESTRE'}</span></div><div class="document-meta"><span>${Math.max(1,Math.ceil(words/200))} min de leitura</span><button class="icon-btn" id="markdownSource" title="Editar Markdown" aria-label="Editar código Markdown">${icon('code')}</button></div></div>${editing?`<div class="editor-toolbar"><select id="blockType" aria-label="Tipo do bloco">${[['paragraph','Texto'],['h1','Título 1'],['h2','Título 2'],['h3','Título 3'],['quote','Citação'],['note','Nota'],['list','Lista'],['numbered','Numerada'],['todo','Tarefa'],['table','Tabela'],['cue','Cue'],['clue','Pista do quadro'],['divider','Divisória']].map(([v,l])=>option(v,l)).join('')}</select><span></span><button type="button" id="formatBold" title="Negrito" aria-label="Negrito"><b>B</b></button><button type="button" id="formatItalic" title="Itálico" aria-label="Itálico"><em>I</em></button><button type="button" id="insertPageLink" title="Link para página" aria-label="Inserir link interno">${icon('link')}</button><button type="button" id="editorUndo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button><button type="button" id="editorRedo" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer">↷</button><div class="editor-autosave">${icon('check')} Salvamento automático</div></div>`:''}<article class="document-body ${editing?'is-editing':''}" id="documentBody">${editing?'':renderReadBlocks(sceneClueBlocks(s),campaign().pages)}</article><div class="document-end"><span>FIM DA CENA</span><i></i>${index<p.scenes.length-1?`<button class="next-scene-link" id="nextSceneLink">${esc(p.scenes[index+1].title)} ${icon('arrow')}</button>`:`<span class="end-label">${icon('check')} Roteiro da página concluído</span>`}</div>${backlinks.length?`<div class="backlinks"><span class="section-eyebrow">${icon('link')} MENCIONADO EM</span>${backlinks.map(x=>`<button data-page-link="${esc(x.id)}">${icon('file')}${esc(x.title)}</button>`).join('')}</div>`:''}</section><aside class="director-panel" id="directorPanel" tabindex="0" aria-label="Direção da cena"></aside></div>`;
+  $('#workspace').innerHTML=`<section class="page-header"><div class="page-eyebrow"><span class="folder-label">${icon('folder')}${esc(p.folder||'Páginas')}</span><span class="page-kind">${icon('shield')} SÓ PARA O MESTRE</span></div><div class="page-title-row"><div><h1>${esc(p.title)}</h1><div class="page-tags">${(p.tags||[]).map((tag,i)=>`<span class="${i===0?'accent':''}">${esc(tag)}</span>`).join('')}<span class="scene-count">${p.scenes.length} cena${p.scenes.length>1?'s':''}</span></div></div><div class="page-actions"><a class="btn outline session-board-link" href="${new URL('quadro/',crisHome()).href}" target="crisBoard" rel="noopener">${icon('eye')}<span>Quadro ↗</span></a><button class="btn outline" id="openBoardClues">${icon('eye')}<span>Pistas do quadro</span></button><button class="icon-btn" id="pageOptions" title="Opções da página e cena" aria-label="Opções da página e cena">${icon('more')}</button><button class="btn ${editing?'outline':'primary'}" id="toggleEdit">${icon(editing?'check':'edit')}<span>${editing?'Concluir edição':'Editar página'}</span></button></div></div></section><div class="scene-navigation"><div class="scene-tabs" role="tablist" aria-label="Cenas">${p.scenes.map((x,i)=>`<button role="tab" aria-selected="${x.id===s.id}" class="scene-tab ${x.id===s.id?'active':''}" data-scene="${esc(x.id)}"><small>${String(i+1).padStart(2,'0')}</small>${esc(x.title)}${x.id===s.id?'<i></i>':''}</button>`).join('')}<button class="new-scene" id="newScene" aria-label="Adicionar cena" title="Adicionar cena">${icon('plus')}</button></div><div class="scene-position">CENA <b>${String(index+1).padStart(2,'0')}</b><span>/ ${String(p.scenes.length).padStart(2,'0')}</span></div></div><div class="mobile-panel-switch" role="group" aria-label="Painel da cena"><button type="button" class="active" data-mobile-pane="document">${icon('file')} Roteiro</button><button type="button" data-mobile-pane="director">${icon('sliders')} Direção da cena</button></div><div class="stage-layout"><section class="document-card" tabindex="0" aria-label="Roteiro da cena"><div class="document-top"><div class="doc-mode">${icon(editing?'edit':'file')}<span>${editing?'EDITOR VISUAL':'ROTEIRO DO MESTRE'}</span></div><div class="document-meta"><span>${Math.max(1,Math.ceil(words/200))} min de leitura</span><button class="icon-btn" id="markdownSource" title="Editar Markdown" aria-label="Editar código Markdown">${icon('code')}</button></div></div>${editing?`<div class="editor-toolbar"><select id="blockType" aria-label="Tipo do bloco">${[['paragraph','Texto'],['h1','Título 1'],['h2','Título 2'],['h3','Título 3'],['quote','Citação'],['note','Nota'],['toggle','Recolhível'],['list','Lista'],['numbered','Numerada'],['todo','Tarefa'],['table','Tabela'],['cue','Cue'],['clue','Pista do quadro'],['divider','Divisória']].map(([v,l])=>option(v,l)).join('')}</select><span></span><button type="button" id="formatBold" title="Negrito" aria-label="Negrito"><b>B</b></button><button type="button" id="formatItalic" title="Itálico" aria-label="Itálico"><em>I</em></button><button type="button" id="insertPageLink" title="Link para página" aria-label="Inserir link interno">${icon('link')}</button><button type="button" id="editorUndo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button><button type="button" id="editorRedo" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer">↷</button><div class="editor-autosave">${icon('check')} Salvamento automático</div></div>`:''}<article class="document-body ${editing?'is-editing':''}" id="documentBody">${editing?'':renderReadBlocks(sceneClueBlocks(s),campaign().pages)}</article><div class="document-end"><span>FIM DA CENA</span><i></i>${index<p.scenes.length-1?`<button class="next-scene-link" id="nextSceneLink">${esc(p.scenes[index+1].title)} ${icon('arrow')}</button>`:`<span class="end-label">${icon('check')} Roteiro da página concluído</span>`}</div>${backlinks.length?`<div class="backlinks"><span class="section-eyebrow">${icon('link')} MENCIONADO EM</span>${backlinks.map(x=>`<button data-page-link="${esc(x.id)}">${icon('file')}${esc(x.title)}</button>`).join('')}</div>`:''}</section><aside class="director-panel" id="directorPanel" tabindex="0" aria-label="Direção da cena"></aside></div>`;
   $$('[data-scene]').forEach(b=>b.onclick=()=>navigate({sceneId:b.dataset.scene}));
   $('#openBoardClues').onpointerdown=()=>editor?.captureSelection();$('#openBoardClues').onclick=()=>pickBoardClue();$('#newScene').onclick=()=>createScene();$('#pageOptions').onclick=()=>pageOptions();$('#toggleEdit').onclick=()=>{editing=!editing;persist();renderDocument();updateAudioUI();};
   $('#markdownSource').onclick=()=>openMarkdown();$('#nextSceneLink')?.addEventListener('click',()=>navigate({sceneId:p.scenes[index+1].id}));
@@ -225,6 +245,40 @@ $('#openLibrary').innerHTML=icon('headphones')+'<span>Biblioteca de áudio</span
 $('#dockPrevious').innerHTML=icon('previous');$('#dockNext').innerHTML=icon('skip');$('#dockStop').innerHTML=icon('stop');$('#volumeIcon').innerHTML=icon('volume');$('#openMixer').innerHTML=icon('sliders')+'<span>Mixer</span>';
 $('#homeBrand').onclick=e=>{e.preventDefault();navigate();};$('#campaignSwitch').onchange=e=>{const c=state.campaigns.find(c=>c.id===e.target.value);navigate({campaignId:c.id,pageId:c.pages[0].id,sceneId:c.pages[0].scenes[0].id});};
 $('#newPage').onclick=()=>createPage();$('#newPageBottom').onclick=()=>createPage();$('#manageCampaigns').onclick=manageCampaigns;$('#openSearch').onclick=openSearch;$('#openLibrary').onclick=()=>navigate({view:'library'});$('#openAmbiences').onclick=()=>navigate({view:'ambiences'});$('#helpButton').onclick=showHelp;
+const desktopSidebarToggle=$('#desktopSidebarToggle');
+desktopSidebarToggle.innerHTML=icon('chevron');
+let sidebarScrollTop=0;
+function preserveReadingPosition(changeLayout){
+  const card=$('.document-card'),body=$('#documentBody');
+  // Keep the visible script block in view when its lines wrap differently.
+  const readingTop=card?.querySelector('.document-top')?.getBoundingClientRect().bottom;
+  const anchor=readingTop!==undefined&&body
+    ? [...body.children].find(block=>block.getBoundingClientRect().bottom>readingTop)
+    : null;
+  const anchorTop=anchor?.getBoundingClientRect().top;
+  changeLayout();
+  if(anchor){
+    const rect=anchor.getBoundingClientRect();
+    const top=Math.max(anchorTop,readingTop-rect.height+1);
+    card.scrollTop+=rect.top-top;
+  }
+}
+$('#directorLayout').onchange=e=>preserveReadingPosition(()=>{
+  document.body.dataset.directorLayout=e.target.value;
+});
+desktopSidebarToggle.onclick=()=>{
+  const sidebar=$('#sidebar');
+  const collapsing=!document.body.classList.contains('desktop-sidebar-collapsed');
+  if(collapsing)sidebarScrollTop=sidebar.scrollTop;
+  preserveReadingPosition(()=>{
+    document.body.classList.toggle('desktop-sidebar-collapsed',collapsing);
+    if(!collapsing)sidebar.scrollTop=sidebarScrollTop;
+  });
+  const label=collapsing?'Restaurar navegação':'Recolher navegação';
+  desktopSidebarToggle.setAttribute('aria-expanded',String(!collapsing));
+  desktopSidebarToggle.setAttribute('aria-label',label);
+  desktopSidebarToggle.title=label;
+};
 $('#menuToggle').onclick=()=>document.body.classList.toggle('sidebar-open');$('#sidebarScrim').onclick=()=>document.body.classList.remove('sidebar-open');
 setupSessionTools();
 $('#sessionMode').onclick=()=>{persist();state.ui.sessionMode=!state.ui.sessionMode;editing=false;commit(true);};
