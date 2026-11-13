@@ -1,3 +1,4 @@
+import {recolorRange,scriptColors} from './editor-colors.js';
 import {parseBlocks,blocksToMarkdown,inlineHTML,editableToMarkdown,renderTable,escapeHTML as esc} from './markdown.js';
 import {BLOCK_TYPES,newBlock,splitBlocks,EditorHistory} from './editor-model.js';
 import {clipboardBlocks} from './editor-clipboard.js';
@@ -180,7 +181,78 @@ export class BlockEditor {
   tableAction(index,action){const b=this.blocks[index];this.active=index;const r=this.activeCell?.row??b.rows.length,c=this.activeCell?.col??b.headers.length-1;if(action==='row')b.rows.splice(Math.max(0,r),0,b.headers.map(()=>''));if(action==='column'){b.headers.splice(c+1,0,'');b.rows.forEach(row=>row.splice(c+1,0,''));b.align?.splice(c+1,0,'left');}if(action==='remove-row'&&b.rows.length)b.rows.splice(Math.max(0,r-1),1);if(action==='remove-column'&&b.headers.length>1){b.headers.splice(c,1);b.rows.forEach(row=>row.splice(c,1));b.align?.splice(c,1);}this.changed();this.render({index,cell:{row:Math.min(r,b.rows.length),col:Math.min(c,b.headers.length-1)},offset:0});}
   hideToolbar(){document.getElementById('editorSelectionToolbar')?.remove();}
   selectionToolbar(){
-    const s=getSelection();if(!s.rangeCount||s.isCollapsed||!this.el.contains(s.anchorNode)||!this.el.isConnected){this.hideToolbar();return;}this.captureSelection();const rect=s.getRangeAt(0).getBoundingClientRect();if(!rect.width&&!rect.height)return;let bar=document.getElementById('editorSelectionToolbar');if(!bar){bar=document.createElement('div');bar.id='editorSelectionToolbar';bar.className='selection-toolbar';bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','Formatar seleção');bar.innerHTML='<button type="button" data-format="bold" title="Negrito (Ctrl+B)"><b>B</b></button><button type="button" data-format="italic" title="Itálico (Ctrl+I)"><em>I</em></button><button type="button" data-format="strikeThrough" title="Tachado"><s>S</s></button><button type="button" data-format="code" title="Código">&lt;/&gt;</button><button type="button" data-link title="Link interno">'+icon('link')+'</button>';bar.onpointerdown=e=>e.preventDefault();bar.onclick=e=>{const button=e.target.closest('button');if(button?.dataset.format)this.format(button.dataset.format);if(button?.hasAttribute('data-link'))this.options.onRequestLink();};document.body.append(bar);}bar.style.left=Math.max(8,Math.min(rect.left,innerWidth-245))+'px';bar.style.top=Math.max(8,rect.top-45)+'px';
+    const selection=getSelection();
+    if(!selection.rangeCount||selection.isCollapsed||!this.el.contains(selection.anchorNode)||!this.el.isConnected){this.hideToolbar();return;}
+    this.captureSelection();
+    const range=selection.getRangeAt(0),rect=range.getBoundingClientRect();
+    if(!rect.width&&!rect.height)return;
+    let bar=document.getElementById('editorSelectionToolbar');
+    if(!bar){
+      bar=document.createElement('div');
+      bar.id='editorSelectionToolbar';
+      bar.className='selection-toolbar';
+      bar.setAttribute('role','toolbar');
+      bar.setAttribute('aria-label','Formatar seleção');
+      const choices=(channel,highlight)=>scriptColors.map(([color,label])=>{
+        const name=highlight?(color==='none'?'Sem destaque':label+' suave'):label;
+        return `<button type="button" data-channel="${channel}" data-color="${color}"><span aria-hidden="true" data-cris-ink="${highlight?'none':color}" data-cris-highlight="${highlight?color:'none'}">A</span>${name}</button>`;
+      }).join('');
+      bar.innerHTML='<button type="button" data-format="bold" title="Negrito (Ctrl+B)"><b>B</b></button><button type="button" data-format="italic" title="Itálico (Ctrl+I)"><em>I</em></button><button type="button" data-format="strikeThrough" title="Tachado"><s>S</s></button><button type="button" data-format="code" title="Código">&lt;/&gt;</button><button type="button" data-link title="Link interno">'+icon('link')+'</button>'+
+        `<button type="button" data-open-colors aria-expanded="false" aria-controls="scriptColors">Cor</button><div id="scriptColors" class="script-color-menu" hidden><div role="group" aria-label="Cor do texto"><strong>Cor do texto</strong>${choices('crisInk',false)}</div><div role="group" aria-label="Destaque"><strong>Destaque</strong>${choices('crisHighlight',true)}</div></div>`;
+      bar.onpointerdown=e=>e.preventDefault();
+      bar.onclick=e=>{
+        const button=e.target.closest('button');
+        if(!button)return;
+        if(button.dataset.format)this.format(button.dataset.format);
+        if(button.hasAttribute('data-link'))this.options.onRequestLink();
+        if(button.hasAttribute('data-open-colors'))this.showColors(bar,bar.querySelector('.script-color-menu').hidden);
+        if(button.dataset.channel){
+          this.applyColor(button.dataset.channel,button.dataset.color);
+          this.showColors(bar,false);
+        }
+      };
+      bar.onkeydown=e=>{if(e.key==='Escape')this.showColors(bar,false);};
+      document.body.append(bar);
+    }
+    const colorButton=bar.querySelector('[data-open-colors]');
+    colorButton.hidden=!this.colorField(range);
+    if(colorButton.hidden)this.showColors(bar,false);
+    bar.style.left=Math.max(8,Math.min(rect.left,innerWidth-285))+'px';
+    bar.style.top=Math.max(8,Math.min(rect.top-45,innerHeight-48))+'px';
+    if(!bar.querySelector('.script-color-menu').hidden)this.showColors(bar,true);
+  }
+  colorField(range){
+    if(!range||range.collapsed)return null;
+    const field=this.fieldFor(range.startContainer);
+    if(!field||field!==this.fieldFor(range.endContainer))return null;
+    if(!['paragraph','h1','h2','h3'].includes(this.blocks[+field.dataset.block]?.type))return null;
+    const insideLink=node=>(node.nodeType===1?node:node.parentElement)?.closest('.wiki-token');
+    if(insideLink(range.startContainer)||insideLink(range.endContainer))return null;
+    return field;
+  }
+  showColors(bar,open){
+    const menu=bar.querySelector('.script-color-menu');
+    menu.hidden=!open;
+    bar.querySelector('[data-open-colors]').setAttribute('aria-expanded',String(open));
+    if(open){
+      const rect=bar.getBoundingClientRect();
+      const below=innerHeight-rect.bottom,above=rect.top;
+      const placeAbove=above>below;
+      menu.classList.toggle('above',placeAbove);
+      menu.style.maxHeight=Math.max(0,(placeAbove?above:below)-12)+'px';
+    }
+  }
+  applyColor(channel,color){
+    const range=this.range,field=this.colorField(range);
+    if(!field)return;
+    recolorRange(field,range,channel,color);
+    const selection=getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    this.active=+field.dataset.block;
+    this.syncField(field);
+    this.changed();
+    this.captureSelection();
   }
   menu(anchor,mode){
     document.getElementById('blockPopover')?.remove();const menu=document.createElement('div');menu.id='blockPopover';menu.className='block-popover searchable-block-menu';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Inserir ou transformar bloco');menu.innerHTML='<label class="block-menu-search">'+icon('search')+'<input type="search" placeholder="Buscar bloco…" aria-label="Buscar tipo de bloco"></label><div class="block-menu-results"></div>'+(mode==='edit'?'<hr><button type="button" data-move="-1">↑ Mover para cima</button><button type="button" data-move="1">↓ Mover para baixo</button><button type="button" data-duplicate>Duplicar bloco</button><button type="button" class="danger-text" data-remove>Excluir bloco</button>':'');document.body.append(menu);

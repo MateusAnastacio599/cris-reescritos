@@ -1,3 +1,5 @@
+import {protectColorMarkup,serializeColor} from './editor-colors.js';
+
 const decodeURIComponentSafe=value=>{try{return decodeURIComponent(value);}catch{return value;}};
 export const escapeHTML = value => String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 export function tableCells(line){
@@ -64,7 +66,7 @@ export function inlineHTML(text,pages=[],editing=false) {
     const lookup=target.replace(/^page:/,''),page=pages.find(p=>p.id===lookup||p.title.toLocaleLowerCase()===lookup.toLocaleLowerCase());
     return token(editing?`<span class="wiki-token" contenteditable="false" data-markdown="${escapeHTML(_)}">↗ ${escapeHTML(label||page?.title||lookup)}</span>`:`<button class="wiki-link ${page?'':'unresolved'}" data-page-link="${escapeHTML(page?.id||'')}" data-link-title="${escapeHTML(lookup)}">↗ ${escapeHTML(label||page?.title||lookup)}</button>`);
   });
-  source=escapeHTML(source).replace(/\*\*\*([\s\S]+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*([\s\S]+?)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>').replace(/~~(.+?)~~/g,'<s>$1</s>').replace(/\n/g,'<br>');
+  source=escapeHTML(protectColorMarkup(source,token)).replace(/\*\*\*([\s\S]+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*([\s\S]+?)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>').replace(/~~(.+?)~~/g,'<s>$1</s>').replace(/\n/g,'<br>');
   return source.replace(/\u0000(\d+)\u0000/g,(_,index)=>tokens[Number(index)]||'');
 }
 export function editableToMarkdown(element,{trim=true}={}) {
@@ -78,7 +80,7 @@ export function editableToMarkdown(element,{trim=true}={}) {
     if(node.tagName==='CODE')return text?'`'+text+'`':'';
     if(node.tagName==='BR')return '\n';
     if(['DIV','P'].includes(node.tagName))return '\n'+text;
-    return text;
+    return serializeColor(node,text);
   }
   const text=[...element.childNodes].map(walk).join('').replace(/\n{3,}/g,'\n\n');return trim?text.trim():text;
 }
