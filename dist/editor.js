@@ -18,8 +18,16 @@ export class BlockEditor {
       const field=`<div class="block-content" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${BLOCK_TYPES[b.type]} ${i+1}" data-block="${i}" data-placeholder="Escreva ou digite / para inserir…" spellcheck="true" lang="pt-BR">${inlineHTML(b.text,this.options.pages,true)}</div>`;
       let body=field;
       if(b.type==='toggle'){
-        body=`<details class="script-toggle" ${this.openToggles.has(b)?'open':''}><summary>${esc(b.title||'Recolhível')}</summary><div class="script-toggle-content"><label>Título<input type="text" data-toggle-field="title" data-block="${i}" value="${esc(b.title)}"></label><label>Conteúdo<textarea rows="4" data-toggle-field="text" data-block="${i}">
-${esc(b.text)}</textarea></label></div></details>`;
+        const open=this.openToggles.has(b);
+        body=`<div class="script-toggle">
+          <div class="script-toggle-heading">
+            <button type="button" data-toggle-button="${i}" aria-label="${open?'Recolher':'Expandir'} bloco" aria-expanded="${open}" aria-controls="script-toggle-body-${i}">▸</button>
+            <div class="script-toggle-title" contenteditable="plaintext-only" role="textbox" aria-label="Título do recolhível" data-placeholder="Recolhível" data-toggle-field="title" data-block="${i}">${esc(b.title)}</div>
+          </div>
+          <div class="script-toggle-content" id="script-toggle-body-${i}" ${open?'':'hidden'}>
+            <div class="block-content script-toggle-text" contenteditable="plaintext-only" role="textbox" aria-multiline="true" aria-label="Texto do recolhível" data-placeholder="Escreva aqui…" data-toggle-field="text" data-block="${i}">${esc(b.text)}</div>
+          </div>
+        </div>`;
       }
       if(b.type==='divider')body='<hr>';
       if(b.type==='todo')body=`<input type="checkbox" data-block-check="${i}" aria-label="Concluir tarefa" ${b.checked?'checked':''}>`+field;
@@ -29,21 +37,28 @@ ${esc(b.text)}</textarea></label></div></details>`;
       if(b.type==='table')body=renderTable(b,this.options.pages,true,i)+`<div class="table-controls" contenteditable="false"><button type="button" data-table-action="row" data-table="${i}">+ Linha</button><button type="button" data-table-action="column" data-table="${i}">+ Coluna</button><button type="button" data-table-action="remove-row" data-table="${i}">− Linha</button><button type="button" data-table-action="remove-column" data-table="${i}">− Coluna</button></div>`;
       return `<div class="editor-block block-${b.type}" data-block-row="${i}">${tools}${body}</div>`;
     }).join('')+`<button type="button" class="add-block-line" data-add="${this.blocks.length-1}">${icon('plus')} Adicionar bloco <span>/</span></button>`;
-    this.el.querySelectorAll('.script-toggle').forEach(details=>{
-      const block=this.blocks[+details.closest('[data-block-row]').dataset.blockRow];
-      details.ontoggle=()=>{if(details.open)this.openToggles.add(block);else this.openToggles.delete(block);};
-    });
     this.el.oninput=e=>{
       const key=e.target.dataset.toggleField;
       if(key){
         this.active=+e.target.dataset.block;
-        this.blocks[this.active][key]=e.target.value;
-        if(key==='title')e.target.closest('details').querySelector('summary').textContent=e.target.value||'Recolhível';
+        const text=e.target.innerText;
+        this.blocks[this.active][key]=key==='title'?text.replace(/\n+/g,' '):text;
         this.changed(true);return;
       }
       const field=e.target.closest('[data-block]');this.syncField(field);if(field)this.active=+field.dataset.block;this.changed(true);};
     this.el.onfocusin=e=>{const field=e.target.closest('[data-block]');if(!field)return;this.active=+field.dataset.block;this.activeCell=isCell(field)?{row:+field.dataset.cellRow,col:+field.dataset.cellCol}:null;this.options.onActive?.(this.blocks[this.active].type);};
     this.el.onclick=e=>{
+      const toggle=e.target.closest('[data-toggle-button]');
+      if(toggle){
+        const index=+toggle.dataset.toggleButton;
+        const block=this.blocks[index],open=!this.openToggles.has(block);
+        this.active=index;
+        if(open)this.openToggles.add(block);else this.openToggles.delete(block);
+        toggle.setAttribute('aria-expanded',String(open));
+        toggle.setAttribute('aria-label',open?'Recolher bloco':'Expandir bloco');
+        toggle.closest('.script-toggle').querySelector('.script-toggle-content').hidden=!open;
+        return;
+      }
       const add=e.target.closest('[data-add]');if(add){this.active=+add.dataset.add;this.menu(add,'add');return;}
       const menu=e.target.closest('[data-block-menu]');if(menu){this.active=+menu.dataset.blockMenu;this.menu(menu,'edit');return;}
       const chooseClue=e.target.closest('[data-select-clue]');if(chooseClue)this.options.onRequestClue?.(+chooseClue.dataset.selectClue);const showClue=e.target.closest('[data-preview-clue]');if(showClue)this.options.onClue?.(this.blocks[+showClue.dataset.previewClue]);
@@ -51,7 +66,12 @@ ${esc(b.text)}</textarea></label></div></details>`;
       const action=e.target.closest('[data-table-action]');if(action)this.tableAction(+action.dataset.table,action.dataset.tableAction);
     };
     this.el.onchange=e=>{const {blockCheck,triggerSelect}=e.target.dataset;if(blockCheck!==undefined){this.blocks[+blockCheck].checked=e.target.checked;this.changed();}if(triggerSelect!==undefined){this.blocks[+triggerSelect].triggerId=e.target.value;this.changed();}};
-    this.el.onpaste=e=>this.paste(e);this.el.onkeydown=e=>this.keydown(e);
+    this.el.onpaste=e=>{
+      if(e.target.dataset.toggleField==='title'){
+        e.preventDefault();
+        document.execCommand('insertText',false,e.clipboardData.getData('text/plain').replace(/[\r\n]+/g,' '));
+      }else this.paste(e);
+    };this.el.onkeydown=e=>this.keydown(e);
     this.el.ondragstart=e=>{const handle=e.target.closest('[data-drag]');if(handle){e.dataTransfer.setData('text/cris-block',handle.dataset.drag);e.dataTransfer.effectAllowed='move';}};
     this.el.ondragover=e=>{if([...e.dataTransfer.types].includes('text/cris-block'))e.preventDefault();};
     this.el.ondrop=e=>{const row=e.target.closest('[data-block-row]'),from=e.dataTransfer.getData('text/cris-block');if(!row||from==='')return;e.preventDefault();const target=+row.dataset.blockRow,[b]=this.blocks.splice(+from,1);this.blocks.splice(target,0,b);this.active=target;this.changed();this.render({index:target});};
@@ -60,7 +80,7 @@ ${esc(b.text)}</textarea></label></div></details>`;
   focus({index=this.active,offset=null,cell=null}={}){
     this.active=Math.max(0,Math.min(index,this.blocks.length-1));let field=this.el.querySelector(`[data-block="${this.active}"]${cell?`[data-cell-row="${cell.row}"][data-cell-col="${cell.col}"]`:''}`);
     if(field?.dataset.toggleField){
-      field.closest('details').open=true;field.focus();return;
+      field.focus();return;
     }
     if(!field&&this.blocks[this.active]?.type==='divider'){this.add(this.active+1);return;}if(!field)return;field.focus();const selection=getSelection(),range=document.createRange();range.selectNodeContents(field);range.collapse(false);
     if(offset!==null){const walker=document.createTreeWalker(field,4);let node,left=offset;while(node=walker.nextNode()){if(left<=node.textContent.length){range.setStart(node,left);range.collapse(true);break;}left-=node.textContent.length;}if(offset===0){range.setStart(field,0);range.collapse(true);}}
@@ -74,7 +94,16 @@ ${esc(b.text)}</textarea></label></div></details>`;
     return {range,startField:start,endField:end,start:+start.dataset.block,end:+end.dataset.block,before:read(before),after:read(after),collapsed:range.collapsed};
   }
   keydown(e){
-    if(e.isComposing)return;const field=e.target.closest('[data-block]');if(!field||field.dataset.toggleField)return;this.active=+field.dataset.block;const b=this.blocks[this.active],mod=e.ctrlKey||e.metaKey,key=e.key.toLowerCase();
+    if(e.isComposing)return;const field=e.target.closest('[data-block]');if(!field)return;
+    if(field.dataset.toggleField==='title'&&e.key==='Enter'){
+      e.preventDefault();
+      const toggle=field.closest('.script-toggle').querySelector('[data-toggle-button]');
+      if(toggle.getAttribute('aria-expanded')==='false')toggle.click();
+      field.closest('.script-toggle').querySelector('[data-toggle-field=text]').focus();
+      return;
+    }
+    if(field.dataset.toggleField)return;
+    this.active=+field.dataset.block;const b=this.blocks[this.active],mod=e.ctrlKey||e.metaKey,key=e.key.toLowerCase();
     if(mod&&key==='z'){e.preventDefault();this.undo(e.shiftKey?1:-1);return;}if(mod&&key==='y'){e.preventDefault();this.undo(1);return;}
     if(mod&&['b','i','e'].includes(key)){e.preventDefault();this.captureSelection();this.format({b:'bold',i:'italic',e:'code'}[key]);return;}
     if(mod&&key==='k'){e.preventDefault();this.captureSelection();this.options.onRequestLink();return;}
