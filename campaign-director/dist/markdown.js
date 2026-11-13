@@ -1,3 +1,5 @@
+import {protectColorMarkup,serializeColor} from './editor-colors.js';
+
 const decodeURIComponentSafe=value=>{try{return decodeURIComponent(value);}catch{return value;}};
 export const escapeHTML = value => String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 export function tableCells(line){
@@ -10,6 +12,15 @@ export function parseBlocks(markdown) {
   const flush=()=>{if(paragraph.length){result.push({type:'paragraph',text:paragraph.join('\n')});paragraph=[];}};
   for(let i=0;i<lines.length;i++){
     const raw=lines[i],text=raw.trim();if(!text){flush();continue;}
+    const toggle = raw.match(/^<!--cris:toggle:v1 (.+)-->$/);
+    if(toggle){
+      try {
+        const {title, text: content} = JSON.parse(toggle[1]);
+        if(typeof title==='string' && typeof content==='string'){
+          flush();result.push({type:'toggle',title,text:content});continue;
+        }
+      } catch { /* Preserve malformed markers as ordinary text. */ }
+    }
     if(text.includes('|')&&i+1<lines.length&&tableCells(lines[i+1]).every(cell=>/^:?-{3,}:?$/.test(cell))){
       flush();const headers=tableCells(text),align=tableCells(lines[++i]).map(v=>v.startsWith(':')&&v.endsWith(':')?'center':v.endsWith(':')?'right':'left'),rows=[];
       while(i+1<lines.length&&lines[i+1].trim()&&lines[i+1].includes('|')){const row=tableCells(lines[++i]);rows.push(headers.map((_,n)=>row[n]||''));}
@@ -34,6 +45,10 @@ const lineEscape=value=>String(value??'').replace(/\n/g,'<br>');
 const tableEscape=value=>lineEscape(value).replace(/\|/g,'\\|');
 export function blocksToMarkdown(blocks){return blocks.map(b=>{
   const prefix={h1:'# ',h2:'## ',h3:'### ',quote:'> ',list:'- '};
+  if(b.type==='toggle'){
+    const data=JSON.stringify({title:b.title??'',text:b.text??''}).replace(/-/g,'\\u002d').replace(/</g,'\\u003c');
+    return '<!--cris:toggle:v1 '+data+'-->';
+  }
   if(b.type==='table'){const headers=b.headers||['Coluna 1','Coluna 2'];return ['| '+headers.map(tableEscape).join(' | ')+' |','| '+headers.map((_,i)=>({left:'---',right:'---:',center:':---:'})[b.align?.[i]]||'---').join(' | ')+' |',...(b.rows||[]).map(row=>'| '+headers.map((_,i)=>tableEscape(row[i])).join(' | ')+' |')].join('\n');}
   if(b.type==='clue')return `[[clue${b.action==='hide'?'-hide':''}:${b.campaignId||''}:${encodeURIComponent(b.itemId||'')}|${lineEscape(b.text).replace(/\|/g,'·')}]]`;
   if(b.type==='cue')return `[[cue:${b.triggerId||''}|${lineEscape(b.text)}]]`;
@@ -51,7 +66,7 @@ export function inlineHTML(text,pages=[],editing=false) {
     const lookup=target.replace(/^page:/,''),page=pages.find(p=>p.id===lookup||p.title.toLocaleLowerCase()===lookup.toLocaleLowerCase());
     return token(editing?`<span class="wiki-token" contenteditable="false" data-markdown="${escapeHTML(_)}">↗ ${escapeHTML(label||page?.title||lookup)}</span>`:`<button class="wiki-link ${page?'':'unresolved'}" data-page-link="${escapeHTML(page?.id||'')}" data-link-title="${escapeHTML(lookup)}">↗ ${escapeHTML(label||page?.title||lookup)}</button>`);
   });
-  source=escapeHTML(source).replace(/\*\*\*([\s\S]+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*([\s\S]+?)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>').replace(/~~(.+?)~~/g,'<s>$1</s>').replace(/\n/g,'<br>');
+  source=escapeHTML(protectColorMarkup(source,token)).replace(/\*\*\*([\s\S]+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*([\s\S]+?)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>').replace(/~~(.+?)~~/g,'<s>$1</s>').replace(/\n/g,'<br>');
   return source.replace(/\u0000(\d+)\u0000/g,(_,index)=>tokens[Number(index)]||'');
 }
 export function editableToMarkdown(element,{trim=true}={}) {
@@ -65,7 +80,7 @@ export function editableToMarkdown(element,{trim=true}={}) {
     if(node.tagName==='CODE')return text?'`'+text+'`':'';
     if(node.tagName==='BR')return '\n';
     if(['DIV','P'].includes(node.tagName))return '\n'+text;
-    return text;
+    return serializeColor(node,text);
   }
   const text=[...element.childNodes].map(walk).join('').replace(/\n{3,}/g,'\n\n');return trim?text.trim():text;
 }
@@ -77,6 +92,10 @@ export function renderReadBlocks(blocks,pages=[]) {
   let html='',listType=null;
   blocks.forEach((b,i)=>{
     const list=['list','numbered'].includes(b.type)?b.type:null;if(listType&&listType!==list){html+=listType==='numbered'?'</ol>':'</ul>';listType=null;}
+    if(b.type==='toggle'){
+      const paragraphs=String(b.text??'').split(/\n{2,}/).map(part=>'<p>'+escapeHTML(part)+'</p>').join('');
+      html+=`<details class="script-toggle"><summary>${escapeHTML(b.title||'Recolhível')}</summary><div class="script-toggle-content">${paragraphs}</div></details>`;return;
+    }
     const text=inlineHTML(b.text,pages);
     if(list){if(!listType){html+=list==='numbered'?`<ol class="document-list" start="${b.number||1}">`:'<ul class="document-list">';listType=list;}html+=`<li>${text}</li>`;return;}
     if(b.type==='table'){html+=renderTable(b,pages);return;}
