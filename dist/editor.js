@@ -41,6 +41,10 @@ export class BlockEditor {
     }).join('')+`<button type="button" class="add-block-line" data-add="${this.blocks.length-1}">${icon('plus')} Adicionar bloco <span>/</span></button>`;
     let typedShortcut=null;
     this.el.onbeforeinput=e=>{
+      if(e.cancelable&&e.inputType==='deleteContentBackward'&&!e.isComposing&&this.removeEmptyToggle(e.target)){
+        e.preventDefault();
+        return;
+      }
       if(!typedShortcut||e.target!==typedShortcut.field||e.isComposing||e.inputType!=='insertText'||e.data!==' '||!e.cancelable)return;
       const {field,marker}=typedShortcut;
       const parts=this.selectionParts(),index=+field.dataset.block;
@@ -115,8 +119,26 @@ export class BlockEditor {
     const read=r=>{const box=document.createElement('div');box.append(r.cloneContents());return editableToMarkdown(box);};
     return {range,startField:start,endField:end,start:+start.dataset.block,end:+end.dataset.block,before:read(before),after:read(after),collapsed:range.collapsed};
   }
+  removeEmptyToggle(field){
+    if(field.dataset.toggleField!=='title')return false;
+    const index=+field.dataset.block,block=this.blocks[index],selection=getSelection();
+    if(block?.type!=='toggle'||block.title.trim()||block.text.trim()||field.textContent.trim()||
+      !selection?.isCollapsed||!field.contains(selection.anchorNode))return false;
+    this.blocks.splice(index,1);
+    const previous=this.blocks.slice(0,index).findLastIndex(block=>block.type!=='divider');
+    const next=this.blocks.findIndex((block,i)=>i>=index&&block.type!=='divider');
+    if(previous<0&&next<0)this.blocks.splice(index,0,newBlock());
+    this.active=previous>=0?previous:next>=0?next:index;
+    this.changed();
+    this.render({index:this.active,offset:previous>=0?null:0});
+    return true;
+  }
   keydown(e){
     if(e.isComposing)return;const field=e.target.closest('[data-block]');if(!field)return;
+    if(e.key==='Backspace'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&this.removeEmptyToggle(field)){
+      e.preventDefault();
+      return;
+    }
     if(field.dataset.toggleField==='title'&&e.key==='Enter'){
       e.preventDefault();
       const toggle=field.closest('.script-toggle').querySelector('[data-toggle-button]');

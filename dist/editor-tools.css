@@ -9,18 +9,18 @@
 
 .script-toggle{min-width:0;overflow-wrap:anywhere}
 .script-toggle>summary{cursor:pointer;padding:10px 0;font-weight:600}
-.script-toggle-content{border-inline-start:1px solid currentColor;padding-inline-start:14px;min-width:0}
+.script-toggle-content{padding-inline-start:14px;min-width:0}
 .script-toggle-content p{white-space:pre-wrap}
 .script-toggle-heading{display:flex;align-items:flex-start;gap:4px}
 .script-toggle-heading button{flex:0 0 32px;min-height:36px;border:0;background:transparent;color:inherit;cursor:pointer;font:inherit;opacity:.75}
 .script-toggle-heading button[aria-expanded=true]{transform:rotate(90deg)}
 .script-toggle-heading button:focus-visible{outline:1px solid currentColor;outline-offset:2px}
 .script-toggle-title:focus,.script-toggle-text:focus{outline:none;background:transparent;box-shadow:none;caret-color:currentColor}
-.script-toggle-title:focus-visible,.script-toggle-text:focus-visible{outline:1px solid transparent;outline-offset:2px;box-shadow:-2px 0 0 currentColor}
+.script-toggle-title:focus-visible,.script-toggle-text:focus-visible{outline:1px solid transparent;text-decoration:underline dotted #8e819a;text-underline-offset:4px}
 .script-toggle-title{flex:1;min-width:0;padding-block:4px;font-weight:600}
 .script-toggle-title,.script-toggle-text{white-space:pre-wrap;overflow-wrap:anywhere}
 .script-toggle-title:empty::before,.script-toggle-text:empty::before{content:attr(data-placeholder);opacity:.55;pointer-events:none}
-.block-toggle .script-toggle-content{margin-inline-start:16px}
+.block-toggle .script-toggle-content{padding-inline-start:36px}
 .script-toggle-content[hidden]{display:none}
 @media(max-width:600px){.script-toggle-heading button{min-height:44px}.script-toggle-title{padding-block:8px}}
 
