@@ -248,23 +248,32 @@ $('#newPage').onclick=()=>createPage();$('#newPageBottom').onclick=()=>createPag
 const desktopSidebarToggle=$('#desktopSidebarToggle');
 desktopSidebarToggle.innerHTML=icon('chevron');
 let sidebarScrollTop=0;
-desktopSidebarToggle.onclick=()=>{
-  const sidebar=$('#sidebar'),card=$('.document-card'),body=$('#documentBody');
-  // Keep the same script block at the same offset when line wrapping changes.
+function preserveReadingPosition(changeLayout){
+  const card=$('.document-card'),body=$('#documentBody');
+  // Keep the visible script block in view when its lines wrap differently.
   const readingTop=card?.querySelector('.document-top')?.getBoundingClientRect().bottom;
   const anchor=readingTop!==undefined&&body
     ? [...body.children].find(block=>block.getBoundingClientRect().bottom>readingTop)
     : null;
   const anchorTop=anchor?.getBoundingClientRect().top;
-  const collapsing=!document.body.classList.contains('desktop-sidebar-collapsed');
-  if(collapsing)sidebarScrollTop=sidebar.scrollTop;
-  document.body.classList.toggle('desktop-sidebar-collapsed',collapsing);
-  if(!collapsing)sidebar.scrollTop=sidebarScrollTop;
+  changeLayout();
   if(anchor){
     const rect=anchor.getBoundingClientRect();
     const top=Math.max(anchorTop,readingTop-rect.height+1);
     card.scrollTop+=rect.top-top;
   }
+}
+$('#directorLayout').onchange=e=>preserveReadingPosition(()=>{
+  document.body.dataset.directorLayout=e.target.value;
+});
+desktopSidebarToggle.onclick=()=>{
+  const sidebar=$('#sidebar');
+  const collapsing=!document.body.classList.contains('desktop-sidebar-collapsed');
+  if(collapsing)sidebarScrollTop=sidebar.scrollTop;
+  preserveReadingPosition(()=>{
+    document.body.classList.toggle('desktop-sidebar-collapsed',collapsing);
+    if(!collapsing)sidebar.scrollTop=sidebarScrollTop;
+  });
   const label=collapsing?'Restaurar navegação':'Recolher navegação';
   desktopSidebarToggle.setAttribute('aria-expanded',String(!collapsing));
   desktopSidebarToggle.setAttribute('aria-label',label);

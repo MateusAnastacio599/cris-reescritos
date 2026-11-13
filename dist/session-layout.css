@@ -62,3 +62,16 @@
  .desktop-sidebar-collapsed #sidebar{display:none}
  .desktop-sidebar-collapsed .main-shell{margin-left:0}
 }
+
+.desktop-director-layout{display:none}
+@media(min-width:961px){
+ body:has(#directorPanel) .desktop-director-layout{display:flex;align-items:center;gap:6px;white-space:nowrap;color:var(--muted);font-size:11px}
+ .desktop-director-layout select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:5px}
+ body[data-director-layout=compact] .stage-layout{grid-template-columns:minmax(0,1fr) 210px}
+ body[data-director-layout=collapsed] .stage-layout{grid-template-columns:minmax(0,1fr)}
+ body[data-director-layout=collapsed] #directorPanel{display:none}
+ [data-director-layout=compact] #directorPanel{padding-inline:12px}
+ [data-director-layout=compact] .director-tabs button{padding-inline:7px}
+ [data-director-layout=compact] .trigger-grid{grid-template-columns:minmax(0,1fr)}
+ [data-director-layout=compact] #directorPanel :is(.crossfade-control,.scene-launch kbd,.director-footnote,[data-scene-section=layers],[data-scene-section=timeline]){display:none}
+}
