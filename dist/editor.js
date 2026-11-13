@@ -3,6 +3,7 @@ import {BLOCK_TYPES,newBlock,splitBlocks,EditorHistory} from './editor-model.js'
 import {clipboardBlocks} from './editor-clipboard.js';
 import {icon} from './icons.js';
 
+const writingShortcuts=new Map([['#','h1'],['##','h2'],['###','h3'],['>','toggle']]);
 const isCell=field=>field?.dataset.cellRow!==undefined;
 export class BlockEditor {
   constructor(element,options){this.el=element;this.options=options;this.blocks=parseBlocks(options.markdown);this.active=0;this.openToggles=new WeakSet();this.history=new EditorHistory(this.blocks);this.abort=new AbortController();document.addEventListener('selectionchange',()=>{this.captureSelection();this.selectionToolbar();},{signal:this.abort.signal});this.render();}
@@ -37,7 +38,20 @@ export class BlockEditor {
       if(b.type==='table')body=renderTable(b,this.options.pages,true,i)+`<div class="table-controls" contenteditable="false"><button type="button" data-table-action="row" data-table="${i}">+ Linha</button><button type="button" data-table-action="column" data-table="${i}">+ Coluna</button><button type="button" data-table-action="remove-row" data-table="${i}">− Linha</button><button type="button" data-table-action="remove-column" data-table="${i}">− Coluna</button></div>`;
       return `<div class="editor-block block-${b.type}" data-block-row="${i}">${tools}${body}</div>`;
     }).join('')+`<button type="button" class="add-block-line" data-add="${this.blocks.length-1}">${icon('plus')} Adicionar bloco <span>/</span></button>`;
+    let typedShortcut=null;
+    this.el.onbeforeinput=e=>{
+      if(!typedShortcut||e.target!==typedShortcut.field||e.isComposing||e.inputType!=='insertText'||e.data!==' '||!e.cancelable)return;
+      const {field,marker}=typedShortcut;
+      const parts=this.selectionParts(),index=+field.dataset.block;
+      if(!parts?.collapsed||parts.startField!==field||parts.before!==marker||parts.after||field.textContent!==marker||this.blocks[index]?.type!=='paragraph'||this.blocks[index].text!==marker)return;
+      e.preventDefault();
+      this.active=index;
+      this.blocks[index]=newBlock(writingShortcuts.get(marker),this.options.triggers);
+      this.changed();
+      this.render({index,offset:0});
+    };
     this.el.oninput=e=>{
+      typedShortcut=null;
       const key=e.target.dataset.toggleField;
       if(key){
         this.active=+e.target.dataset.block;
@@ -45,7 +59,14 @@ export class BlockEditor {
         this.blocks[this.active][key]=key==='title'?text.replace(/\n+/g,' '):text;
         this.changed(true);return;
       }
-      const field=e.target.closest('[data-block]');this.syncField(field);if(field)this.active=+field.dataset.block;this.changed(true);};
+      const field=e.target.closest('[data-block]');this.syncField(field);
+      if(field){
+        this.active=+field.dataset.block;
+        const block=this.blocks[this.active];
+        if(e.inputType==='insertText'&&block?.type==='paragraph'&&writingShortcuts.has(block.text)&&field.textContent===block.text)typedShortcut={field,marker:block.text};
+      }
+      this.changed(true);
+    };
     this.el.onfocusin=e=>{const field=e.target.closest('[data-block]');if(!field)return;this.active=+field.dataset.block;this.activeCell=isCell(field)?{row:+field.dataset.cellRow,col:+field.dataset.cellCol}:null;this.options.onActive?.(this.blocks[this.active].type);};
     this.el.onclick=e=>{
       const toggle=e.target.closest('[data-toggle-button]');
@@ -102,9 +123,10 @@ export class BlockEditor {
       field.closest('.script-toggle').querySelector('[data-toggle-field=text]').focus();
       return;
     }
-    if(field.dataset.toggleField)return;
-    this.active=+field.dataset.block;const b=this.blocks[this.active],mod=e.ctrlKey||e.metaKey,key=e.key.toLowerCase();
+    const mod=e.ctrlKey||e.metaKey,key=e.key.toLowerCase();
     if(mod&&key==='z'){e.preventDefault();this.undo(e.shiftKey?1:-1);return;}if(mod&&key==='y'){e.preventDefault();this.undo(1);return;}
+    if(field.dataset.toggleField)return;
+    this.active=+field.dataset.block;const b=this.blocks[this.active];
     if(mod&&['b','i','e'].includes(key)){e.preventDefault();this.captureSelection();this.format({b:'bold',i:'italic',e:'code'}[key]);return;}
     if(mod&&key==='k'){e.preventDefault();this.captureSelection();this.options.onRequestLink();return;}
     if(mod&&e.altKey&&['1','2','3','0'].includes(key)){e.preventDefault();this.setType(key==='0'?'paragraph':'h'+key);return;}
@@ -125,7 +147,7 @@ export class BlockEditor {
       if(parts.collapsed&&e.key==='Delete'&&!parts.after){const next=this.blocks[this.active+1];if(next&&!['table','divider','toggle'].includes(next.type)){e.preventDefault();const offset=this.plainLength(b.text);b.text+=next.text;this.blocks.splice(this.active+1,1);this.changed();this.render({index:this.active,offset});return;}}
     }
     if(e.key==='/'&&!field.textContent.trim()){e.preventDefault();this.menu(field,'convert');return;}
-    if(e.key===' '&&parts.collapsed&&!parts.after){const shortcuts={'#':'h1','##':'h2','###':'h3','-':'list','*':'list','1.':'numbered','[]':'todo','[ ]':'todo','>':'quote','---':'divider'},type=shortcuts[field.textContent];if(type){e.preventDefault();b.text='';this.setType(type);}}
+    if(e.key===' '&&parts.collapsed&&!parts.after){const shortcuts={'-':'list','*':'list','1.':'numbered','[]':'todo','[ ]':'todo','---':'divider'},type=shortcuts[field.textContent];if(type){e.preventDefault();b.text='';this.setType(type);}}
   }
   plainLength(markdown){const box=document.createElement('div');box.innerHTML=inlineHTML(markdown,this.options.pages);return box.textContent.length;}
   add(index,type='paragraph'){this.blocks.splice(index,0,newBlock(type,this.options.triggers));this.active=index;this.changed();this.render({index,offset:0});if(type==='clue')this.options.onRequestClue?.(index);}
