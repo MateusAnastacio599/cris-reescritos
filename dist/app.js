@@ -245,6 +245,31 @@ $('#openLibrary').innerHTML=icon('headphones')+'<span>Biblioteca de áudio</span
 $('#dockPrevious').innerHTML=icon('previous');$('#dockNext').innerHTML=icon('skip');$('#dockStop').innerHTML=icon('stop');$('#volumeIcon').innerHTML=icon('volume');$('#openMixer').innerHTML=icon('sliders')+'<span>Mixer</span>';
 $('#homeBrand').onclick=e=>{e.preventDefault();navigate();};$('#campaignSwitch').onchange=e=>{const c=state.campaigns.find(c=>c.id===e.target.value);navigate({campaignId:c.id,pageId:c.pages[0].id,sceneId:c.pages[0].scenes[0].id});};
 $('#newPage').onclick=()=>createPage();$('#newPageBottom').onclick=()=>createPage();$('#manageCampaigns').onclick=manageCampaigns;$('#openSearch').onclick=openSearch;$('#openLibrary').onclick=()=>navigate({view:'library'});$('#openAmbiences').onclick=()=>navigate({view:'ambiences'});$('#helpButton').onclick=showHelp;
+const desktopSidebarToggle=$('#desktopSidebarToggle');
+desktopSidebarToggle.innerHTML=icon('chevron');
+let sidebarScrollTop=0;
+desktopSidebarToggle.onclick=()=>{
+  const sidebar=$('#sidebar'),card=$('.document-card'),body=$('#documentBody');
+  // Keep the same script block at the same offset when line wrapping changes.
+  const readingTop=card?.querySelector('.document-top')?.getBoundingClientRect().bottom;
+  const anchor=readingTop!==undefined&&body
+    ? [...body.children].find(block=>block.getBoundingClientRect().bottom>readingTop)
+    : null;
+  const anchorTop=anchor?.getBoundingClientRect().top;
+  const collapsing=!document.body.classList.contains('desktop-sidebar-collapsed');
+  if(collapsing)sidebarScrollTop=sidebar.scrollTop;
+  document.body.classList.toggle('desktop-sidebar-collapsed',collapsing);
+  if(!collapsing)sidebar.scrollTop=sidebarScrollTop;
+  if(anchor){
+    const rect=anchor.getBoundingClientRect();
+    const top=Math.max(anchorTop,readingTop-rect.height+1);
+    card.scrollTop+=rect.top-top;
+  }
+  const label=collapsing?'Restaurar navegação':'Recolher navegação';
+  desktopSidebarToggle.setAttribute('aria-expanded',String(!collapsing));
+  desktopSidebarToggle.setAttribute('aria-label',label);
+  desktopSidebarToggle.title=label;
+};
 $('#menuToggle').onclick=()=>document.body.classList.toggle('sidebar-open');$('#sidebarScrim').onclick=()=>document.body.classList.remove('sidebar-open');
 setupSessionTools();
 $('#sessionMode').onclick=()=>{persist();state.ui.sessionMode=!state.ui.sessionMode;editing=false;commit(true);};

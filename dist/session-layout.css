@@ -52,3 +52,13 @@
 @media(min-width:761px){body.session-mode:has(.stage-layout) .workspace{padding-top:17px}.session-mode .scene-navigation{margin-top:8px;margin-bottom:14px}.session-mode .scene-tab{padding-top:10px;padding-bottom:11px}.session-mode .document-body{padding-inline:clamp(25px,3.2vw,58px)}}
 @media(min-width:961px){.session-mode{--sidebar-width:218px}.session-mode .sidebar{padding:23px 12px 14px}.session-mode .stage-layout{grid-template-columns:minmax(0,1fr) clamp(280px,20vw,320px);gap:20px}}
 @media(max-width:760px){.session-mode .document-body,.session-mode .document-body em{font-size:16px;line-height:1.8}.session-mode .document-body{padding-top:24px}.session-mode .page-title-row h1{font-size:25px}.session-mode .page-actions>.session-board-link span{display:inline}.session-mode .page-actions>.session-board-link{padding:7px 9px;font-size:10px;gap:5px}.session-mode .trigger-button{min-height:48px}.session-mode .trigger-button strong{font-size:12px}.session-mode .scene-launch{min-height:44px}.session-mode .director-heading{top:54px}}
+
+
+.desktop-sidebar-toggle{display:none}
+@media(min-width:961px){
+ .desktop-sidebar-toggle{display:inline-flex;flex:none}
+ .desktop-sidebar-toggle .icon{transform:rotate(180deg)}
+ .desktop-sidebar-toggle[aria-expanded=false] .icon{transform:none}
+ .desktop-sidebar-collapsed #sidebar{display:none}
+ .desktop-sidebar-collapsed .main-shell{margin-left:0}
+}
