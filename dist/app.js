@@ -63,9 +63,29 @@ function renderApp(){
   updateAudioUI();
 }
 function renderTree(){
-  const groups=[...new Set(campaign().pages.map(p=>p.folder||'Páginas'))];
-  $('#pageTree').innerHTML=groups.map(folder=>`<div class="tree-folder"><button class="folder-toggle ${collapsed.has(folder)?'collapsed':''}" data-folder="${esc(folder)}">${icon('down')}<span>${esc(folder)}</span><small>${campaign().pages.filter(p=>(p.folder||'Páginas')===folder).length}</small></button>${collapsed.has(folder)?'':campaign().pages.filter(p=>(p.folder||'Páginas')===folder).map(p=>`<button class="page-item ${p.id===page().id&&state.ui.view==='document'?'active':''}" data-page="${esc(p.id)}">${icon(p.icon||'file')}<span>${esc(p.title)}</span>${p.id===page().id&&state.ui.view==='document'?'<i></i>':''}</button>`).join('')}</div>`).join('');
-  $$('[data-folder]').forEach(b=>b.onclick=()=>{collapsed.has(b.dataset.folder)?collapsed.delete(b.dataset.folder):collapsed.add(b.dataset.folder);renderTree();});
+  const tree=$('#pageTree'),sidebar=$('#sidebar'),scrollTop=sidebar.scrollTop;
+  const groups=new Map();
+  for(const p of campaign().pages){
+    const folder=p.folder||'Páginas';
+    if(!groups.has(folder))groups.set(folder,[]);
+    groups.get(folder).push(p);
+  }
+  tree.innerHTML=[...groups].map(([folder,pages],index)=>{
+    const expanded=!collapsed.has(folder),id=`page-folder-${index}`;
+    const items=expanded?pages.map(p=>{
+      const active=p.id===page().id&&state.ui.view==='document';
+      return `<button class="page-item ${active?'active':''}" data-page="${esc(p.id)}"${active?' aria-current="page"':''}>${icon(p.icon||'file')}<span class="page-item-label"><span>${esc(p.title)}</span>${active?`<small title="${esc(scene().title)}">${esc(scene().title)}</small>`:''}</span>${active?'<i></i>':''}</button>`;
+    }).join(''):'';
+    return `<div class="tree-folder"><button class="folder-toggle ${expanded?'':'collapsed'}" data-folder="${esc(folder)}" aria-expanded="${expanded}" aria-controls="${id}">${icon('down')}<span>${esc(folder)}</span><small>${pages.length}</small></button><div id="${id}" ${expanded?'':'hidden'}>${items}</div></div>`;
+  }).join('');
+  sidebar.scrollTop=scrollTop;
+  const folders=$$('[data-folder]',tree);
+  folders.forEach((button,index)=>button.onclick=()=>{
+    const folder=button.dataset.folder;
+    if(collapsed.has(folder))collapsed.delete(folder);else collapsed.add(folder);
+    renderTree();
+    $$('[data-folder]',tree)[index].focus({preventScroll:true});
+  });
   $$('[data-page]').forEach(b=>b.onclick=()=>navigate({pageId:b.dataset.page,sceneId:campaign().pages.find(p=>p.id===b.dataset.page).scenes[0].id}));
 }
 function renderDocument(){

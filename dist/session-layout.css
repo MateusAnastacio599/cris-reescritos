@@ -1,5 +1,10 @@
 /* Reading, direction and navigation have independent scroll areas on desktop. */
-.sidebar .page-tree{flex:1;min-height:60px;scrollbar-width:thin;scrollbar-color:#51445e transparent}.sidebar-bottom{flex:none}.sidebar{overflow-y:auto;scrollbar-width:thin}
+.sidebar{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#51445e transparent}
+.sidebar>*{flex-shrink:0}
+.sidebar .page-tree{flex:1 0 auto}
+.sidebar .page-item-label{display:grid;min-width:0}
+.sidebar .page-item-label>span,.sidebar .page-item-label>small{overflow:hidden;text-overflow:ellipsis}
+.sidebar .page-item-label>small{font-size:11px;color:var(--muted)}
 .director-tabs{display:flex;gap:4px;align-items:center;letter-spacing:0}.director-tabs button{font:550 12px var(--sans);color:var(--muted);padding:7px 12px;border-radius:5px}.director-tabs button[aria-selected=true]{color:var(--accent-light);background:var(--accent-bg)}
 .director-panel{scrollbar-width:thin;scrollbar-color:#51445e transparent}.director-heading{gap:8px}.director-heading .director-tabs{font:inherit}.director-section{padding-top:15px;padding-bottom:15px}
 .scene-clue-list{gap:5px}.scene-clue-button{min-height:38px;padding:8px 10px;font-size:12px;line-height:1.4;gap:8px}.scene-clue-button>span{min-width:0;overflow-wrap:anywhere}.scene-clue-button small{display:none}.scene-clue-button svg{width:14px;height:14px}
