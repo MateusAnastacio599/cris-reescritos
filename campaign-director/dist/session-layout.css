@@ -66,7 +66,6 @@
 .desktop-director-layout{display:none}
 @media(min-width:961px){
  body:has(#directorPanel) .desktop-director-layout{display:flex;align-items:center;gap:6px;white-space:nowrap;color:var(--muted);font-size:11px}
- .desktop-director-layout select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:5px}
  body[data-director-layout=compact] .stage-layout{grid-template-columns:minmax(0,1fr) 210px}
  body[data-director-layout=collapsed] .stage-layout{grid-template-columns:minmax(0,1fr)}
  body[data-director-layout=collapsed] #directorPanel{display:none}
@@ -127,3 +126,59 @@
 .director-panel #directorExtras[aria-expanded=true]{color:var(--accent-light);background:var(--accent-bg)}
 
 @media(min-width:961px){[data-director-layout=compact] .director-panel.show-director-extras .crossfade-control{display:none}}
+
+/* Keep reading typography separate from the editor and interface controls. */
+#scriptReadingLayout .document-body{font-family:Georgia,"Times New Roman",serif}
+#scriptReadingLayout .document-body :is(button,input,small,.inline-cue,.inline-board-clue,.read-todo){font-family:var(--sans)}
+#scriptReadingLayout .document-body strong{font-size:inherit;font-weight:700}
+#scriptReadingLayout .document-body em{font-family:inherit;font-size:inherit}
+#scriptReadingLayout .master-note strong{font-size:inherit}
+@media(min-width:961px){
+ #scriptReadingLayout .document-body{max-width:100ch;padding-inline:clamp(20px,2.1vw,36px)}
+ #scriptReadingLayout.script-reading-columns{gap:16px;padding-inline-end:18px;grid-template-columns:minmax(0,1fr) minmax(185px,26%)}
+ #scriptReadingLayout.script-reading-columns .document-body{max-width:none;padding-inline-end:0}
+ #scriptReadingLayout .script-notes-column{padding-block-start:30px}
+}
+
+.quick-pages{display:flex;align-items:center;gap:2px;flex:none;color:var(--muted);font:10px var(--mono)}
+.quick-pages[hidden]{display:none}
+.quick-pages .icon-btn,.director-layout-switch .icon-btn{width:28px;height:30px;padding:5px}
+.quick-pages .icon-btn:disabled{opacity:.35}
+.quick-pages .quick-page-prev .icon{transform:rotate(180deg)}
+body:has(.stage-layout) .topbar .breadcrumbs>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+body.session-mode:has(.stage-layout) .topbar .breadcrumbs>span:last-child{display:inline}
+body.session-mode:has(.stage-layout) .topbar .breadcrumbs>span:first-of-type{display:none}
+@media(max-width:480px){.quick-pages{font-size:9px;gap:0}.quick-pages .icon-btn{width:23px}}
+@media(min-width:961px){
+ body:has(#directorPanel) .director-layout-switch{gap:1px;padding:2px;border:1px solid var(--line);border-radius:6px}
+ .director-layout-switch .icon-btn[aria-pressed=true]{color:var(--accent-light);background:var(--accent-bg)}
+}
+
+.director-panel .director-heading{height:43px;min-height:43px;margin-bottom:10px}
+.director-panel .scene-control-card{padding:9px 10px;background:transparent}
+.director-panel .scene-control-info{margin-bottom:7px}
+.director-panel .scene-launch{min-height:36px;padding:7px 9px;font-size:12px}
+.director-panel .director-section{padding-block:11px}
+.director-panel .trigger-grid{grid-template-columns:minmax(0,1fr);gap:5px}
+.director-panel .trigger-button{display:grid;grid-template-columns:16px minmax(0,1fr) auto;align-items:center;column-gap:7px;min-height:34px;padding:6px 8px;background:#ffffff04;border-color:var(--line)}
+.director-panel .trigger-button:hover,.director-panel .trigger-button.fired{border-color:var(--accent);background:var(--accent-bg)}
+.director-panel .trigger-button .trigger-icon{width:15px;height:15px;margin:0;display:grid;place-items:center}
+.director-panel .trigger-button .trigger-icon .icon{width:14px;height:14px}
+.director-panel .trigger-button strong{grid-column:2;grid-row:1;font-size:11px;overflow-wrap:anywhere}
+.director-panel .trigger-button kbd{grid-column:3;grid-row:1;position:static}
+.director-panel .trigger-button small{grid-column:2;margin:0}
+
+body:has(.stage-layout){--dock-height:60px}
+body.spotify-dock-active:has(.stage-layout){--dock-height:83px}
+body:has(.stage-layout) .audio-dock:not(.has-spotify){gap:clamp(6px,1.2vw,16px)}
+body:has(.stage-layout) .audio-dock .track-art{width:34px;height:34px}
+body:has(.stage-layout) .audio-dock.has-spotify{grid-template-rows:39px 25px;padding-block:7px calc(8px + env(safe-area-inset-bottom))}
+body:has(.stage-layout) .audio-dock.has-spotify .spotify-progress{height:24px}
+@media(max-width:680px){
+ body.spotify-dock-active:has(.stage-layout){--dock-height:117px}
+ body:has(.stage-layout) .audio-dock.has-spotify{grid-template-rows:43px 27px 30px}
+}
+@media(max-width:480px){
+ body:has(.stage-layout) .audio-dock .track-art{width:28px;height:28px}
+ body:has(.stage-layout) .audio-dock .dock-track{gap:5px}
+}

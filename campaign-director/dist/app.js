@@ -64,21 +64,40 @@ function renderApp(){
   normalizeSelection();
   updateSessionMode();
   $('#campaignSwitch').innerHTML=state.campaigns.map(c=>option(c.id,c.title,c.id===campaign().id)).join('');
-  renderTree();$('#openLibrary').classList.toggle('active',state.ui.view==='library');$('#openAmbiences').classList.toggle('active',state.ui.view==='ambiences');
+  renderTree();renderQuickPages();$('#openLibrary').classList.toggle('active',state.ui.view==='library');$('#openAmbiences').classList.toggle('active',state.ui.view==='ambiences');
   $('#breadcrumbs').innerHTML=icon(state.ui.view==='library'?'headphones':state.ui.view==='ambiences'?'rain':'book')+`<span>${esc(campaign().title)}</span><b>/</b><span>${esc(state.ui.view==='library'?'Biblioteca de áudio':state.ui.view==='ambiences'?'Ambientes':page().title)}</span>`;
   if(state.ui.view==='library'){editor=null;library.render($('#workspace'));}
   else if(state.ui.view==='ambiences'){editor=null;ambienceUI.render($('#workspace'));}
   else renderDocument();
   updateAudioUI();
 }
-function renderTree(){
-  const tree=$('#pageTree'),sidebar=$('#sidebar'),scrollTop=sidebar.scrollTop;
+function pageGroups(){
   const groups=new Map();
   for(const p of campaign().pages){
     const folder=p.folder||'Páginas';
     if(!groups.has(folder))groups.set(folder,[]);
     groups.get(folder).push(p);
   }
+  return groups;
+}
+function renderQuickPages(){
+  const pages=[...pageGroups().values()].flat(),current=page(),index=pages.indexOf(current);
+  $('#quickPages').hidden=state.ui.view!=='document'||pages.length<2;
+  const position=$('#quickPagePosition');
+  position.textContent=(index+1)+' / '+pages.length;
+  position.title=current.title;
+  position.setAttribute('aria-label',current.title+', página '+(index+1)+' de '+pages.length);
+  for(const [id,target,label] of [['previousPage',pages[index-1],'Página anterior'],['nextPage',pages[index+1],'Próxima página']]){
+    const button=$('#'+id);
+    button.disabled=!target;
+    button.title=target?label+': '+target.title:label;
+    button.setAttribute('aria-label',button.title);
+    button.onclick=target?()=>navigate({pageId:target.id,sceneId:target.scenes[0].id}):null;
+  }
+}
+function renderTree(){
+  const tree=$('#pageTree'),sidebar=$('#sidebar'),scrollTop=sidebar.scrollTop;
+  const groups=pageGroups();
   tree.innerHTML=[...groups].map(([folder,pages],index)=>{
     const expanded=!collapsed.has(folder),id=`page-folder-${index}`;
     const items=expanded?pages.map(p=>{
@@ -404,9 +423,15 @@ function setupDirectorResize(){
   directorResizeObserver.observe(stage);
   describe();
 }
-$('#directorLayout').onchange=e=>preserveReadingPosition(()=>{
-  document.body.dataset.directorLayout=e.target.value;
-});
+$('#previousPage').innerHTML=icon('chevron');
+$('#nextPage').innerHTML=icon('chevron');
+const directorLayoutButtons=$$('[data-director-layout-option]');
+for(const button of directorLayoutButtons){
+  button.onclick=()=>preserveReadingPosition(()=>{
+    document.body.dataset.directorLayout=button.dataset.directorLayoutOption;
+    for(const option of directorLayoutButtons)option.setAttribute('aria-pressed',String(option===button));
+  });
+}
 desktopSidebarToggle.onclick=()=>{
   const sidebar=$('#sidebar');
   const collapsing=!document.body.classList.contains('desktop-sidebar-collapsed');
