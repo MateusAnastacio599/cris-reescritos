@@ -75,3 +75,18 @@
  [data-director-layout=compact] .trigger-grid{grid-template-columns:minmax(0,1fr)}
  [data-director-layout=compact] #directorPanel :is(.crossfade-control,.scene-launch kbd,.director-footnote,[data-scene-section=layers],[data-scene-section=timeline]){display:none}
 }
+
+.director-resize-handle{display:none}
+@media(min-width:961px){
+ .stage-layout{--director-default-width:clamp(285px,22vw,340px);position:relative}
+ .session-mode .stage-layout{--director-default-width:clamp(280px,20vw,320px)}
+ body:not([data-director-layout=compact]):not([data-director-layout=collapsed]) .stage-layout{
+  grid-template-columns:minmax(0,1fr) clamp(260px,var(--director-width,var(--director-default-width)),min(560px,calc(100% - 430px)))
+ }
+ body:not([data-director-layout=compact]):not([data-director-layout=collapsed]) .director-resize-handle{display:block}
+ .director-resize-handle{position:absolute;grid-column:2;grid-row:1;inset:0 auto 0 -20px;width:20px;cursor:col-resize;touch-action:none}
+ .director-resize-handle::before{content:'';position:absolute;inset:0 9px;background:var(--line-soft)}
+ .director-resize-handle:is(:hover,:focus-visible)::before,.director-resizing .director-resize-handle::before{background:var(--accent)}
+ .director-resize-handle:focus-visible{outline:1px solid var(--accent);outline-offset:-3px}
+ .director-resizing,.director-resizing *{cursor:col-resize!important;user-select:none!important}
+}
