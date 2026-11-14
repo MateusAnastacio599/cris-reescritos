@@ -6,12 +6,25 @@ export function mountSceneSections(root,{session,sceneId}){
   section.classList.toggle('session-empty',Number(section.dataset.count)===0);
   const kind=section.dataset.sceneSection;if(!['layers','timeline'].includes(kind))continue;
   const heading=section.querySelector('.director-section-head h3'),body=document.createElement('div'),button=document.createElement('button');
-  const key=[sceneId,kind,session?'session':'prepare'].join(':'),id='scene-section-'+kind;
+  const id='scene-section-'+kind;
   button.type='button';button.className='scene-section-toggle';button.setAttribute('aria-controls',id);
   while(heading.firstChild)button.append(heading.firstChild);button.insertAdjacentHTML('beforeend',icon('down'));heading.append(button);
   body.id=id;body.className='scene-section-body';while(section.children.length>1)body.append(section.children[1]);section.append(body);
-  const show=open=>{body.hidden=!open;button.setAttribute('aria-expanded',String(open));};show(openSections.get(key)??!session);
-  button.onclick=()=>{const open=body.hidden;openSections.set(key,open);show(open);};
+  button.onclick=()=>{
+   const session=document.body.classList.contains('session-mode');
+   openSections.set(sectionKey(sceneId,kind,session),body.hidden);
+   updateSceneSections(root,{session,sceneId});
+  };
+ }
+ updateSceneSections(root,{session,sceneId});
+}
+function sectionKey(sceneId,kind,session){return [sceneId,kind,session?'session':'prepare'].join(':');}
+export function updateSceneSections(root,{session,sceneId}){
+ for(const section of root?.querySelectorAll('.scene-section-toggle')??[]){
+  const body=section.closest('[data-scene-section]');
+  const open=openSections.get(sectionKey(sceneId,body.dataset.sceneSection,session))??!session;
+  body.querySelector('.scene-section-body').hidden=!open;
+  section.setAttribute('aria-expanded',String(open));
  }
 }
 export function setupSessionTools(){
