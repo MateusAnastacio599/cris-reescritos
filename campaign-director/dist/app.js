@@ -51,6 +51,7 @@ function navigate({campaignId,pageId,sceneId,view='document'}={}){
   state.ui.view=view;normalizeSelection();editing=false;editor=null;document.body.classList.remove('sidebar-open');commit(true);window.scrollTo({top:0,behavior:'instant'});
 }
 function renderApp(){
+  notesLayoutObserver?.disconnect();
   editor?.destroy();editor=null;
   normalizeSelection();document.body.classList.toggle('session-mode',!!state.ui.sessionMode);
   $('#sessionMode').innerHTML=icon('eye')+`<span>${state.ui.sessionMode?'Sair da sessão':'Modo sessão'}</span>`;
@@ -88,11 +89,59 @@ function renderTree(){
   });
   $$('[data-page]').forEach(b=>b.onclick=()=>navigate({pageId:b.dataset.page,sceneId:campaign().pages.find(p=>p.id===b.dataset.page).scenes[0].id}));
 }
+let preferNotesColumns=false,notesLayoutObserver;
+function setupNotesLayout(){
+  const layout=$('#scriptReadingLayout'),button=$('#toggleNotesLayout');
+  if(!layout||!button)return;
+
+  const card=layout.closest('.document-card'),notes=$('#scriptNotesColumn'),list=$('#scriptNotesList');
+  const entries=$$('#documentBody > .master-note').map((note,index)=>{
+    const number=index+1,marker=document.createElement('button');
+    marker.type='button';
+    marker.className='script-note-marker';
+    marker.textContent='Nota '+number;
+    marker.setAttribute('aria-controls','script-note-'+number);
+    note.id='script-note-'+number;
+    note.tabIndex=-1;
+    const label=$('.note-label',note);
+    const originalLabel=label.textContent;
+    marker.onclick=()=>note.focus();
+    return {note,marker,label,originalLabel,number};
+  });
+  const update=()=>{
+    const fits=card.clientWidth>=680;
+    const columns=fits&&preferNotesColumns;
+    button.hidden=!fits;
+    button.setAttribute('aria-pressed',String(columns));
+    if(layout.classList.contains('script-reading-columns')===columns)return;
+    preserveReadingPosition(()=>{
+      layout.classList.toggle('script-reading-columns',columns);
+      notes.hidden=!columns;
+      for(const {note,marker,label,originalLabel,number} of entries){
+        if(columns){
+          note.replaceWith(marker);
+          label.textContent='NOTA DO MESTRE '+number;
+          list.append(note);
+        }else{
+          marker.replaceWith(note);
+          label.textContent=originalLabel;
+        }
+      }
+    });
+  };
+  button.onclick=()=>{preferNotesColumns=!preferNotesColumns;update();};
+  notesLayoutObserver=new ResizeObserver(update);
+  notesLayoutObserver.observe(card);
+  update();
+}
 function renderDocument(){
+  notesLayoutObserver?.disconnect();
   editor?.destroy();editor=null;
   const p=page(),s=scene(),index=p.scenes.indexOf(s),words=s.markdown.replace(/\[\[.*?\]\]/g,'').split(/\s+/).filter(Boolean).length;
+  const blocks=editing?null:sceneClueBlocks(s);
+  const hasNotes=blocks?.some(block=>block.type==='note');
   const backlinks=campaign().pages.filter(other=>other!==p&&other.scenes.some(x=>x.markdown.includes(`[[page:${p.id}`)||x.markdown.toLocaleLowerCase().includes(`[[${p.title.toLocaleLowerCase()}]]`)));
-  $('#workspace').innerHTML=`<section class="page-header"><div class="page-eyebrow"><span class="folder-label">${icon('folder')}${esc(p.folder||'Páginas')}</span><span class="page-kind">${icon('shield')} SÓ PARA O MESTRE</span></div><div class="page-title-row"><div><h1>${esc(p.title)}</h1><div class="page-tags">${(p.tags||[]).map((tag,i)=>`<span class="${i===0?'accent':''}">${esc(tag)}</span>`).join('')}<span class="scene-count">${p.scenes.length} cena${p.scenes.length>1?'s':''}</span></div></div><div class="page-actions"><a class="btn outline session-board-link" href="${new URL('quadro/',crisHome()).href}" target="crisBoard" rel="noopener">${icon('eye')}<span>Quadro ↗</span></a><button class="btn outline" id="openBoardClues">${icon('eye')}<span>Pistas do quadro</span></button><button class="icon-btn" id="pageOptions" title="Opções da página e cena" aria-label="Opções da página e cena">${icon('more')}</button><button class="btn ${editing?'outline':'primary'}" id="toggleEdit">${icon(editing?'check':'edit')}<span>${editing?'Concluir edição':'Editar página'}</span></button></div></div></section><div class="scene-navigation"><div class="scene-tabs" role="tablist" aria-label="Cenas">${p.scenes.map((x,i)=>`<button role="tab" aria-selected="${x.id===s.id}" class="scene-tab ${x.id===s.id?'active':''}" data-scene="${esc(x.id)}"><small>${String(i+1).padStart(2,'0')}</small>${esc(x.title)}${x.id===s.id?'<i></i>':''}</button>`).join('')}<button class="new-scene" id="newScene" aria-label="Adicionar cena" title="Adicionar cena">${icon('plus')}</button></div><div class="scene-position">CENA <b>${String(index+1).padStart(2,'0')}</b><span>/ ${String(p.scenes.length).padStart(2,'0')}</span></div></div><div class="mobile-panel-switch" role="group" aria-label="Painel da cena"><button type="button" class="active" data-mobile-pane="document">${icon('file')} Roteiro</button><button type="button" data-mobile-pane="director">${icon('sliders')} Direção da cena</button></div><div class="stage-layout"><section class="document-card" tabindex="0" aria-label="Roteiro da cena"><div class="document-top"><div class="doc-mode">${icon(editing?'edit':'file')}<span>${editing?'EDITOR VISUAL':'ROTEIRO DO MESTRE'}</span></div><div class="document-meta"><span>${Math.max(1,Math.ceil(words/200))} min de leitura</span><button class="icon-btn" id="markdownSource" title="Editar Markdown" aria-label="Editar código Markdown">${icon('code')}</button></div></div>${editing?`<div class="editor-toolbar"><select id="blockType" aria-label="Tipo do bloco">${[['paragraph','Texto'],['h1','Título 1'],['h2','Título 2'],['h3','Título 3'],['quote','Citação'],['note','Nota'],['toggle','Recolhível'],['list','Lista'],['numbered','Numerada'],['todo','Tarefa'],['table','Tabela'],['cue','Cue'],['clue','Pista do quadro'],['divider','Divisória']].map(([v,l])=>option(v,l)).join('')}</select><span></span><button type="button" id="formatBold" title="Negrito" aria-label="Negrito"><b>B</b></button><button type="button" id="formatItalic" title="Itálico" aria-label="Itálico"><em>I</em></button><button type="button" id="insertPageLink" title="Link para página" aria-label="Inserir link interno">${icon('link')}</button><button type="button" id="editorUndo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button><button type="button" id="editorRedo" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer">↷</button><div class="editor-autosave">${icon('check')} Salvamento automático</div></div>`:''}<article class="document-body ${editing?'is-editing':''}" id="documentBody">${editing?'':renderReadBlocks(sceneClueBlocks(s),campaign().pages)}</article><div class="document-end"><span>FIM DA CENA</span><i></i>${index<p.scenes.length-1?`<button class="next-scene-link" id="nextSceneLink">${esc(p.scenes[index+1].title)} ${icon('arrow')}</button>`:`<span class="end-label">${icon('check')} Roteiro da página concluído</span>`}</div>${backlinks.length?`<div class="backlinks"><span class="section-eyebrow">${icon('link')} MENCIONADO EM</span>${backlinks.map(x=>`<button data-page-link="${esc(x.id)}">${icon('file')}${esc(x.title)}</button>`).join('')}</div>`:''}</section><aside class="director-panel" id="directorPanel" tabindex="0" aria-label="Direção da cena"></aside><div class="director-resize-handle" id="directorResizeHandle" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Largura do painel de direção" aria-controls="directorPanel"></div></div>`;
+  $('#workspace').innerHTML=`<section class="page-header"><div class="page-eyebrow"><span class="folder-label">${icon('folder')}${esc(p.folder||'Páginas')}</span><span class="page-kind">${icon('shield')} SÓ PARA O MESTRE</span></div><div class="page-title-row"><div><h1>${esc(p.title)}</h1><div class="page-tags">${(p.tags||[]).map((tag,i)=>`<span class="${i===0?'accent':''}">${esc(tag)}</span>`).join('')}<span class="scene-count">${p.scenes.length} cena${p.scenes.length>1?'s':''}</span></div></div><div class="page-actions"><a class="btn outline session-board-link" href="${new URL('quadro/',crisHome()).href}" target="crisBoard" rel="noopener">${icon('eye')}<span>Quadro ↗</span></a><button class="btn outline" id="openBoardClues">${icon('eye')}<span>Pistas do quadro</span></button><button class="icon-btn" id="pageOptions" title="Opções da página e cena" aria-label="Opções da página e cena">${icon('more')}</button><button class="btn ${editing?'outline':'primary'}" id="toggleEdit">${icon(editing?'check':'edit')}<span>${editing?'Concluir edição':'Editar página'}</span></button></div></div></section><div class="scene-navigation"><div class="scene-tabs" role="tablist" aria-label="Cenas">${p.scenes.map((x,i)=>`<button role="tab" aria-selected="${x.id===s.id}" class="scene-tab ${x.id===s.id?'active':''}" data-scene="${esc(x.id)}"><small>${String(i+1).padStart(2,'0')}</small>${esc(x.title)}${x.id===s.id?'<i></i>':''}</button>`).join('')}<button class="new-scene" id="newScene" aria-label="Adicionar cena" title="Adicionar cena">${icon('plus')}</button></div><div class="scene-position">CENA <b>${String(index+1).padStart(2,'0')}</b><span>/ ${String(p.scenes.length).padStart(2,'0')}</span></div></div><div class="mobile-panel-switch" role="group" aria-label="Painel da cena"><button type="button" class="active" data-mobile-pane="document">${icon('file')} Roteiro</button><button type="button" data-mobile-pane="director">${icon('sliders')} Direção da cena</button></div><div class="stage-layout"><section class="document-card" tabindex="0" aria-label="Roteiro da cena"><div class="document-top"><div class="doc-mode">${icon(editing?'edit':'file')}<span>${editing?'EDITOR VISUAL':'ROTEIRO DO MESTRE'}</span></div><div class="document-meta"><span>${Math.max(1,Math.ceil(words/200))} min de leitura</span>${hasNotes?'<button type="button" id="toggleNotesLayout" class="notes-layout-toggle" aria-pressed="false" aria-controls="scriptReadingLayout" hidden>Roteiro + Notas</button>':''}<button class="icon-btn" id="markdownSource" title="Editar Markdown" aria-label="Editar código Markdown">${icon('code')}</button></div></div>${editing?`<div class="editor-toolbar"><select id="blockType" aria-label="Tipo do bloco">${[['paragraph','Texto'],['h1','Título 1'],['h2','Título 2'],['h3','Título 3'],['quote','Citação'],['note','Nota'],['toggle','Recolhível'],['list','Lista'],['numbered','Numerada'],['todo','Tarefa'],['table','Tabela'],['cue','Cue'],['clue','Pista do quadro'],['divider','Divisória']].map(([v,l])=>option(v,l)).join('')}</select><span></span><button type="button" id="formatBold" title="Negrito" aria-label="Negrito"><b>B</b></button><button type="button" id="formatItalic" title="Itálico" aria-label="Itálico"><em>I</em></button><button type="button" id="insertPageLink" title="Link para página" aria-label="Inserir link interno">${icon('link')}</button><button type="button" id="editorUndo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button><button type="button" id="editorRedo" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer">↷</button><div class="editor-autosave">${icon('check')} Salvamento automático</div></div>`:''}${editing?'<article class="document-body is-editing" id="documentBody"></article>':`<div id="scriptReadingLayout"><article class="document-body" id="documentBody">${renderReadBlocks(blocks,campaign().pages)}</article>${hasNotes?'<aside id="scriptNotesColumn" class="script-notes-column" aria-labelledby="scriptNotesHeading" hidden><h2 id="scriptNotesHeading">Notas do mestre</h2><div id="scriptNotesList"></div></aside>':''}</div>`}<div class="document-end"><span>FIM DA CENA</span><i></i>${index<p.scenes.length-1?`<button class="next-scene-link" id="nextSceneLink">${esc(p.scenes[index+1].title)} ${icon('arrow')}</button>`:`<span class="end-label">${icon('check')} Roteiro da página concluído</span>`}</div>${backlinks.length?`<div class="backlinks"><span class="section-eyebrow">${icon('link')} MENCIONADO EM</span>${backlinks.map(x=>`<button data-page-link="${esc(x.id)}">${icon('file')}${esc(x.title)}</button>`).join('')}</div>`:''}</section><aside class="director-panel" id="directorPanel" tabindex="0" aria-label="Direção da cena"></aside><div class="director-resize-handle" id="directorResizeHandle" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Largura do painel de direção" aria-controls="directorPanel"></div></div>`;
   setupDirectorResize();
   $$('[data-scene]').forEach(b=>b.onclick=()=>navigate({sceneId:b.dataset.scene}));
   $('#openBoardClues').onpointerdown=()=>editor?.captureSelection();$('#openBoardClues').onclick=()=>pickBoardClue();$('#newScene').onclick=()=>createScene();$('#pageOptions').onclick=()=>pageOptions();$('#toggleEdit').onclick=()=>{editing=!editing;persist();renderDocument();updateAudioUI();};
@@ -105,7 +154,10 @@ function renderDocument(){
     for(const [id,command] of [['formatBold','bold'],['formatItalic','italic']]){const b=$('#'+id);b.onpointerdown=e=>{editor.captureSelection();e.preventDefault();};b.onclick=()=>editor.format(command);}
     $('#insertPageLink').onpointerdown=()=>editor.captureSelection();$('#insertPageLink').onclick=insertPageLink;
   }else editor=null;
-  $('#documentBody').onclick=editing?$('#documentBody').onclick:documentClick;
+  if(!editing){
+    $('#scriptReadingLayout').onclick=documentClick;
+    setupNotesLayout();
+  }
   $$('.backlinks [data-page-link]').forEach(b=>b.onclick=()=>navigate({pageId:b.dataset.pageLink}));
   $$('[data-todo]').forEach(el=>el.onchange=()=>{const blocks=parseBlocks(s.markdown);blocks[Number(el.dataset.todo)].checked=el.checked;s.markdown=blocksToMarkdown(blocks);autosave();});
 }
@@ -254,7 +306,7 @@ function preserveReadingPosition(changeLayout){
   // Keep the visible script block in view when its lines wrap differently.
   const readingTop=card?.querySelector('.document-top')?.getBoundingClientRect().bottom;
   const anchor=readingTop!==undefined&&body
-    ? [...body.children].find(block=>block.getBoundingClientRect().bottom>readingTop)
+    ? [...body.children].find(block=>!block.matches('.master-note,.script-note-marker')&&block.getBoundingClientRect().bottom>readingTop)
     : null;
   const anchorTop=anchor?.getBoundingClientRect().top;
   changeLayout();
