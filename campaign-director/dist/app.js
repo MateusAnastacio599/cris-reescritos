@@ -92,7 +92,8 @@ function renderDocument(){
   editor?.destroy();editor=null;
   const p=page(),s=scene(),index=p.scenes.indexOf(s),words=s.markdown.replace(/\[\[.*?\]\]/g,'').split(/\s+/).filter(Boolean).length;
   const backlinks=campaign().pages.filter(other=>other!==p&&other.scenes.some(x=>x.markdown.includes(`[[page:${p.id}`)||x.markdown.toLocaleLowerCase().includes(`[[${p.title.toLocaleLowerCase()}]]`)));
-  $('#workspace').innerHTML=`<section class="page-header"><div class="page-eyebrow"><span class="folder-label">${icon('folder')}${esc(p.folder||'Páginas')}</span><span class="page-kind">${icon('shield')} SÓ PARA O MESTRE</span></div><div class="page-title-row"><div><h1>${esc(p.title)}</h1><div class="page-tags">${(p.tags||[]).map((tag,i)=>`<span class="${i===0?'accent':''}">${esc(tag)}</span>`).join('')}<span class="scene-count">${p.scenes.length} cena${p.scenes.length>1?'s':''}</span></div></div><div class="page-actions"><a class="btn outline session-board-link" href="${new URL('quadro/',crisHome()).href}" target="crisBoard" rel="noopener">${icon('eye')}<span>Quadro ↗</span></a><button class="btn outline" id="openBoardClues">${icon('eye')}<span>Pistas do quadro</span></button><button class="icon-btn" id="pageOptions" title="Opções da página e cena" aria-label="Opções da página e cena">${icon('more')}</button><button class="btn ${editing?'outline':'primary'}" id="toggleEdit">${icon(editing?'check':'edit')}<span>${editing?'Concluir edição':'Editar página'}</span></button></div></div></section><div class="scene-navigation"><div class="scene-tabs" role="tablist" aria-label="Cenas">${p.scenes.map((x,i)=>`<button role="tab" aria-selected="${x.id===s.id}" class="scene-tab ${x.id===s.id?'active':''}" data-scene="${esc(x.id)}"><small>${String(i+1).padStart(2,'0')}</small>${esc(x.title)}${x.id===s.id?'<i></i>':''}</button>`).join('')}<button class="new-scene" id="newScene" aria-label="Adicionar cena" title="Adicionar cena">${icon('plus')}</button></div><div class="scene-position">CENA <b>${String(index+1).padStart(2,'0')}</b><span>/ ${String(p.scenes.length).padStart(2,'0')}</span></div></div><div class="mobile-panel-switch" role="group" aria-label="Painel da cena"><button type="button" class="active" data-mobile-pane="document">${icon('file')} Roteiro</button><button type="button" data-mobile-pane="director">${icon('sliders')} Direção da cena</button></div><div class="stage-layout"><section class="document-card" tabindex="0" aria-label="Roteiro da cena"><div class="document-top"><div class="doc-mode">${icon(editing?'edit':'file')}<span>${editing?'EDITOR VISUAL':'ROTEIRO DO MESTRE'}</span></div><div class="document-meta"><span>${Math.max(1,Math.ceil(words/200))} min de leitura</span><button class="icon-btn" id="markdownSource" title="Editar Markdown" aria-label="Editar código Markdown">${icon('code')}</button></div></div>${editing?`<div class="editor-toolbar"><select id="blockType" aria-label="Tipo do bloco">${[['paragraph','Texto'],['h1','Título 1'],['h2','Título 2'],['h3','Título 3'],['quote','Citação'],['note','Nota'],['toggle','Recolhível'],['list','Lista'],['numbered','Numerada'],['todo','Tarefa'],['table','Tabela'],['cue','Cue'],['clue','Pista do quadro'],['divider','Divisória']].map(([v,l])=>option(v,l)).join('')}</select><span></span><button type="button" id="formatBold" title="Negrito" aria-label="Negrito"><b>B</b></button><button type="button" id="formatItalic" title="Itálico" aria-label="Itálico"><em>I</em></button><button type="button" id="insertPageLink" title="Link para página" aria-label="Inserir link interno">${icon('link')}</button><button type="button" id="editorUndo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button><button type="button" id="editorRedo" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer">↷</button><div class="editor-autosave">${icon('check')} Salvamento automático</div></div>`:''}<article class="document-body ${editing?'is-editing':''}" id="documentBody">${editing?'':renderReadBlocks(sceneClueBlocks(s),campaign().pages)}</article><div class="document-end"><span>FIM DA CENA</span><i></i>${index<p.scenes.length-1?`<button class="next-scene-link" id="nextSceneLink">${esc(p.scenes[index+1].title)} ${icon('arrow')}</button>`:`<span class="end-label">${icon('check')} Roteiro da página concluído</span>`}</div>${backlinks.length?`<div class="backlinks"><span class="section-eyebrow">${icon('link')} MENCIONADO EM</span>${backlinks.map(x=>`<button data-page-link="${esc(x.id)}">${icon('file')}${esc(x.title)}</button>`).join('')}</div>`:''}</section><aside class="director-panel" id="directorPanel" tabindex="0" aria-label="Direção da cena"></aside></div>`;
+  $('#workspace').innerHTML=`<section class="page-header"><div class="page-eyebrow"><span class="folder-label">${icon('folder')}${esc(p.folder||'Páginas')}</span><span class="page-kind">${icon('shield')} SÓ PARA O MESTRE</span></div><div class="page-title-row"><div><h1>${esc(p.title)}</h1><div class="page-tags">${(p.tags||[]).map((tag,i)=>`<span class="${i===0?'accent':''}">${esc(tag)}</span>`).join('')}<span class="scene-count">${p.scenes.length} cena${p.scenes.length>1?'s':''}</span></div></div><div class="page-actions"><a class="btn outline session-board-link" href="${new URL('quadro/',crisHome()).href}" target="crisBoard" rel="noopener">${icon('eye')}<span>Quadro ↗</span></a><button class="btn outline" id="openBoardClues">${icon('eye')}<span>Pistas do quadro</span></button><button class="icon-btn" id="pageOptions" title="Opções da página e cena" aria-label="Opções da página e cena">${icon('more')}</button><button class="btn ${editing?'outline':'primary'}" id="toggleEdit">${icon(editing?'check':'edit')}<span>${editing?'Concluir edição':'Editar página'}</span></button></div></div></section><div class="scene-navigation"><div class="scene-tabs" role="tablist" aria-label="Cenas">${p.scenes.map((x,i)=>`<button role="tab" aria-selected="${x.id===s.id}" class="scene-tab ${x.id===s.id?'active':''}" data-scene="${esc(x.id)}"><small>${String(i+1).padStart(2,'0')}</small>${esc(x.title)}${x.id===s.id?'<i></i>':''}</button>`).join('')}<button class="new-scene" id="newScene" aria-label="Adicionar cena" title="Adicionar cena">${icon('plus')}</button></div><div class="scene-position">CENA <b>${String(index+1).padStart(2,'0')}</b><span>/ ${String(p.scenes.length).padStart(2,'0')}</span></div></div><div class="mobile-panel-switch" role="group" aria-label="Painel da cena"><button type="button" class="active" data-mobile-pane="document">${icon('file')} Roteiro</button><button type="button" data-mobile-pane="director">${icon('sliders')} Direção da cena</button></div><div class="stage-layout"><section class="document-card" tabindex="0" aria-label="Roteiro da cena"><div class="document-top"><div class="doc-mode">${icon(editing?'edit':'file')}<span>${editing?'EDITOR VISUAL':'ROTEIRO DO MESTRE'}</span></div><div class="document-meta"><span>${Math.max(1,Math.ceil(words/200))} min de leitura</span><button class="icon-btn" id="markdownSource" title="Editar Markdown" aria-label="Editar código Markdown">${icon('code')}</button></div></div>${editing?`<div class="editor-toolbar"><select id="blockType" aria-label="Tipo do bloco">${[['paragraph','Texto'],['h1','Título 1'],['h2','Título 2'],['h3','Título 3'],['quote','Citação'],['note','Nota'],['toggle','Recolhível'],['list','Lista'],['numbered','Numerada'],['todo','Tarefa'],['table','Tabela'],['cue','Cue'],['clue','Pista do quadro'],['divider','Divisória']].map(([v,l])=>option(v,l)).join('')}</select><span></span><button type="button" id="formatBold" title="Negrito" aria-label="Negrito"><b>B</b></button><button type="button" id="formatItalic" title="Itálico" aria-label="Itálico"><em>I</em></button><button type="button" id="insertPageLink" title="Link para página" aria-label="Inserir link interno">${icon('link')}</button><button type="button" id="editorUndo" title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button><button type="button" id="editorRedo" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer">↷</button><div class="editor-autosave">${icon('check')} Salvamento automático</div></div>`:''}<article class="document-body ${editing?'is-editing':''}" id="documentBody">${editing?'':renderReadBlocks(sceneClueBlocks(s),campaign().pages)}</article><div class="document-end"><span>FIM DA CENA</span><i></i>${index<p.scenes.length-1?`<button class="next-scene-link" id="nextSceneLink">${esc(p.scenes[index+1].title)} ${icon('arrow')}</button>`:`<span class="end-label">${icon('check')} Roteiro da página concluído</span>`}</div>${backlinks.length?`<div class="backlinks"><span class="section-eyebrow">${icon('link')} MENCIONADO EM</span>${backlinks.map(x=>`<button data-page-link="${esc(x.id)}">${icon('file')}${esc(x.title)}</button>`).join('')}</div>`:''}</section><aside class="director-panel" id="directorPanel" tabindex="0" aria-label="Direção da cena"></aside><div class="director-resize-handle" id="directorResizeHandle" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Largura do painel de direção" aria-controls="directorPanel"></div></div>`;
+  setupDirectorResize();
   $$('[data-scene]').forEach(b=>b.onclick=()=>navigate({sceneId:b.dataset.scene}));
   $('#openBoardClues').onpointerdown=()=>editor?.captureSelection();$('#openBoardClues').onclick=()=>pickBoardClue();$('#newScene').onclick=()=>createScene();$('#pageOptions').onclick=()=>pageOptions();$('#toggleEdit').onclick=()=>{editing=!editing;persist();renderDocument();updateAudioUI();};
   $('#markdownSource').onclick=()=>openMarkdown();$('#nextSceneLink')?.addEventListener('click',()=>navigate({sceneId:p.scenes[index+1].id}));
@@ -262,6 +263,76 @@ function preserveReadingPosition(changeLayout){
     const top=Math.max(anchorTop,readingTop-rect.height+1);
     card.scrollTop+=rect.top-top;
   }
+}
+const directorWidthKey='cris-director:expanded-panel-width';
+const minDirectorWidth=260,maxDirectorWidth=560,minScriptWidth=410;
+const desktopLayout=matchMedia('(min-width:961px)');
+let directorResizeObserver;
+try{
+  const width=Number(localStorage.getItem(directorWidthKey));
+  if(width>=minDirectorWidth&&width<=maxDirectorWidth)document.body.style.setProperty('--director-width',width+'px');
+}catch{/* Storage may be unavailable in a private session. */}
+function setupDirectorResize(){
+  directorResizeObserver?.disconnect();
+  document.body.classList.remove('director-resizing');
+  const handle=$('#directorResizeHandle'),stage=handle.parentElement,panel=$('#directorPanel');
+  const maxWidth=()=>Math.max(minDirectorWidth,Math.min(maxDirectorWidth,stage.clientWidth-parseFloat(getComputedStyle(stage).columnGap)-minScriptWidth));
+  const describe=()=>{
+    if(!handle.getClientRects().length)return;
+    const width=Math.round(panel.getBoundingClientRect().width);
+    handle.setAttribute('aria-valuemin',String(minDirectorWidth));
+    handle.setAttribute('aria-valuemax',String(maxWidth()));
+    handle.setAttribute('aria-valuenow',String(width));
+    handle.setAttribute('aria-valuetext',width+' pixels');
+  };
+  const resize=value=>{
+    const width=Math.round(Math.max(minDirectorWidth,Math.min(value,maxWidth())));
+    preserveReadingPosition(()=>document.body.style.setProperty('--director-width',width+'px'));
+    describe();
+    return width;
+  };
+  const save=width=>{
+    try{localStorage.setItem(directorWidthKey,String(width));}catch{/* Keep the current width in memory. */}
+  };
+  let drag=null,frame=0;
+  handle.onpointerdown=e=>{
+    if(!e.isPrimary||e.button!==0||!desktopLayout.matches)return;
+    e.preventDefault();
+    handle.focus({preventScroll:true});
+    handle.setPointerCapture(e.pointerId);
+    drag={id:e.pointerId,start:e.clientX,x:e.clientX,width:panel.getBoundingClientRect().width};
+    document.body.classList.add('director-resizing');
+  };
+  const applyDrag=()=>resize(drag.width+drag.start-drag.x);
+  handle.onpointermove=e=>{
+    if(e.pointerId!==drag?.id)return;
+    drag.x=e.clientX;
+    if(!frame)frame=requestAnimationFrame(()=>{
+      frame=0;
+      if(handle.isConnected&&handle.getClientRects().length)applyDrag();
+    });
+  };
+  const finish=e=>{
+    if(e.pointerId!==drag?.id)return;
+    cancelAnimationFrame(frame);
+    frame=0;
+    if(e.type==='pointerup')drag.x=e.clientX;
+    if(desktopLayout.matches&&drag.x!==drag.start&&handle.getClientRects().length)save(applyDrag());
+    drag=null;
+    document.body.classList.remove('director-resizing');
+  };
+  handle.onpointerup=handle.onpointercancel=handle.onlostpointercapture=finish;
+  handle.onkeydown=e=>{
+    const width=panel.getBoundingClientRect().width;
+    const next={ArrowLeft:width+16,ArrowRight:width-16,Home:minDirectorWidth,End:maxWidth()}[e.key];
+    if(next===undefined)return;
+    e.preventDefault();
+    save(resize(next));
+  };
+  directorResizeObserver=new ResizeObserver(describe);
+  directorResizeObserver.observe(panel);
+  directorResizeObserver.observe(stage);
+  describe();
 }
 $('#directorLayout').onchange=e=>preserveReadingPosition(()=>{
   document.body.dataset.directorLayout=e.target.value;
