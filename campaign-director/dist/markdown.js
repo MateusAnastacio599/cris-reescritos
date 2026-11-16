@@ -2,6 +2,17 @@ import {protectColorMarkup,serializeColor,toggleBackground,toggleBackgroundAttri
 
 const decodeURIComponentSafe=value=>{try{return decodeURIComponent(value);}catch{return value;}};
 export const escapeHTML = value => String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const toggleChildTags = new Map([['paragraph','p'],['h1','h1'],['h2','h2'],['h3','h3']]);
+function validToggleChildren(children){
+  if(!Array.isArray(children))return false;
+  for(const child of children){
+    if(!toggleChildTags.has(child?.type)||typeof child.text!=='string'||
+      Object.keys(child).some(key=>key!=='type'&&key!=='text'))return false;
+  }
+  return true;
+}
+export const isRichToggle = block => block?.type === 'toggle' && Array.isArray(block.blocks);
+
 export function tableCells(line){
   const value=line.trim().replace(/^\|/,'').replace(/(?<!\\)\|$/,'');const cells=[];let cell='',escaped=false,wiki=0;
   for(let i=0;i<value.length;i++){const ch=value[i];if(escaped){cell+=ch==='|'?'|':'\\'+ch;escaped=false;continue;}if(ch==='\\'){escaped=true;continue;}if(value.slice(i,i+2)==='[[')wiki++;if(value.slice(i,i+2)===']]')wiki=Math.max(0,wiki-1);if(ch==='|'&&!wiki){cells.push(cell.trim());cell='';}else cell+=ch;}
@@ -23,6 +34,20 @@ export function parseBlocks(markdown) {
           flush();result.push(block);continue;
         }
       } catch { /* Preserve malformed markers as ordinary text. */ }
+    }
+    const richToggle = raw.match(/^<!--cris:toggle:v2 (.*)-->$/s);
+    if(richToggle){
+      let block={type:'paragraph',text:raw};
+      try {
+        const data=JSON.parse(richToggle[1]);
+        if(typeof data?.title==='string' && validToggleChildren(data.blocks) &&
+          Object.keys(data).every(key=>['title','background','blocks'].includes(key))){
+          block={type:'toggle',title:data.title,blocks:data.blocks};
+          const color=toggleBackground(data.background);
+          if(color)block.background=color;
+        }
+      } catch { /* Retain malformed v2 markers verbatim for recovery. */ }
+      flush();result.push(block);continue;
     }
     if(text.includes('|')&&i+1<lines.length&&tableCells(lines[i+1]).every(cell=>/^:?-{3,}:?$/.test(cell))){
       flush();const headers=tableCells(text),align=tableCells(lines[++i]).map(v=>v.startsWith(':')&&v.endsWith(':')?'center':v.endsWith(':')?'right':'left'),rows=[];
@@ -49,8 +74,11 @@ const tableEscape=value=>lineEscape(value).replace(/\|/g,'\\|');
 export function blocksToMarkdown(blocks){return blocks.map(b=>{
   const prefix={h1:'# ',h2:'## ',h3:'### ',quote:'> ',list:'- '};
   if(b.type==='toggle'){
-    const data=JSON.stringify({title:b.title??'',text:b.text??'',background:toggleBackground(b.background)}).replace(/-/g,'\\u002d').replace(/</g,'\\u003c');
-    return '<!--cris:toggle:v1 '+data+'-->';
+    const rich='blocks' in b;
+    if(rich&&(typeof b.title!=='string'||!validToggleChildren(b.blocks)))throw new TypeError('Estrutura do recolhível inválida.');
+    const content=rich?{blocks:b.blocks}:{text:b.text??''};
+    const data=JSON.stringify({title:b.title??'',...content,background:toggleBackground(b.background)}).replace(/-/g,'\\u002d').replace(/</g,'\\u003c');
+    return `<!--cris:toggle:${rich?'v2':'v1'} ${data}-->`;
   }
   if(b.type==='table'){const headers=b.headers||['Coluna 1','Coluna 2'];return ['| '+headers.map(tableEscape).join(' | ')+' |','| '+headers.map((_,i)=>({left:'---',right:'---:',center:':---:'})[b.align?.[i]]||'---').join(' | ')+' |',...(b.rows||[]).map(row=>'| '+headers.map((_,i)=>tableEscape(row[i])).join(' | ')+' |')].join('\n');}
   if(b.type==='clue')return `[[clue${b.action==='hide'?'-hide':''}:${b.campaignId||''}:${encodeURIComponent(b.itemId||'')}|${lineEscape(b.text).replace(/\|/g,'·')}]]`;
@@ -72,6 +100,13 @@ export function inlineHTML(text,pages=[],editing=false) {
   source=escapeHTML(protectColorMarkup(source,token)).replace(/\*\*\*([\s\S]+?)\*\*\*/g,'<strong><em>$1</em></strong>').replace(/\*\*([\s\S]+?)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>').replace(/~~(.+?)~~/g,'<s>$1</s>').replace(/\n/g,'<br>');
   return source.replace(/\u0000(\d+)\u0000/g,(_,index)=>tokens[Number(index)]||'');
 }
+export function renderToggleChildren(children,pages=[]){
+  return children.map(child=>{
+    const tag=toggleChildTags.get(child.type);
+    return `<${tag}>${inlineHTML(child.text,pages)||'<br>'}</${tag}>`;
+  }).join('');
+}
+
 export function editableToMarkdown(element,{trim=true}={}) {
   function walk(node){
     if(node.nodeType===3)return node.textContent.replace(/\u00a0/g,' ');if(node.nodeType!==1)return '';
@@ -96,8 +131,8 @@ export function renderReadBlocks(blocks,pages=[]) {
   blocks.forEach((b,i)=>{
     const list=['list','numbered'].includes(b.type)?b.type:null;if(listType&&listType!==list){html+=listType==='numbered'?'</ol>':'</ul>';listType=null;}
     if(b.type==='toggle'){
-      const paragraphs=String(b.text??'').split(/\n{2,}/).map(part=>'<p>'+escapeHTML(part)+'</p>').join('');
-      html+=`<details class="script-toggle"${toggleBackgroundAttribute(b.background)}><summary>${escapeHTML(b.title||'Recolhível')}</summary><div class="script-toggle-content">${paragraphs}</div></details>`;return;
+      const content=isRichToggle(b)?renderToggleChildren(b.blocks,pages):String(b.text??'').split(/\n{2,}/).map(part=>'<p>'+escapeHTML(part)+'</p>').join('');
+      html+=`<details class="script-toggle"${toggleBackgroundAttribute(b.background)}><summary>${escapeHTML(b.title||'Recolhível')}</summary><div class="script-toggle-content">${content}</div></details>`;return;
     }
     const text=inlineHTML(b.text,pages);
     if(list){if(!listType){html+=list==='numbered'?`<ol class="document-list" start="${b.number||1}">`:'<ul class="document-list">';listType=list;}html+=`<li>${text}</li>`;return;}
