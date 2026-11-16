@@ -5,6 +5,15 @@ export const scriptColors = [
 
 const palette = new Set(scriptColors.map(([color]) => color));
 
+export function toggleBackground(value) {
+  return value !== 'none' && palette.has(value) ? value : undefined;
+}
+
+export function toggleBackgroundAttribute(value) {
+  const color = toggleBackground(value);
+  return color ? ` data-toggle-background="${color}"` : '';
+}
+
 export function colorAttributes(ink, highlight) {
   return palette.has(ink) && palette.has(highlight) && (ink !== 'none' || highlight !== 'none')
     ? ` data-cris-ink="${ink}" data-cris-highlight="${highlight}"`
