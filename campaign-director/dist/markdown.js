@@ -2,11 +2,11 @@ import {protectColorMarkup,serializeColor,toggleBackground,toggleBackgroundAttri
 
 const decodeURIComponentSafe=value=>{try{return decodeURIComponent(value);}catch{return value;}};
 export const escapeHTML = value => String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-const toggleChildTags = new Map([['paragraph','p'],['h1','h1'],['h2','h2'],['h3','h3']]);
+export const TOGGLE_CHILD_TYPES = Object.freeze(['paragraph','h1','h2','h3']);
 function validToggleChildren(children){
   if(!Array.isArray(children))return false;
   for(const child of children){
-    if(!toggleChildTags.has(child?.type)||typeof child.text!=='string'||
+    if(!TOGGLE_CHILD_TYPES.includes(child?.type)||typeof child.text!=='string'||
       Object.keys(child).some(key=>key!=='type'&&key!=='text'))return false;
   }
   return true;
@@ -102,7 +102,7 @@ export function inlineHTML(text,pages=[],editing=false) {
 }
 export function renderToggleChildren(children,pages=[]){
   return children.map(child=>{
-    const tag=toggleChildTags.get(child.type);
+    const tag=child.type==='paragraph'?'p':child.type;
     return `<${tag}>${inlineHTML(child.text,pages)||'<br>'}</${tag}>`;
   }).join('');
 }
