@@ -30,3 +30,11 @@ Os tipos internos aceitos são `h1`, `h2`, `h3` e `paragraph`. O `type` determin
 1. Endereçar cada filho no modelo e implementar nele inserção, divisão, remoção e troca de tipo. Um filho editável deve ser sincronizado no seu próprio endereço, sem sobrescrever `title`, `background` ou blocos vizinhos.
 2. Reaproveitar a formatação inline e o tratamento de colagem apropriado para um filho. Guardar a atualização no histórico da cena e enviar o Markdown resultante ao autosave. Validar foco, desfazer/refazer e colagem de vários parágrafos sem atravessar indevidamente os limites do Recolhível.
 3. Caso seja oferecida uma conversão de v1, iniciá-la por ação explícita. Copiar o texto literal, suas quebras e seu fundo. Criar parágrafos com tipo explícito, sem interpretar `# exemplo` como título. Antes de oferecer a conversão, validar também a preservação de marcadores inline que eram literais no v1, como `**texto**`.
+
+## Edição disponível a partir da UX-09B2
+
+Crie um novo bloco pelo menu **Adicionar bloco → Recolhível rico**. Dentro dele, use **Adicionar parágrafo** ou pressione Enter para dividir o bloco na posição do cursor. O menu ao lado de cada bloco interno permite escolher Texto, Título 1, Título 2 ou Título 3, ou excluir o bloco. Backspace no início une blocos do mesmo tipo e remove blocos vazios, mantendo a edição dentro do Recolhível. Entre blocos não vazios de tipos diferentes, Backspace leva o cursor ao bloco anterior e preserva os dois tipos.
+
+A formatação usa a barra de seleção existente. Os blocos internos usam o mesmo histórico e autosave da cena. A seleção pode ser formatada ou substituída dentro de um bloco interno. Operações que atravessam blocos de um Recolhível rico são bloqueadas. Para colar dentro dele, use títulos e parágrafos. Uma colagem que contenha blocos especiais é recusada por inteiro.
+
+A sintaxe `cris:toggle:v2` permanece a mesma. A criação de um novo Recolhível rico é explícita. Recolhíveis `v1` continuam disponíveis pelo comando **Recolhível** e preservam seu texto literal.

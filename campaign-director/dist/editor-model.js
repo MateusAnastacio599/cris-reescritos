@@ -1,5 +1,6 @@
-export const BLOCK_TYPES={paragraph:'Texto',h1:'Título 1',h2:'Título 2',h3:'Título 3',list:'Lista com marcadores',numbered:'Lista numerada',todo:'Lista de tarefas',table:'Tabela',quote:'Citação',note:'Nota do mestre',toggle:'Recolhível',clue:'Pista do quadro',cue:'Cue de áudio',divider:'Divisória'};
+export const BLOCK_TYPES={paragraph:'Texto',h1:'Título 1',h2:'Título 2',h3:'Título 3',list:'Lista com marcadores',numbered:'Lista numerada',todo:'Lista de tarefas',table:'Tabela',quote:'Citação',note:'Nota do mestre',toggle:'Recolhível',clue:'Pista do quadro',cue:'Cue de áudio',divider:'Divisória',richToggle:'Recolhível rico'};
 export function newBlock(type='paragraph',triggers=[]){
+  if(type==='richToggle')return {type:'toggle',title:'',blocks:[newBlock()]};
   if(type==='toggle')return {type,title:'',text:''};
   if(type==='table')return {type,text:'',headers:['Perícia','DT','Informação'],rows:[['','',''],['','','']],align:['left','left','left']};
   return {type,text:'',...(type==='todo'?{checked:false}:{}),...(type==='numbered'?{number:1}:{}),...(type==='clue'?{itemId:'',campaignId:'',action:'reveal'}:{}),...(type==='cue'?{triggerId:triggers[0]?.id||''}:{})};
@@ -11,13 +12,13 @@ export function splitBlocks(blocks,start,end,before,after){
 }
 export class EditorHistory {
   constructor(blocks){this.entries=[{blocks:structuredClone(blocks),active:0}];this.position=0;this.lastInput=0;this.lastBlock=-1;}
-  record(blocks,active,typing=false,at=Date.now()){
+  record(blocks,active,typing=false,at=Date.now(),child=null){
     if(JSON.stringify(this.entries[this.position].blocks)===JSON.stringify(blocks))return;
-    const coalesce=typing&&this.lastInput&&at-this.lastInput<600&&active===this.lastBlock&&this.position===this.entries.length-1;
-    const entry={blocks:structuredClone(blocks),active};this.entries=this.entries.slice(0,this.position+1);
+    const coalesce=typing&&this.lastInput&&at-this.lastInput<600&&active===this.lastBlock&&child===this.lastChild&&this.position===this.entries.length-1;
+    const entry={blocks:structuredClone(blocks),active,child};this.entries=this.entries.slice(0,this.position+1);
     if(coalesce)this.entries[this.position]=entry;else{this.entries.push(entry);this.position++;}
     if(this.entries.length>150){this.entries.shift();this.position--;}
-    this.lastInput=typing?at:0;this.lastBlock=active;
+    this.lastInput=typing?at:0;this.lastBlock=active;this.lastChild=child;
   }
   move(offset){const next=this.position+offset;if(next<0||next>=this.entries.length)return null;this.position=next;this.lastInput=0;return structuredClone(this.entries[next]);}
 }

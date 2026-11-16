@@ -56,3 +56,18 @@
 .script-color-menu button{width:100%;min-height:32px;color:#e1d5ed;border-radius:4px}
 .script-color-menu button:hover,.script-color-menu button:focus-visible{background:#43364d}
 .script-color-menu button span{display:inline-block;min-width:1.5em;margin-right:6px;text-align:center;border-radius:3px}
+
+/* Each rich toggle child keeps its own editable field. */
+.rich-toggle-row { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; }
+.rich-toggle-row > .rich-toggle-field { min-width: 0; }
+.rich-toggle-row > .rich-toggle-field:is(.block-h1,.block-h2,.block-h3) { margin: 5px 0 3px; font-weight: 500; }
+.rich-toggle-menu { display: grid; place-items: center; min-height: 30px; color: var(--muted); opacity: .45; }
+.rich-toggle-menu .icon, .rich-toggle-add .icon { width: 12px; height: 12px; }
+.rich-toggle-row:hover .rich-toggle-menu, .rich-toggle-row:focus-within .rich-toggle-menu { opacity: 1; }
+.rich-toggle-add { display: inline-flex; align-items: center; gap: 5px; padding: 6px; color: var(--muted); font: 12px var(--sans); }
+.rich-toggle-add:hover, .rich-toggle-menu:hover { color: var(--text); background: var(--accent-bg); border-radius: 4px; }
+@media (max-width: 600px) {
+  .block-toggle .rich-toggle-editor { padding-inline-start: 12px; }
+  .rich-toggle-row { grid-template-columns: 32px minmax(0, 1fr); }
+  .rich-toggle-menu, .rich-toggle-add { min-height: 36px; }
+}
