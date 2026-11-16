@@ -1,4 +1,5 @@
 import {protectColorMarkup,serializeColor,toggleBackground,toggleBackgroundAttribute} from './editor-colors.js';
+import {isColumnBlock,validColumns,readColumnsHTML} from './editor-columns-model.js';
 
 const decodeURIComponentSafe=value=>{try{return decodeURIComponent(value);}catch{return value;}};
 export const escapeHTML = value => String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -13,6 +14,30 @@ function validToggleChildren(children){
 }
 export const isRichToggle = block => block?.type === 'toggle' && Array.isArray(block.blocks);
 
+function validColumnContent(block){
+  if(!isColumnBlock(block))return false;
+  const hasOnly=(...keys)=>Object.keys(block).every(key=>keys.includes(key));
+  switch(block.type){
+    case 'toggle': {
+      if(typeof block.title!=='string'||(block.background!=null&&!toggleBackground(block.background)))return false;
+      return 'blocks' in block
+        ? hasOnly('type','title','background','blocks')&&validToggleChildren(block.blocks)
+        : hasOnly('type','title','background','text')&&typeof block.text==='string';
+    }
+    case 'table': {
+      const {text,headers,rows,align}=block;
+      return hasOnly('type','text','headers','rows','align')&&(text===undefined||typeof text==='string')&&
+        Array.isArray(headers)&&headers.length>0&&headers.every(cell=>typeof cell==='string')&&
+        Array.isArray(rows)&&rows.every(row=>Array.isArray(row)&&row.length===headers.length&&row.every(cell=>typeof cell==='string'))&&
+        (align===undefined||Array.isArray(align)&&align.length===headers.length&&align.every(value=>['left','right','center'].includes(value)));
+    }
+    case 'cue': return hasOnly('type','text','triggerId')&&typeof block.text==='string'&&typeof block.triggerId==='string';
+    case 'numbered': return hasOnly('type','text','number')&&typeof block.text==='string'&&(block.number===undefined||Number.isSafeInteger(block.number));
+    default: return hasOnly('type','text')&&typeof block.text==='string';
+  }
+}
+
+
 export function tableCells(line){
   const value=line.trim().replace(/^\|/,'').replace(/(?<!\\)\|$/,'');const cells=[];let cell='',escaped=false,wiki=0;
   for(let i=0;i<value.length;i++){const ch=value[i];if(escaped){cell+=ch==='|'?'|':'\\'+ch;escaped=false;continue;}if(ch==='\\'){escaped=true;continue;}if(value.slice(i,i+2)==='[[')wiki++;if(value.slice(i,i+2)===']]')wiki=Math.max(0,wiki-1);if(ch==='|'&&!wiki){cells.push(cell.trim());cell='';}else cell+=ch;}
@@ -23,6 +48,17 @@ export function parseBlocks(markdown) {
   const flush=()=>{if(paragraph.length){result.push({type:'paragraph',text:paragraph.join('\n')});paragraph=[];}};
   for(let i=0;i<lines.length;i++){
     const raw=lines[i],text=raw.trim();if(!text){flush();continue;}
+    const columnsMarker=raw.match(/^<!--cris:columns:v1 (.*)-->$/s);
+    if(columnsMarker){
+      let block={type:'paragraph',text:raw};
+      try{
+        const data=JSON.parse(columnsMarker[1]);
+        if(data&&Object.keys(data).every(key=>key==='columns')&&validColumns(data.columns,validColumnContent)){
+          block={type:'columns',columns:data.columns};
+        }
+      }catch{/* Keep the original marker visible for recovery. */}
+      flush();result.push(block);continue;
+    }
     const toggle = raw.match(/^<!--cris:toggle:v1 (.+)-->$/);
     if(toggle){
       try {
@@ -73,6 +109,11 @@ const lineEscape=value=>String(value??'').replace(/\n/g,'<br>');
 const tableEscape=value=>lineEscape(value).replace(/\|/g,'\\|');
 export function blocksToMarkdown(blocks){return blocks.map(b=>{
   const prefix={h1:'# ',h2:'## ',h3:'### ',quote:'> ',list:'- '};
+  if(b.type==='columns'){
+    if(!validColumns(b.columns,validColumnContent))throw new TypeError('Estrutura de colunas inválida.');
+    const data=JSON.stringify({columns:b.columns}).replace(/-/g,'\\u002d').replace(/</g,'\\u003c');
+    return `<!--cris:columns:v1 ${data}-->`;
+  }
   if(b.type==='toggle'){
     const rich='blocks' in b;
     if(rich&&(typeof b.title!=='string'||!validToggleChildren(b.blocks)))throw new TypeError('Estrutura do recolhível inválida.');
@@ -130,6 +171,9 @@ export function renderReadBlocks(blocks,pages=[]) {
   let html='',listType=null;
   blocks.forEach((b,i)=>{
     const list=['list','numbered'].includes(b.type)?b.type:null;if(listType&&listType!==list){html+=listType==='numbered'?'</ol>':'</ul>';listType=null;}
+    if(b.type==='columns'){
+      html+=readColumnsHTML(b.columns,children=>renderReadBlocks(children,pages));return;
+    }
     if(b.type==='toggle'){
       const content=isRichToggle(b)?renderToggleChildren(b.blocks,pages):String(b.text??'').split(/\n{2,}/).map(part=>'<p>'+escapeHTML(part)+'</p>').join('');
       html+=`<details class="script-toggle"${toggleBackgroundAttribute(b.background)}><summary>${escapeHTML(b.title||'Recolhível')}</summary><div class="script-toggle-content">${content}</div></details>`;return;

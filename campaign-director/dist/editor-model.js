@@ -12,13 +12,14 @@ export function splitBlocks(blocks,start,end,before,after){
 }
 export class EditorHistory {
   constructor(blocks){this.entries=[{blocks:structuredClone(blocks),active:0}];this.position=0;this.lastInput=0;this.lastBlock=-1;}
-  record(blocks,active,typing=false,at=Date.now(),child=null){
+  record(blocks,active,typing=false,at=Date.now(),child=null,scope=null){
     if(JSON.stringify(this.entries[this.position].blocks)===JSON.stringify(blocks))return;
-    const coalesce=typing&&this.lastInput&&at-this.lastInput<600&&active===this.lastBlock&&child===this.lastChild&&this.position===this.entries.length-1;
-    const entry={blocks:structuredClone(blocks),active,child};this.entries=this.entries.slice(0,this.position+1);
+    const address=scope?`${scope.column}:${scope.block}:${scope.child??''}:${scope.cell?.row??''}:${scope.cell?.col??''}`:null;
+    const coalesce=typing&&this.lastInput&&at-this.lastInput<600&&active===this.lastBlock&&child===this.lastChild&&address===this.lastAddress&&this.position===this.entries.length-1;
+    const entry={blocks:structuredClone(blocks),active,child,...(scope?{scope}:{})};this.entries=this.entries.slice(0,this.position+1);
     if(coalesce)this.entries[this.position]=entry;else{this.entries.push(entry);this.position++;}
     if(this.entries.length>150){this.entries.shift();this.position--;}
-    this.lastInput=typing?at:0;this.lastBlock=active;this.lastChild=child;
+    this.lastInput=typing?at:0;this.lastBlock=active;this.lastChild=child;this.lastAddress=address;
   }
   remember(bookmark){this.entries[this.position].bookmark=bookmark;}
   move(offset){const next=this.position+offset;if(next<0||next>=this.entries.length)return null;this.position=next;this.lastInput=0;return structuredClone(this.entries[next]);}
