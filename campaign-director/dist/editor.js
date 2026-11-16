@@ -1,11 +1,12 @@
 import {recolorRange,scriptColors,toggleBackground,toggleBackgroundAttribute} from './editor-colors.js';
-import {parseBlocks,blocksToMarkdown,inlineHTML,editableToMarkdown,renderTable,escapeHTML as esc} from './markdown.js';
+import {parseBlocks,blocksToMarkdown,inlineHTML,editableToMarkdown,renderTable,isRichToggle,renderToggleChildren,escapeHTML as esc} from './markdown.js';
 import {BLOCK_TYPES,newBlock,splitBlocks,EditorHistory} from './editor-model.js';
 import {clipboardBlocks} from './editor-clipboard.js';
 import {icon} from './icons.js';
 
 const writingShortcuts=new Map([['#','h1'],['##','h2'],['###','h3'],['>','toggle']]);
 const isCell=field=>field?.dataset.cellRow!==undefined;
+const inTogglePreview=node=>(node?.nodeType===1?node:node?.parentElement)?.closest('.script-toggle-content[contenteditable=false]');
 export class BlockEditor {
   constructor(element,options){this.el=element;this.options=options;this.blocks=parseBlocks(options.markdown);this.active=0;this.openToggles=new WeakSet();this.history=new EditorHistory(this.blocks);this.abort=new AbortController();document.addEventListener('selectionchange',()=>{this.captureSelection();this.selectionToolbar();},{signal:this.abort.signal});this.render();}
   destroy(){this.abort.abort();this.hideToolbar();document.getElementById('blockPopover')?.remove();}
@@ -21,14 +22,15 @@ export class BlockEditor {
       let body=field;
       if(b.type==='toggle'){
         const open=this.openToggles.has(b);
+        const rich=isRichToggle(b);
+        const content=rich?renderToggleChildren(b.blocks,this.options.pages):
+          `<div class="block-content script-toggle-text" contenteditable="plaintext-only" role="textbox" aria-multiline="true" aria-label="Texto do recolhível" data-placeholder="Escreva aqui…" data-toggle-field="text" data-block="${i}">${esc(b.text)}</div>`;
         body=`<div class="script-toggle"${toggleBackgroundAttribute(b.background)}>
           <div class="script-toggle-heading">
             <button type="button" data-toggle-button="${i}" aria-label="${open?'Recolher':'Expandir'} bloco" aria-expanded="${open}" aria-controls="script-toggle-body-${i}">▸</button>
             <div class="script-toggle-title" contenteditable="plaintext-only" role="textbox" aria-label="Título do recolhível" data-placeholder="Recolhível" data-toggle-field="title" data-block="${i}">${esc(b.title)}</div>
           </div>
-          <div class="script-toggle-content" id="script-toggle-body-${i}" ${open?'':'hidden'}>
-            <div class="block-content script-toggle-text" contenteditable="plaintext-only" role="textbox" aria-multiline="true" aria-label="Texto do recolhível" data-placeholder="Escreva aqui…" data-toggle-field="text" data-block="${i}">${esc(b.text)}</div>
-          </div>
+          <div class="script-toggle-content" id="script-toggle-body-${i}" ${rich?'contenteditable="false" tabindex="-1"':''} ${open?'':'hidden'}>${content}</div>
         </div>`;
       }
       if(b.type==='divider')body='<hr>';
@@ -72,7 +74,7 @@ export class BlockEditor {
       }
       this.changed(true);
     };
-    this.el.onfocusin=e=>{const field=e.target.closest('[data-block]');if(!field)return;this.active=+field.dataset.block;this.activeCell=isCell(field)?{row:+field.dataset.cellRow,col:+field.dataset.cellCol}:null;this.options.onActive?.(this.blocks[this.active].type);};
+    this.el.onfocusin=e=>{const field=e.target.closest('[data-block]');if(!field)return;this.active=+field.dataset.block;this.activeCell=isCell(field)?{row:+field.dataset.cellRow,col:+field.dataset.cellCol}:null;const block=this.blocks[this.active];this.options.onActive?.(block.type,!isRichToggle(block));};
     this.el.onclick=e=>{
       const toggle=e.target.closest('[data-toggle-button]');
       if(toggle){
@@ -122,7 +124,7 @@ export class BlockEditor {
   removeEmptyToggle(field){
     if(field.dataset.toggleField!=='title')return false;
     const index=+field.dataset.block,block=this.blocks[index],selection=getSelection();
-    if(block?.type!=='toggle'||block.title.trim()||block.text.trim()||field.textContent.trim()||
+    if(block?.type!=='toggle'||isRichToggle(block)||block.title.trim()||block.text.trim()||field.textContent.trim()||
       !selection?.isCollapsed||!field.contains(selection.anchorNode))return false;
     this.blocks.splice(index,1);
     const previous=this.blocks.slice(0,index).findLastIndex(block=>block.type!=='divider');
@@ -143,7 +145,8 @@ export class BlockEditor {
       e.preventDefault();
       const toggle=field.closest('.script-toggle').querySelector('[data-toggle-button]');
       if(toggle.getAttribute('aria-expanded')==='false')toggle.click();
-      field.closest('.script-toggle').querySelector('[data-toggle-field=text]').focus();
+      const content=field.closest('.script-toggle').querySelector('.script-toggle-content');
+      (content.querySelector('[data-toggle-field=text]')??content).focus();
       return;
     }
     const mod=e.ctrlKey||e.metaKey,key=e.key.toLowerCase();
@@ -174,12 +177,13 @@ export class BlockEditor {
   }
   plainLength(markdown){const box=document.createElement('div');box.innerHTML=inlineHTML(markdown,this.options.pages);return box.textContent.length;}
   add(index,type='paragraph'){this.blocks.splice(index,0,newBlock(type,this.options.triggers));this.active=index;this.changed();this.render({index,offset:0});if(type==='clue')this.options.onRequestClue?.(index);}
-  setType(type){const prior=this.blocks[this.active];if(!prior||!BLOCK_TYPES[type])return;if(type==='table'&&prior.type!=='table'){this.blocks[this.active]=newBlock(type);if(prior.text)this.blocks[this.active].rows[0][0]=prior.text;}else if(prior.type==='table'&&type!=='table')this.blocks[this.active]={...newBlock(type,this.options.triggers),text:[prior.headers,...prior.rows].map(r=>r.join(' · ')).join('\n')};else if(prior.type==='toggle'&&type!=='toggle')this.blocks[this.active]={...newBlock(type,this.options.triggers),text:[prior.title,prior.text].filter(Boolean).join('\n')};else this.blocks[this.active]={...newBlock(type,this.options.triggers),...prior,type};this.changed();this.render({index:this.active,offset:0});if(type==='clue')this.options.onRequestClue?.(this.active);}
+  setType(type){const prior=this.blocks[this.active];if(!prior||!BLOCK_TYPES[type]||isRichToggle(prior))return;if(type==='table'&&prior.type!=='table'){this.blocks[this.active]=newBlock(type);if(prior.text)this.blocks[this.active].rows[0][0]=prior.text;}else if(prior.type==='table'&&type!=='table')this.blocks[this.active]={...newBlock(type,this.options.triggers),text:[prior.headers,...prior.rows].map(r=>r.join(' · ')).join('\n')};else if(prior.type==='toggle'&&type!=='toggle')this.blocks[this.active]={...newBlock(type,this.options.triggers),text:[prior.title,prior.text].filter(Boolean).join('\n')};else this.blocks[this.active]={...newBlock(type,this.options.triggers),...prior,type};this.changed();this.render({index:this.active,offset:0});if(type==='clue')this.options.onRequestClue?.(this.active);}
   undo(direction){const entry=this.history.move(direction);if(!entry)return;this.blocks=entry.blocks;this.active=entry.active;this.options.onChange(this.serialize());this.render({index:this.active});}
   captureSelection(){const s=getSelection();if(s.rangeCount&&this.el.contains(s.anchorNode))this.range=s.getRangeAt(0).cloneRange();}
   format(command){
     if(this.range&&this.el.contains(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}
     const s=getSelection();if(!s.rangeCount||!this.el.contains(s.anchorNode))return;
+    if(inTogglePreview(s.anchorNode)||inTogglePreview(s.focusNode))return;
     if(command==='code'){const range=s.getRangeAt(0);if(range.collapsed||this.fieldFor(range.startContainer)!==this.fieldFor(range.endContainer))return;const code=document.createElement('code');code.textContent=range.toString();range.deleteContents();range.insertNode(code);range.selectNodeContents(code);s.removeAllRanges();s.addRange(range);}else document.execCommand(command,false);
     this.syncDOM();this.changed();this.captureSelection();
   }
@@ -191,7 +195,10 @@ export class BlockEditor {
   }
   insertLink(page){
     if(this.range&&this.el.contains(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}else this.focus({index:this.active});
-    const selection=getSelection();if(!selection.rangeCount)return;const range=selection.getRangeAt(0);if(!this.fieldFor(range.startContainer)||!this.fieldFor(range.endContainer)||this.el.querySelector('[data-toggle-field]:focus'))return;const token=document.createElement('span');token.className='wiki-token';token.contentEditable='false';token.dataset.markdown=`[[page:${page.id}|${page.title}]]`;token.textContent='↗ '+page.title;range.deleteContents();range.insertNode(token);range.setStartAfter(token);range.collapse(true);selection.removeAllRanges();selection.addRange(range);this.syncDOM();this.changed();this.captureSelection();
+    const selection=getSelection();if(!selection.rangeCount)return;const range=selection.getRangeAt(0);
+    const start=this.fieldFor(range.startContainer),end=this.fieldFor(range.endContainer);
+    if(!start||!end||this.el.querySelector('[data-toggle-field]:focus')||this.blocks.slice(+start.dataset.block,+end.dataset.block+1).some(isRichToggle))return;
+    const token=document.createElement('span');token.className='wiki-token';token.contentEditable='false';token.dataset.markdown=`[[page:${page.id}|${page.title}]]`;token.textContent='↗ '+page.title;range.deleteContents();range.insertNode(token);range.setStartAfter(token);range.collapse(true);selection.removeAllRanges();selection.addRange(range);this.syncDOM();this.changed();this.captureSelection();
   }
   paste(e){
     const field=e.target.closest('[contenteditable=true][data-block]');if(!field)return;e.preventDefault();const text=e.clipboardData.getData('text/plain'),html=e.clipboardData.getData('text/html'),blocks=clipboardBlocks({html,text});
@@ -204,7 +211,7 @@ export class BlockEditor {
   hideToolbar(){document.getElementById('editorSelectionToolbar')?.remove();}
   selectionToolbar(){
     const selection=getSelection();
-    if(!selection.rangeCount||selection.isCollapsed||!this.el.contains(selection.anchorNode)||!this.el.isConnected){this.hideToolbar();return;}
+    if(!selection.rangeCount||selection.isCollapsed||!this.el.contains(selection.anchorNode)||!this.el.isConnected||inTogglePreview(selection.anchorNode)||inTogglePreview(selection.focusNode)){this.hideToolbar();return;}
     this.captureSelection();
     const range=selection.getRangeAt(0),rect=range.getBoundingClientRect();
     if(!rect.width&&!rect.height)return;
@@ -278,11 +285,13 @@ export class BlockEditor {
   }
   menu(anchor,mode){
     const index=this.active,block=this.blocks[index];
+    const canTransform=mode!=='edit'||!isRichToggle(block);
     const colors=mode==='edit'&&block?.type==='toggle' ? `<div class="toggle-background-picker" role="group" aria-label="Fundo do Recolhível"><span>Fundo</span><div>${scriptColors.map(([color,name])=>{
       const label=color==='none'?'Sem fundo':name;
       return `<button type="button" data-toggle-color="${color}"${toggleBackgroundAttribute(color)} aria-label="${label}" title="${label}" aria-pressed="${color===(block.background??'none')}"></button>`;
     }).join('')}</div></div>` : '';
-    document.getElementById('blockPopover')?.remove();const menu=document.createElement('div');menu.id='blockPopover';menu.className='block-popover searchable-block-menu';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Inserir ou transformar bloco');menu.innerHTML='<label class="block-menu-search">'+icon('search')+'<input type="search" placeholder="Buscar bloco…" aria-label="Buscar tipo de bloco"></label>'+colors+'<div class="block-menu-results"></div>'+(mode==='edit'?'<hr><button type="button" data-move="-1">↑ Mover para cima</button><button type="button" data-move="1">↓ Mover para baixo</button><button type="button" data-duplicate>Duplicar bloco</button><button type="button" class="danger-text" data-remove>Excluir bloco</button>':'');document.body.append(menu);
+    document.getElementById('blockPopover')?.remove();const menu=document.createElement('div');menu.id='blockPopover';menu.className='block-popover searchable-block-menu';menu.setAttribute('role','dialog');menu.setAttribute('aria-label',canTransform?'Inserir ou transformar bloco':'Menu do Recolhível');
+    menu.innerHTML=(canTransform?'<label class="block-menu-search">'+icon('search')+'<input type="search" placeholder="Buscar bloco…" aria-label="Buscar tipo de bloco"></label>':'')+colors+(canTransform?'<div class="block-menu-results"></div>':'')+(mode==='edit'?'<hr><button type="button" data-move="-1">↑ Mover para cima</button><button type="button" data-move="1">↓ Mover para baixo</button><button type="button" data-duplicate>Duplicar bloco</button><button type="button" class="danger-text" data-remove>Excluir bloco</button>':'');document.body.append(menu);
     menu.querySelector('.toggle-background-picker')?.addEventListener('click',event=>{
       const button=event.target.closest('[data-toggle-color]');
       if(!button)return;
@@ -297,10 +306,11 @@ export class BlockEditor {
       this.active=index;
       this.changed();
     });
-    const results=menu.querySelector('.block-menu-results'),search=menu.querySelector('input');const update=()=>{results.innerHTML=Object.entries(BLOCK_TYPES).filter(([type,label])=>(label+' '+type).toLocaleLowerCase().includes(search.value.toLocaleLowerCase())).map(([type,label])=>`<button type="button" data-type="${type}"><b>${({paragraph:'T',h1:'H₁',h2:'H₂',h3:'H₃',quote:'❞',note:'✦',toggle:'▸',list:'•',numbered:'1.',todo:'☑',table:'▦',cue:'♫',clue:'◇',divider:'—'})[type]}</b>${label}</button>`).join('')||'<p>Nenhum bloco encontrado.</p>';};update();search.oninput=update;
+    const results=menu.querySelector('.block-menu-results'),search=menu.querySelector('input');
+    if(search){const update=()=>{results.innerHTML=Object.entries(BLOCK_TYPES).filter(([type,label])=>(label+' '+type).toLocaleLowerCase().includes(search.value.toLocaleLowerCase())).map(([type,label])=>`<button type="button" data-type="${type}"><b>${({paragraph:'T',h1:'H₁',h2:'H₂',h3:'H₃',quote:'❞',note:'✦',toggle:'▸',list:'•',numbered:'1.',todo:'☑',table:'▦',cue:'♫',clue:'◇',divider:'—'})[type]}</b>${label}</button>`).join('')||'<p>Nenhum bloco encontrado.</p>';};update();search.oninput=update;}
     const rect=anchor.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(rect.left,innerWidth-250))+'px';menu.style.top=Math.max(8,Math.min(rect.bottom+6,innerHeight-430))+'px';
     menu.onclick=e=>{const button=e.target.closest('button');if(!button)return;const type=button.dataset.type;if(type)mode==='add'?this.add(this.active+1,type):this.setType(type);if(button.dataset.move){const target=this.active+Number(button.dataset.move);if(target>=0&&target<this.blocks.length){[this.blocks[this.active],this.blocks[target]]=[this.blocks[target],this.blocks[this.active]];this.active=target;this.changed();this.render({index:target});}}if(button.hasAttribute('data-duplicate')){this.blocks.splice(this.active+1,0,structuredClone(this.blocks[this.active]));this.active++;this.changed();this.render({index:this.active});}if(button.hasAttribute('data-remove')){this.blocks.splice(this.active,1);if(!this.blocks.length)this.blocks=[newBlock()];this.active=Math.max(0,this.active-1);this.changed();this.render({index:this.active});}menu.remove();};
-    menu.onkeydown=e=>{const buttons=[...results.querySelectorAll('button')];if(e.key==='Escape'){e.preventDefault();menu.remove();this.focus({index:this.active});}if(['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();const i=buttons.indexOf(document.activeElement);buttons[(i+(e.key==='ArrowDown'?1:buttons.length-1)+buttons.length)%buttons.length]?.focus();}if(e.key==='Enter'&&e.target===search){e.preventDefault();buttons[0]?.click();}};
-    const close=event=>{if(!menu.contains(event.target)){menu.remove();document.removeEventListener('pointerdown',close);}};document.addEventListener('pointerdown',close,{signal:this.abort.signal});search.focus();
+    menu.onkeydown=e=>{const buttons=[...(results??menu).querySelectorAll('button')];if(e.key==='Escape'){e.preventDefault();menu.remove();this.focus({index:this.active});}if(['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();const i=buttons.indexOf(document.activeElement);buttons[(i+(e.key==='ArrowDown'?1:buttons.length-1)+buttons.length)%buttons.length]?.focus();}if(e.key==='Enter'&&e.target===search){e.preventDefault();buttons[0]?.click();}};
+    const close=event=>{if(!menu.contains(event.target)){menu.remove();document.removeEventListener('pointerdown',close);}};document.addEventListener('pointerdown',close,{signal:this.abort.signal});(search??menu.querySelector('[aria-pressed=true]')).focus();
   }
 }
