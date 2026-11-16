@@ -1,14 +1,15 @@
 import {recolorRange,scriptColors,toggleBackground,toggleBackgroundAttribute} from './editor-colors.js';
 import {parseBlocks,blocksToMarkdown,inlineHTML,editableToMarkdown,renderTable,isRichToggle,TOGGLE_CHILD_TYPES,escapeHTML as esc} from './markdown.js';
 import {BLOCK_TYPES,newBlock,splitBlocks,EditorHistory} from './editor-model.js';
-import {clipboardBlocks} from './editor-clipboard.js';
+import {clipboardBlocks,readClipboardBlocks,writeTextBlocks} from './editor-clipboard.js';
 import {icon} from './icons.js';
+import {isTextBlock,textRunMarkup,runField,readRunField,pointAt,runSelection,selectedTextBlocks,replaceTextBlocks,pasteTextBlocks,textUnits,intactTextRun} from './editor-text-runs.js';
 
 const writingShortcuts=new Map([['#','h1'],['##','h2'],['###','h3'],['>','toggle']]);
 const isCell=field=>field?.dataset.cellRow!==undefined;
 const childIndex=field=>field?.dataset?.child===undefined?null:+field.dataset.child;
 export class BlockEditor {
-  constructor(element,options){this.el=element;this.options=options;this.blocks=parseBlocks(options.markdown);this.active=0;this.activeChild=null;this.openToggles=new WeakSet();this.history=new EditorHistory(this.blocks);this.abort=new AbortController();document.addEventListener('selectionchange',()=>{this.captureSelection();this.selectionToolbar();},{signal:this.abort.signal});this.render();}
+  constructor(element,options){this.el=element;this.options=options;this.blocks=parseBlocks(options.markdown);this.active=0;this.activeChild=null;this.openToggles=new WeakSet();this.history=new EditorHistory(this.blocks);this.abort=new AbortController();document.addEventListener('selectionchange',()=>{this.captureSelection();this.selectionToolbar();},{signal:this.abort.signal});window.addEventListener('scroll',()=>{if(document.getElementById('editorSelectionToolbar'))this.selectionToolbar();},{capture:true,passive:true,signal:this.abort.signal});this.render();}
   destroy(){this.abort.abort();this.hideToolbar();document.getElementById('blockPopover')?.remove();}
   serialize(){return blocksToMarkdown(this.blocks);}
   changed(typing=false){this.history.record(this.blocks,this.active,typing,Date.now(),this.activeChild);this.options.onChange(this.serialize());}
@@ -22,14 +23,16 @@ export class BlockEditor {
     }else if(isCell(field)){
       const r=+field.dataset.cellRow,c=+field.dataset.cellCol,text=editableToMarkdown(field);
       if(r===0)b.headers[c]=text;else if(b.rows[r-1])b.rows[r-1][c]=text;
-    }else b.text=editableToMarkdown(field);
+    }else b.text=field.hasAttribute('data-run-field')?readRunField(field):editableToMarkdown(field);
   }
   syncDOM(){this.el.querySelectorAll('[contenteditable=true][data-block]:not([data-child])').forEach(field=>this.syncField(field));}
   render(focus=null){
     this.hideToolbar();this.range=null;
     this.el.innerHTML=this.blocks.map((b,i)=>{
       const tools=`<div class="block-tools" contenteditable="false"><button type="button" aria-label="Adicionar bloco" data-add="${i}">${icon('plus')}</button><button type="button" draggable="true" data-drag="${i}" data-block-menu="${i}" aria-label="Menu do bloco">${icon('grip')}</button></div>`;
-      const field=`<div class="block-content" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${BLOCK_TYPES[b.type]} ${i+1}" data-block="${i}" data-placeholder="Escreva ou digite / para inserir…" spellcheck="true" lang="pt-BR">${inlineHTML(b.text,this.options.pages,true)}</div>`;
+      const shared=isTextBlock(b);
+      const attributes=shared?'data-run-field':'contenteditable="true" role="textbox" aria-multiline="true"';
+      const field=`<div class="block-content" ${attributes} aria-label="${BLOCK_TYPES[b.type]} ${i+1}" data-block="${i}" data-placeholder="Escreva ou digite / para inserir…" spellcheck="true" lang="pt-BR">${inlineHTML(b.text,this.options.pages,true)||(shared?'<br data-editor-empty>':'')}</div>`;
       let body=field;
       if(b.type==='toggle'){
         const open=this.openToggles.has(b);
@@ -53,11 +56,13 @@ export class BlockEditor {
       if(b.type==='clue')body=`<div class="editable-board-clue"><span aria-hidden="true">◇</span>${field}<button type="button" class="btn outline small" data-select-clue="${i}">${b.itemId?'Trocar pista':'Escolher pista'}</button><button type="button" class="icon-btn" data-preview-clue="${i}" aria-label="Revelar pista">${icon('eye')}</button></div>`;
       if(b.type==='cue')body=`<div class="editable-cue"><span>♫</span>${field}<select aria-label="Efeito da cue" data-trigger-select="${i}"><option value="">Escolher efeito</option>${this.options.triggers.map(t=>`<option value="${esc(t.id)}" ${t.id===b.triggerId?'selected':''}>${esc(t.name)}</option>`).join('')}</select><button type="button" class="icon-btn" data-preview-cue="${i}" aria-label="Testar cue">${icon('play')}</button></div>`;
       if(b.type==='table')body=renderTable(b,this.options.pages,true,i)+`<div class="table-controls" contenteditable="false"><button type="button" data-table-action="row" data-table="${i}">+ Linha</button><button type="button" data-table-action="column" data-table="${i}">+ Coluna</button><button type="button" data-table-action="remove-row" data-table="${i}">− Linha</button><button type="button" data-table-action="remove-column" data-table="${i}">− Coluna</button></div>`;
-      return `<div class="editor-block block-${b.type}" data-block-row="${i}">${tools}${body}</div>`;
+      return textRunMarkup(this.blocks,i,`<div class="editor-block block-${b.type}" data-block-row="${i}">${tools}${body}</div>`);
     }).join('')+`<button type="button" class="add-block-line" data-add="${this.blocks.length-1}">${icon('plus')} Adicionar bloco <span>/</span></button>`;
-    let typedShortcut=null;
+    let typedShortcut=null,verifyRun=false;
     this.el.onbeforeinput=e=>{
+      verifyRun=!e.cancelable;
       if(e.cancelable&&this.protectedSelection()){e.preventDefault();return;}
+      if(e.target.matches('.editor-text-run')&&this.editRunInput(e)){e.preventDefault();return;}
       if(childIndex(e.target)!==null&&e.cancelable&&!e.isComposing){
         if(e.inputType==='historyUndo'||e.inputType==='historyRedo'){e.preventDefault();this.undo(e.inputType==='historyUndo'?-1:1);return;}
         if(this.editChildBoundary(e.target,e.inputType)) {e.preventDefault();return;}
@@ -66,7 +71,7 @@ export class BlockEditor {
         e.preventDefault();
         return;
       }
-      if(!typedShortcut||e.target!==typedShortcut.field||e.isComposing||e.inputType!=='insertText'||e.data!==' '||!e.cancelable)return;
+      if(!typedShortcut||e.target!==(typedShortcut.field.closest('.editor-text-run')??typedShortcut.field)||e.isComposing||e.inputType!=='insertText'||e.data!==' '||!e.cancelable)return;
       const {field,marker}=typedShortcut;
       const parts=this.selectionParts(),index=+field.dataset.block;
       if(!parts?.collapsed||parts.startField!==field||parts.before!==marker||parts.after||field.textContent!==marker||this.blocks[index]?.type!=='paragraph'||this.blocks[index].text!==marker)return;
@@ -86,7 +91,13 @@ export class BlockEditor {
         this.blocks[this.active][key]=key==='title'?text.replace(/\n+/g,' '):text;
         this.changed(true);return;
       }
-      const field=e.target.closest('[data-block]');this.syncField(field);
+      const run=e.target.matches('.editor-text-run')?e.target:null;
+      const field=run?runField(getSelection()?.focusNode):e.target.closest('[data-block]');
+      const expectedRows=run?Number(run.dataset.runEnd)-Number(run.dataset.runStart)+1:0;
+      if(run&&(!field||!run.contains(field)||run.children.length!==expectedRows||verifyRun&&!intactTextRun(run))){
+        this.render({index:this.active});return;
+      }
+      this.syncField(field);
       if(field){
         this.active=+field.dataset.block;
         this.activeChild=childIndex(field);
@@ -96,7 +107,10 @@ export class BlockEditor {
       this.changed(!e.inputType?.startsWith('format'));
     };
     this.el.onfocusin=e=>{
-      const field=e.target.closest('[data-block]');if(!field)return;
+      const inRun=e.target.matches('.editor-text-run');
+      const caret=inRun?runField(getSelection()?.focusNode):null;
+      const field=inRun?(e.target.contains(caret)?caret:e.target.querySelector('[data-run-field]')):e.target.closest('[data-block]');
+      if(!field)return;
       this.active=+field.dataset.block;this.activeChild=childIndex(field);
       this.activeCell=isCell(field)?{row:+field.dataset.cellRow,col:+field.dataset.cellCol}:null;
       const block=this.blocks[this.active];
@@ -127,20 +141,47 @@ export class BlockEditor {
     this.el.onchange=e=>{const {blockCheck,triggerSelect}=e.target.dataset;if(blockCheck!==undefined){this.blocks[+blockCheck].checked=e.target.checked;this.changed();}if(triggerSelect!==undefined){this.blocks[+triggerSelect].triggerId=e.target.value;this.changed();}};
     this.el.onpaste=e=>{
       if(this.protectedSelection()){e.preventDefault();return;}
+      if(e.target.matches('.editor-text-run')){
+        e.preventDefault();
+        const parts=this.currentRun();
+        if(!parts||!e.clipboardData)return;
+        const entries=readClipboardBlocks(e.clipboardData);
+        if(!entries.length)return;
+        this.rememberRun(parts);
+        this.finishRun(pasteTextBlocks(this.blocks,parts,entries));
+        return;
+      }
       if(e.target.dataset.toggleField==='title'){
         e.preventDefault();
         document.execCommand('insertText',false,e.clipboardData.getData('text/plain').replace(/[\r\n]+/g,' '));
       }else this.paste(e);
     };this.el.onkeydown=e=>this.keydown(e);
-    this.el.oncut=e=>{if(this.protectedSelection())e.preventDefault();};
-    this.el.ondragstart=e=>{const handle=e.target.closest('[data-drag]');if(handle){e.dataTransfer.setData('text/cris-block',handle.dataset.drag);e.dataTransfer.effectAllowed='move';}else if(e.target.closest('.rich-toggle-editor')||this.protectedSelection())e.preventDefault();};
+    this.el.oncompositionstart=e=>{
+      if(!e.target.matches('.editor-text-run'))return;
+      const selection=getSelection(),field=runField(selection?.anchorNode);
+      if(!selection?.rangeCount||selection.isCollapsed||!field||!e.target.contains(field))return;
+      if(field!==runField(selection.focusNode))selection.collapse(selection.anchorNode,selection.anchorOffset);
+    };
+    this.el.oncopy=e=>this.copyRun(e,false);
+    this.el.oncut=e=>this.copyRun(e,true);
+    this.el.ondragstart=e=>{const handle=e.target.closest('[data-drag]');if(handle){e.dataTransfer.setData('text/cris-block',handle.dataset.drag);e.dataTransfer.effectAllowed='move';}else if(e.target.closest('.rich-toggle-editor,.editor-text-run')||this.protectedSelection())e.preventDefault();};
     this.el.ondragover=e=>{if([...e.dataTransfer.types].includes('text/cris-block'))e.preventDefault();};
-    this.el.ondrop=e=>{const row=e.target.closest('[data-block-row]'),from=e.dataTransfer.getData('text/cris-block');if(!row||from===''){if(e.target.closest('.rich-toggle-editor')||this.protectedSelection())e.preventDefault();return;}e.preventDefault();const target=+row.dataset.blockRow,[b]=this.blocks.splice(+from,1);this.blocks.splice(target,0,b);this.active=target;this.activeChild=null;this.changed();this.render({index:target});};
+    this.el.ondrop=e=>{const row=e.target.closest('[data-block-row]'),from=e.dataTransfer.getData('text/cris-block');if(!row||from===''){if(e.target.closest('.rich-toggle-editor,.editor-text-run')||this.protectedSelection())e.preventDefault();return;}e.preventDefault();const target=+row.dataset.blockRow,[b]=this.blocks.splice(+from,1);this.blocks.splice(target,0,b);this.active=target;this.activeChild=null;this.changed();this.render({index:target});};
     if(focus!==null)this.focus(typeof focus==='number'?{index:focus}:focus);
   }
   focus({index=this.active,offset=null,cell=null,child=null}={}){
     this.active=Math.max(0,Math.min(index,this.blocks.length-1));this.activeChild=child;
     let field=this.el.querySelector(`[data-block="${this.active}"]${child!==null?`[data-child="${child}"]`:cell?`[data-cell-row="${cell.row}"][data-cell-col="${cell.col}"]`:''}`);
+    if(field?.hasAttribute('data-run-field')){
+      field.closest('.editor-text-run').focus({preventScroll:true});
+      const point=pointAt(field,offset??textUnits(field));
+      getSelection().setBaseAndExtent(...point,...point);
+      this.options.onActive?.(this.blocks[this.active].type,true);
+      const bounds=field.getBoundingClientRect();
+      const pane=this.el.closest('.document-card')?.getBoundingClientRect();
+      if(bounds.bottom<Math.max(0,pane?.top??0)||bounds.top>Math.min(innerHeight,pane?.bottom??innerHeight))field.scrollIntoView({block:'nearest'});
+      return;
+    }
     if(field?.dataset.toggleField){
       field.focus();return;
     }
@@ -148,14 +189,97 @@ export class BlockEditor {
     if(offset!==null){const walker=document.createTreeWalker(field,4);let node,left=offset;while(node=walker.nextNode()){if(left<=node.textContent.length){range.setStart(node,left);range.collapse(true);break;}left-=node.textContent.length;}if(offset===0){range.setStart(field,0);range.collapse(true);}}
     selection.removeAllRanges();selection.addRange(range);
   }
-  fieldFor(node){const el=node?.nodeType===1?node:node?.parentElement;const field=el?.closest('[contenteditable=true][data-block]');return field&&this.el.contains(field)?field:null;}
+  fieldFor(node){const el=node?.nodeType===1?node:node?.parentElement;const field=el?.closest('[contenteditable=true][data-block],[data-run-field]');return field&&this.el.contains(field)?field:null;}
   protectedSelection(range){
     if(range===undefined){const selection=getSelection();range=selection?.rangeCount?selection.getRangeAt(0):null;}
-    if(!range||range.collapsed)return false;
-    const start=this.fieldFor(range.startContainer),end=this.fieldFor(range.endContainer);
-    if(start&&start===end)return false;
-    return [...this.el.querySelectorAll('.rich-toggle-editor')].some(content=>range.intersectsNode(content.closest('[data-block-row]')));
+    if(!range||range.collapsed||!range.intersectsNode(this.el))return false;
+    const field=node=>(node.nodeType===1?node:node.parentElement)?.closest('[data-block]');
+    const start=field(range.startContainer),end=field(range.endContainer);
+    if(start&&start===end&&this.el.contains(start))return false;
+    const firstRun=start?.closest('.editor-text-run'),lastRun=end?.closest('.editor-text-run');
+    return !firstRun||firstRun!==lastRun||!this.el.contains(firstRun);
   }
+  currentRun(){
+    const selection=getSelection();
+    return selection?.rangeCount?runSelection(selection.getRangeAt(0)):null;
+  }
+  copyRun(event,cut){
+    if(this.protectedSelection()){event.preventDefault();return;}
+    const selection=getSelection();
+    if(!selection?.rangeCount||selection.isCollapsed||!event.clipboardData)return;
+    const range=selection.getRangeAt(0),parts=runSelection(range);
+    if(!parts)return;
+    const blocks=selectedTextBlocks(this.blocks,parts,range);
+    if(!blocks.length)return;
+    event.preventDefault();
+    writeTextBlocks(event.clipboardData,blocks,this.options.pages,this.el.ownerDocument);
+    if(cut){this.rememberRun(parts);this.finishRun(replaceTextBlocks(this.blocks,parts));}
+  }
+  rememberRun(parts){
+    this.history.remember({
+      start:parts.start,end:parts.end,startOffset:parts.startOffset,endOffset:parts.endOffset,
+    });
+  }
+  finishRun(focus){
+    this.active=focus.index;this.activeChild=null;
+    const offset=focus.special?null:this.runLength(focus.prefix??'');
+    this.changed();
+    if(offset!==null)this.history.remember({start:focus.index,end:focus.index,startOffset:offset,endOffset:offset});
+    this.render({index:focus.index,offset});
+  }
+  runLength(markdown){
+    const box=document.createElement('div');box.innerHTML=inlineHTML(markdown,this.options.pages,true);return textUnits(box);
+  }
+  editRunInput(event){
+    const type=event.inputType;
+    if(!event.cancelable)return false;
+    if(type==='historyUndo'||type==='historyRedo'){this.undo(type==='historyUndo'?-1:1);return true;}
+    const selection=getSelection(),range=selection?.rangeCount?selection.getRangeAt(0):null;
+    const first=runField(range?.startContainer),last=runField(range?.endContainer);
+    if(!first||!last||first.closest('.editor-text-run')!==event.target||last.closest('.editor-text-run')!==event.target)return true;
+    const structural=type==='insertParagraph'||type==='insertLineBreak'||first!==last||
+      (range.collapsed&&(type==='deleteContentBackward'||type==='deleteContentForward'));
+    if(!structural)return (event.getTargetRanges?.()??[]).some(target=>runField(target.startContainer)!==first||runField(target.endContainer)!==first);
+    const parts=runSelection(range);
+    const {start,end,before,after,collapsed}=parts;
+    if(type==='insertParagraph'){
+      this.rememberRun(parts);
+      const insertion=splitBlocks(this.blocks,start,end,before,after);
+      this.finishRun({index:insertion.index,prefix:''});
+      return true;
+    }
+    if(type==='insertLineBreak'){
+      this.rememberRun(parts);this.finishRun(replaceTextBlocks(this.blocks,parts,'\n'));return true;
+    }
+    if(!collapsed&&start!==end){
+      if(type.startsWith('delete')||type==='insertText'&&typeof event.data==='string'){
+        this.rememberRun(parts);this.finishRun(replaceTextBlocks(this.blocks,parts,type==='insertText'?event.data:''));return true;
+      }
+      return true;
+    }
+    if(collapsed&&type==='deleteContentBackward'&&!before){
+      if(this.blocks[start].type!=='paragraph'){
+        this.rememberRun(parts);
+        this.blocks[start]={type:'paragraph',text:after};
+        this.finishRun({index:start,prefix:''});
+      }else if(isTextBlock(this.blocks[start-1])){
+        const previous=this.blocks[start-1].text;
+        this.rememberRun(parts);
+        this.finishRun(replaceTextBlocks(this.blocks,{start:start-1,end:start,before:previous,after}));
+      }
+      return true;
+    }
+    if(collapsed&&type==='deleteContentForward'&&!after){
+      if(isTextBlock(this.blocks[start+1])){
+        this.rememberRun(parts);
+        this.finishRun(replaceTextBlocks(this.blocks,{start,end:start+1,before,after:this.blocks[start+1].text}));
+      }
+      return true;
+    }
+    // Reject browser target ranges outside the active field (word deletion, drag, spellcheck).
+    return (event.getTargetRanges?.()??[]).some(range=>runField(range.startContainer)!==parts.first||runField(range.endContainer)!==parts.first);
+  }
+
   selectionParts(){
     const s=getSelection();if(!s.rangeCount)return null;const range=s.getRangeAt(0),start=this.fieldFor(range.startContainer),end=this.fieldFor(range.endContainer);if(!start||!end)return null;
     const before=range.cloneRange();before.selectNodeContents(start);before.setEnd(range.startContainer,range.startOffset);const after=range.cloneRange();after.selectNodeContents(end);after.setStart(range.endContainer,range.endOffset);
@@ -207,7 +331,7 @@ export class BlockEditor {
     return true;
   }
   keydown(e){
-    if(e.isComposing)return;const field=e.target.closest('[data-block]');if(!field)return;
+    if(e.isComposing)return;const field=e.target.matches('.editor-text-run')?runField(getSelection()?.focusNode):e.target.closest('[data-block]');if(!field)return;
     if(['Enter','Backspace','Delete'].includes(e.key)&&this.protectedSelection()){e.preventDefault();return;}
     if(e.key==='Backspace'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&this.removeEmptyToggle(field)){
       e.preventDefault();
@@ -226,13 +350,26 @@ export class BlockEditor {
     if(field.dataset.toggleField)return;
     this.active=+field.dataset.block;this.activeChild=childIndex(field);const b=this.blocks[this.active];
     if(mod&&['b','i','e'].includes(key)){e.preventDefault();this.captureSelection();this.format({b:'bold',i:'italic',e:'code'}[key]);return;}
-    if(mod&&key==='k'){e.preventDefault();this.captureSelection();this.options.onRequestLink();return;}
+    if(mod&&key==='k'){e.preventDefault();const parts=this.currentRun();if(!parts||parts.start===parts.end){this.captureSelection();this.options.onRequestLink();}return;}
     if(this.activeChild!==null){
       const operation={Enter:'insertParagraph',Backspace:'deleteContentBackward',Delete:'deleteContentForward'}[e.key];
       if(operation&&!mod&&!e.altKey&&!(e.shiftKey&&e.key==='Enter')&&this.editChildBoundary(field,operation))e.preventDefault();
       return;
     }
     if(mod&&e.altKey&&['1','2','3','0'].includes(key)){e.preventDefault();this.setType(key==='0'?'paragraph':'h'+key);return;}
+    if(field.hasAttribute('data-run-field')){
+      if(mod&&key==='a'){
+        e.preventDefault();
+        const fields=field.closest('.editor-text-run').querySelectorAll('[data-run-field]');
+        getSelection().setBaseAndExtent(fields[0],0,fields[fields.length-1],fields[fields.length-1].childNodes.length);
+        return;
+      }
+      if(this.currentRun()?.collapsed){
+        if(e.key==='/'&&!field.textContent.trim()){e.preventDefault();this.menu(field,'convert');return;}
+        if(e.key===' '){const shortcuts={'-':'list','*':'list','1.':'numbered','[]':'todo','[ ]':'todo','---':'divider'},type=shortcuts[field.textContent];if(type){e.preventDefault();b.text='';this.setType(type);}}
+      }
+      return;
+    }
     const parts=this.selectionParts();if(!parts)return;
     if((isCell(parts.startField)||isCell(parts.endField))&&parts.startField!==parts.endField&&['Enter','Backspace','Delete'].includes(e.key)){e.preventDefault();return;}
     if(isCell(field)){
@@ -241,14 +378,7 @@ export class BlockEditor {
     }
     if(parts.start!==parts.end&&['Enter','Backspace','Delete'].includes(e.key)&&this.blocks.slice(parts.start,parts.end+1).some(block=>block.type==='toggle')){e.preventDefault();return;}
     if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();this.syncDOM();const focus=splitBlocks(this.blocks,parts.start,parts.end,parts.before,parts.after);this.active=focus.index;this.changed();this.render(focus);return;}
-    if(e.key==='Backspace'||e.key==='Delete'){
-      if(!parts.collapsed&&parts.start!==parts.end){e.preventDefault();this.blocks.splice(parts.start,parts.end-parts.start+1,{...this.blocks[parts.start],text:parts.before+parts.after});this.active=parts.start;this.changed();this.render({index:this.active,offset:this.plainLength(parts.before)});return;}
-      if(parts.collapsed&&e.key==='Backspace'&&!parts.before){
-        if(b.type!=='paragraph'){e.preventDefault();this.setType('paragraph');return;}
-        const previous=this.blocks[this.active-1];if(previous?.type==='table'){e.preventDefault();this.focus({index:this.active-1,cell:{row:previous.rows.length,col:previous.headers.length-1}});return;}if(previous?.type==='divider'){e.preventDefault();this.blocks.splice(this.active-1,1);this.active--;this.changed();this.render({index:this.active,offset:0});return;}if(previous&&!['table','divider','toggle'].includes(previous.type)){e.preventDefault();const offset=this.plainLength(previous.text);previous.text+=b.text;this.blocks.splice(this.active,1);this.active--;this.changed();this.render({index:this.active,offset});return;}
-      }
-      if(parts.collapsed&&e.key==='Delete'&&!parts.after){const next=this.blocks[this.active+1];if(next&&!['table','divider','toggle'].includes(next.type)){e.preventDefault();const offset=this.plainLength(b.text);b.text+=next.text;this.blocks.splice(this.active+1,1);this.changed();this.render({index:this.active,offset});return;}}
-    }
+    if(parts.collapsed&&(e.key==='Backspace'&&!parts.before||e.key==='Delete'&&!parts.after)){e.preventDefault();return;}
     if(e.key==='/'&&!field.textContent.trim()){e.preventDefault();this.menu(field,'convert');return;}
     if(e.key===' '&&parts.collapsed&&!parts.after){const shortcuts={'-':'list','*':'list','1.':'numbered','[]':'todo','[ ]':'todo','---':'divider'},type=shortcuts[field.textContent];if(type){e.preventDefault();b.text='';this.setType(type);}}
   }
@@ -276,16 +406,33 @@ export class BlockEditor {
     const child=children?.length&&(entry.child!=null||stayInChild)?Math.min(entry.child??this.activeChild,children.length-1):null;
     this.blocks=entry.blocks;
     if(child!==null)this.openToggles.add(this.blocks[index]);
-    this.options.onChange(this.serialize());this.render({index,child});
+    this.options.onChange(this.serialize());
+    const bookmark=entry.bookmark;
+    this.render(bookmark?{index:bookmark.start,offset:bookmark.startOffset}:{index,child});
+    if(bookmark&&bookmark.start!==bookmark.end){
+      const first=this.el.querySelector(`[data-run-field][data-block="${bookmark.start}"]`);
+      const last=this.el.querySelector(`[data-run-field][data-block="${bookmark.end}"]`);
+      if(first&&last)getSelection().setBaseAndExtent(...pointAt(first,bookmark.startOffset),...pointAt(last,bookmark.endOffset));
+    }
   }
-  captureSelection(){const s=getSelection();if(s.rangeCount&&this.el.contains(s.anchorNode))this.range=s.getRangeAt(0).cloneRange();}
+  captureSelection(){
+    const selection=getSelection();
+    if(!selection.rangeCount||!this.el.contains(selection.anchorNode))return;
+    this.range=selection.getRangeAt(0).cloneRange();
+    const field=selection.isCollapsed?runField(selection.focusNode):null;
+    if(field&&field.closest('.editor-text-run')===document.activeElement&&this.active!==+field.dataset.block){
+      this.active=+field.dataset.block;this.activeChild=null;
+      this.options.onActive?.(this.blocks[this.active].type,true);
+    }
+  }
   format(command){
     if(this.range&&this.el.contains(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}
     const s=getSelection();if(!s.rangeCount||!this.el.contains(s.anchorNode))return;
-    if(this.protectedSelection(s.getRangeAt(0)))return;
+    const range=s.getRangeAt(0),parts=runSelection(range);
+    if(this.protectedSelection(range)||(parts&&parts.start!==parts.end))return;
     if(command==='code'){const range=s.getRangeAt(0);if(range.collapsed||this.fieldFor(range.startContainer)!==this.fieldFor(range.endContainer))return;const code=document.createElement('code');code.textContent=range.toString();range.deleteContents();range.insertNode(code);range.selectNodeContents(code);s.removeAllRanges();s.addRange(range);}else document.execCommand(command,false);
     const field=this.fieldFor(s.anchorNode);
-    if(childIndex(field)!==null)this.syncField(field);else this.syncDOM();
+    if(childIndex(field)!==null||field?.hasAttribute('data-run-field'))this.syncField(field);else this.syncDOM();
     this.changed();this.captureSelection();
   }
   setClueBlock(index,block){this.syncDOM();this.blocks[index]=block;this.active=index;this.activeChild=null;this.changed();this.render({index});}
@@ -297,10 +444,12 @@ export class BlockEditor {
   insertLink(page){
     if(this.range&&this.el.contains(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}else this.focus({index:this.active});
     const selection=getSelection();if(!selection.rangeCount)return;const range=selection.getRangeAt(0);
+    const parts=runSelection(range);
+    if(parts&&parts.start!==parts.end)return;
     const start=this.fieldFor(range.startContainer),end=this.fieldFor(range.endContainer);
     if(!start||!end||this.el.querySelector('[data-toggle-field]:focus')||this.protectedSelection(range))return;
     const token=document.createElement('span');token.className='wiki-token';token.contentEditable='false';token.dataset.markdown=`[[page:${page.id}|${page.title}]]`;token.textContent='↗ '+page.title;range.deleteContents();range.insertNode(token);range.setStartAfter(token);range.collapse(true);selection.removeAllRanges();selection.addRange(range);
-    if(childIndex(start)!==null)this.syncField(start);else this.syncDOM();
+    if(childIndex(start)!==null||start.hasAttribute('data-run-field'))this.syncField(start);else this.syncDOM();
     this.changed();this.captureSelection();
   }
   paste(e){
@@ -330,9 +479,16 @@ export class BlockEditor {
   selectionToolbar(){
     const selection=getSelection();
     if(!selection.rangeCount||selection.isCollapsed||!this.el.contains(selection.anchorNode)||!this.el.isConnected||this.protectedSelection(selection.getRangeAt(0))){this.hideToolbar();return;}
+    const range=selection.getRangeAt(0);
+    const first=runField(range.startContainer),last=runField(range.endContainer);
+    if(first&&last&&first!==last){this.hideToolbar();return;}
+    const edge=range.cloneRange();
+    edge.setStart(selection.focusNode,selection.focusOffset);edge.collapse(true);
+    const rect=edge.getBoundingClientRect(),fallback=range.getBoundingClientRect();
+    const target=rect.height?rect:fallback;
+    const pane=this.el.closest('.document-card')?.getBoundingClientRect();
+    if(!target.height||target.bottom<Math.max(0,pane?.top??0)||target.top>Math.min(innerHeight,pane?.bottom??innerHeight)){this.hideToolbar();return;}
     this.captureSelection();
-    const range=selection.getRangeAt(0),rect=range.getBoundingClientRect();
-    if(!rect.width&&!rect.height)return;
     let bar=document.getElementById('editorSelectionToolbar');
     if(!bar){
       bar=document.createElement('div');
@@ -364,8 +520,10 @@ export class BlockEditor {
     const colorButton=bar.querySelector('[data-open-colors]');
     colorButton.hidden=!this.colorField(range);
     if(colorButton.hidden)this.showColors(bar,false);
-    bar.style.left=Math.max(8,Math.min(rect.left,innerWidth-285))+'px';
-    bar.style.top=Math.max(8,Math.min(rect.top-45,innerHeight-48))+'px';
+    const width=bar.offsetWidth,height=bar.offsetHeight;
+    bar.style.left=Math.max(8,Math.min(target.left,innerWidth-width-8))+'px';
+    const above=target.top-height-6,below=target.bottom+6;
+    bar.style.top=Math.max(8,Math.min(above>=8?above:below,innerHeight-height-8))+'px';
     if(!bar.querySelector('.script-color-menu').hidden)this.showColors(bar,true);
   }
   colorField(range){

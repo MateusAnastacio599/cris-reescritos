@@ -20,5 +20,6 @@ export class EditorHistory {
     if(this.entries.length>150){this.entries.shift();this.position--;}
     this.lastInput=typing?at:0;this.lastBlock=active;this.lastChild=child;
   }
+  remember(bookmark){this.entries[this.position].bookmark=bookmark;}
   move(offset){const next=this.position+offset;if(next<0||next>=this.entries.length)return null;this.position=next;this.lastInput=0;return structuredClone(this.entries[next]);}
 }

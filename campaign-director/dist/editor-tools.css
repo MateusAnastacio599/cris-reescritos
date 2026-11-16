@@ -71,3 +71,15 @@
   .rich-toggle-row { grid-template-columns: 32px minmax(0, 1fr); }
   .rich-toggle-menu, .rich-toggle-add { min-height: 36px; }
 }
+
+.editor-text-run { outline: none; }
+.editor-text-run .block-tools, .editor-text-run .editor-number { user-select: none; }
+.editor-text-run .block-content { overflow-wrap: anywhere; }
+.editor-text-run [data-editor-empty]:only-child { pointer-events: none; }
+.editor-text-run .block-content:has(>br[data-editor-empty]:only-child)::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  color: var(--dim);
+  font: 14px var(--sans);
+  pointer-events: none;
+}

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRIS · Cena de teste UX-10</title>
+<link rel="stylesheet" href="../../dist/director.css">
+<link rel="stylesheet" href="../../dist/editor-tools.css">
+<link rel="stylesheet" href="../../dist/session-layout.css">
+<style>
+  main{max-width:740px;margin:auto;padding:14px}
+  nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+  nav>*{padding:8px 10px;color:var(--text);background:#262133;border-radius:4px}
+  .document-card{overflow:visible}
+  @media(min-width:761px){.document-card{height:min(78dvh,720px);overflow:auto}}
+  #viewport{width:390px;max-width:100%;height:780px;border:0;display:block}
+  [hidden]{display:none!important}
+</style>
+<main id="demo">
+  <nav><button id="edit">Editar</button><button id="read">Ler</button><button id="restore">Restaurar cena de teste</button><button id="protect">Testar limites</button><a href="?mobile" target="_top">390 px</a></nav>
+  <section class="document-card"><article class="document-body" id="script"></article></section>
+</main>
+<script type="module">
+import {BlockEditor} from '../../dist/editor.js';
+import {blocksToMarkdown,parseBlocks,renderReadBlocks} from '../../dist/markdown.js';
+
+if(new URLSearchParams(location.search).has('mobile')){
+  document.querySelector('#demo').hidden=true;
+  const viewport=document.createElement('iframe');
+  viewport.id='viewport';viewport.title='Editor a 390 px';viewport.src=location.pathname;
+  document.body.append(viewport);
+}else{
+  const $=selector=>document.querySelector(selector);
+  const canvas=$('#script'),key='cris-ux10-fixture';
+  const sample=blocksToMarkdown([
+    {type:'h1',text:'Alpha heading'},
+    {type:'paragraph',text:'Bravo **strong** middle'},
+    {type:'paragraph',text:'Charlie *italic* ending'},
+    {type:'list',text:'Delta item'},
+    {type:'numbered',number:4,text:'Echo item'},
+    {type:'paragraph',text:'Antes da tabela'},
+    {type:'table',headers:['Pista','Local'],rows:[['Chave','Corredor']]},
+    {type:'paragraph',text:'Entre a tabela e a cue'},
+    {type:'cue',triggerId:'steps',text:'Passos'},
+    {type:'clue',campaignId:'demo',itemId:'letter',action:'reveal',text:'Carta'},
+    {type:'toggle',title:'Notas antigas',text:'# Exemplo literal'},
+    {type:'toggle',title:'Notas ricas',background:'purple',blocks:[{type:'h3',text:'Segredo'},{type:'paragraph',text:'*Parágrafo interno*'},{type:'paragraph',text:'Segundo parágrafo'}]},
+    {type:'paragraph',text:'Depois dos componentes especiais'},
+    ...Array.from({length:30},(_,i)=>({type:'paragraph',text:`Linha longa ${i+1} da cena de teste`})),
+  ]);
+  let editor;
+  const saved=()=>localStorage.getItem(key)??sample;
+  function read(){
+    editor?.destroy();editor=null;
+    canvas.classList.remove('is-editing');canvas.innerHTML=renderReadBlocks(parseBlocks(saved()));
+  }
+  $('#edit').onclick=()=>{
+    if(editor)return;
+    canvas.classList.add('is-editing');
+    editor=new BlockEditor(canvas,{markdown:saved(),pages:[],triggers:[{id:'steps',name:'Passos'}],onChange:md=>localStorage.setItem(key,md)});
+  };
+  $('#read').onclick=read;
+  $('#restore').onclick=()=>{localStorage.removeItem(key);$('#protect').textContent='Testar limites';read();};
+  $('#protect').onclick=()=>{
+    if(!editor)return;
+    const before=saved(),first=canvas.querySelector('[data-run-field]');
+    const other=[...canvas.querySelectorAll('.editor-text-run')].at(-1).querySelector('[data-run-field]');
+    first.closest('.editor-text-run').focus();
+    getSelection().setBaseAndExtent(first.firstChild,1,other.firstChild,3);
+    const events=[
+      new InputEvent('beforeinput',{inputType:'insertText',data:'X',bubbles:true,cancelable:true}),
+      new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}),
+      new ClipboardEvent('cut',{bubbles:true,cancelable:true}),
+      new ClipboardEvent('paste',{bubbles:true,cancelable:true}),
+    ];
+    for(const event of events)first.closest('.editor-text-run').dispatchEvent(event);
+    $('#protect').textContent=events.every(event=>event.defaultPrevented)&&saved()===before?'Limites protegidos':'Falha de proteção';
+    getSelection().collapse(first.firstChild,1);
+  };
+  read();
+}
+</script>
