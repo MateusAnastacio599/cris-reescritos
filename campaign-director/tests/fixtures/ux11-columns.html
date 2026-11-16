@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRIS · Cena de teste UX-11</title>
+<link rel="stylesheet" href="../../dist/director.css">
+<link rel="stylesheet" href="../../dist/editor-tools.css">
+<link rel="stylesheet" href="../../dist/session-layout.css">
+<style>
+  main{max-width:1120px;margin:auto;padding:14px}
+  nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+  nav>*{padding:8px 10px;color:var(--text);background:#262133;border-radius:4px}
+  .document-card{overflow:visible}
+  #viewport{width:390px;max-width:100%;height:850px;border:0;display:block}
+  pre{white-space:pre-wrap;overflow-wrap:anywhere}
+  [hidden]{display:none!important}
+</style>
+<main id="demo">
+  <nav><button id="edit">Editar</button><button id="read">Ler</button><button id="undo">Desfazer</button><button id="redo">Refazer</button><button id="restore">Restaurar cena</button><button id="protect">Testar limites</button><a href="?mobile" target="_top">390 px</a></nav>
+  <section class="document-card"><article class="document-body" id="script"></article></section>
+  <details><summary>Markdown salvo</summary><pre id="saved"></pre></details>
+</main>
+<script type="module">
+import {BlockEditor} from '../../dist/editor.js';
+import {blocksToMarkdown,parseBlocks,renderReadBlocks} from '../../dist/markdown.js';
+
+if(new URLSearchParams(location.search).has('mobile')){
+  document.querySelector('#demo').hidden=true;
+  const viewport=document.createElement('iframe');
+  viewport.id='viewport';viewport.title='Editor a 390 px';viewport.src=location.pathname;document.body.append(viewport);
+}else{
+  const $=selector=>document.querySelector(selector);
+  const canvas=$('#script'),key='cris-ux11-fixture';
+  const sample=blocksToMarkdown([
+    {type:'h1',text:'A Mansão Noir'}, {type:'paragraph',text:'Antes das colunas'},
+    {type:'columns',columns:[
+      {width:50,blocks:[{type:'h2',text:'Salão principal'},{type:'paragraph',text:'As **luzes** tremulam.'},{type:'paragraph',text:'A porta do corredor permanece aberta.'},
+        {type:'toggle',title:'Segredo do salão',background:'purple',blocks:[{type:'h3',text:'Espelho'},{type:'paragraph',text:'*Runas* na moldura.'},{type:'paragraph',text:'Carta na gaveta.'}]}]},
+      {width:50,blocks:[{type:'h3',text:'Instruções'},{type:'note',text:'Notas do mestre'},{type:'list',text:'Verificar o relógio'}]},
+    ]},
+    {type:'table',headers:['Pista','Local'],rows:[['Chave','Corredor']]},
+    {type:'cue',triggerId:'steps',text:'Passos'},
+    {type:'clue',campaignId:'demo',itemId:'letter',action:'reveal',text:'Carta'},
+    {type:'paragraph',text:'Depois das colunas'},
+  ]);
+  let editor;
+  const saved=()=>localStorage.getItem(key)??sample;
+  function read(){
+    editor?.destroy();editor=null;
+    canvas.classList.remove('is-editing');canvas.innerHTML=renderReadBlocks(parseBlocks(saved()));$('#saved').textContent=saved();
+  }
+  $('#edit').onclick=()=>{
+    if(editor)return;
+    canvas.classList.add('is-editing');
+    editor=new BlockEditor(canvas,{markdown:saved(),pages:[],triggers:[{id:'steps',name:'Passos'}],onCue:id=>{$('#edit').title=id;},
+      onChange:md=>{localStorage.setItem(key,md);$('#saved').textContent=md;}});
+  };
+  $('#read').onclick=read;
+  $('#undo').onclick=()=>editor?.undo(-1);
+  $('#redo').onclick=()=>editor?.undo(1);
+  $('#restore').onclick=()=>{localStorage.removeItem(key);$('#protect').textContent='Testar limites';read();};
+  $('#protect').onclick=()=>{
+    if(!editor)return;
+    const before=saved(),fields=[...canvas.querySelectorAll('[data-column-editor]')].map(surface=>surface.querySelector('[data-run-field]'));
+    const first=fields[0],other=fields[1];if(!first||!other)return;
+    const run=first.closest('.editor-text-run');
+    run.focus();getSelection().setBaseAndExtent(first.firstChild,1,other.firstChild,3);
+    const events=[
+      new InputEvent('beforeinput',{inputType:'insertText',data:'X',bubbles:true,cancelable:true}),
+      new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}),
+      new ClipboardEvent('cut',{bubbles:true,cancelable:true}),
+      new ClipboardEvent('paste',{bubbles:true,cancelable:true}),
+    ];
+    for(const event of events)run.dispatchEvent(event);
+    $('#protect').textContent=events.every(event=>event.defaultPrevented)&&saved()===before?'Limites protegidos':'Falha de proteção';
+    getSelection().collapse(first.firstChild,1);
+  };
+  read();
+}
+</script>

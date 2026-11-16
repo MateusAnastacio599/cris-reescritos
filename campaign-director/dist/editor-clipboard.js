@@ -1,4 +1,34 @@
-import {parseBlocks} from './markdown.js';
+import {parseBlocks,inlineHTML,renderReadBlocks} from './markdown.js';
+import {isTextBlock} from './editor-text-runs.js';
+
+const textBlocksMime='application/x-cris-text-blocks+json';
+
+export function writeTextBlocks(clipboard,blocks,pages,document){
+  const box=document.createElement('div');
+  const plain=blocks.map(block=>{
+    box.innerHTML=inlineHTML(block.text,pages,true);
+    box.querySelectorAll('br').forEach(br=>br.replaceWith('\n'));
+    const marker=block.type==='list'?'• ':block.type==='numbered'?`${block.number||1}. `:'';
+    return marker+box.textContent;
+  }).join('\n');
+  clipboard.setData('text/plain',plain);
+  clipboard.setData('text/html',renderReadBlocks(blocks,pages));
+  clipboard.setData(textBlocksMime,JSON.stringify(blocks));
+}
+
+export function readClipboardBlocks(clipboard){
+  const structured=clipboard.getData(textBlocksMime);
+  if(structured){
+    try{
+      const blocks=JSON.parse(structured);
+      if(Array.isArray(blocks)&&blocks.length&&blocks.every(block=>isTextBlock(block)&&typeof block.text==='string')){
+        return blocks.map(({type,text,number})=>type==='numbered'&&Number.isSafeInteger(number)?{type,text,number}:{type,text});
+      }
+    }catch{/* Try ordinary clipboard formats. */}
+  }
+  const html=clipboard.getData('text/html'),text=clipboard.getData('text/plain');
+  return html||text?clipboardBlocks({html,text}):[];
+}
 
 /** Lê HTML inerte: apenas texto, formatação e estrutura entram no editor. */
 export function clipboardBlocks({html='',text=''}){

@@ -1,17 +1,53 @@
 import {recolorRange,scriptColors,toggleBackground,toggleBackgroundAttribute} from './editor-colors.js';
 import {parseBlocks,blocksToMarkdown,inlineHTML,editableToMarkdown,renderTable,isRichToggle,TOGGLE_CHILD_TYPES,escapeHTML as esc} from './markdown.js';
 import {BLOCK_TYPES,newBlock,splitBlocks,EditorHistory} from './editor-model.js';
-import {clipboardBlocks} from './editor-clipboard.js';
+import {clipboardBlocks,readClipboardBlocks,writeTextBlocks} from './editor-clipboard.js';
 import {icon} from './icons.js';
+import {ColumnLayouts,EDITOR_SURFACE,editableColumnsHTML} from './editor-columns.js';
+import {isColumnBlock,isColumnBlockType,newColumns} from './editor-columns-model.js';
+import {isTextBlock,textRunMarkup,runField,readRunField,pointAt,runSelection,selectedTextBlocks,replaceTextBlocks,pasteTextBlocks,textUnits,intactTextRun} from './editor-text-runs.js';
 
 const writingShortcuts=new Map([['#','h1'],['##','h2'],['###','h3'],['>','toggle']]);
 const isCell=field=>field?.dataset.cellRow!==undefined;
 const childIndex=field=>field?.dataset?.child===undefined?null:+field.dataset.child;
+let nextSurface=0;
 export class BlockEditor {
-  constructor(element,options){this.el=element;this.options=options;this.blocks=parseBlocks(options.markdown);this.active=0;this.activeChild=null;this.openToggles=new WeakSet();this.history=new EditorHistory(this.blocks);this.abort=new AbortController();document.addEventListener('selectionchange',()=>{this.captureSelection();this.selectionToolbar();},{signal:this.abort.signal});this.render();}
-  destroy(){this.abort.abort();this.hideToolbar();document.getElementById('blockPopover')?.remove();}
+  constructor(element,options){
+    this.el=element;this.options=options;this.blocks=options.blocks??parseBlocks(options.markdown);
+    this.active=0;this.activeChild=null;this.columnEditor=null;
+    this.surfaceId=++nextSurface;this.el.dataset.editorSurface=String(this.surfaceId);
+    this.dragType='text/cris-block-'+this.surfaceId;
+    this.openToggles=options.openToggles??new WeakSet();
+    this.abort=new AbortController();
+    if(!options.columnContext){
+      this.history=new EditorHistory(this.blocks);
+      this.columns=new ColumnLayouts(this);
+      const selectionEditor=()=>this.columns.editorAt(getSelection()?.anchorNode)??this;
+      document.addEventListener('selectionchange',()=>{
+        const editor=selectionEditor();
+        editor.captureSelection(true);editor.selectionToolbar();
+      },{signal:this.abort.signal});
+      window.addEventListener('scroll',()=>{if(document.getElementById('editorSelectionToolbar'))selectionEditor().selectionToolbar();},{capture:true,passive:true,signal:this.abort.signal});
+    }
+    this.render();
+  }
+  destroy(){this.columns?.destroy();this.abort.abort();this.hideToolbar();document.getElementById('blockPopover')?.remove();}
   serialize(){return blocksToMarkdown(this.blocks);}
-  changed(typing=false){this.history.record(this.blocks,this.active,typing,Date.now(),this.activeChild);this.options.onChange(this.serialize());}
+  changed(typing=false,scope=null){
+    if(this.options.columnContext){this.options.columnContext.changed(this,typing);return;}
+    this.history.record(this.blocks,this.active,typing,Date.now(),this.activeChild,scope);
+    this.options.onChange(this.serialize());
+  }
+  owns(node){
+    const element=node?.nodeType===1?node:node?.parentElement;
+    return element?.closest(EDITOR_SURFACE)===this.el;
+  }
+  ownField(selector){return [...this.el.querySelectorAll(selector)].find(field=>this.owns(field));}
+  canUseType(type){return !this.options.columnContext||isColumnBlockType(type);}
+  rememberBookmark(bookmark){
+    if(this.options.columnContext)this.options.columnContext.remember(bookmark);
+    else this.history.remember(bookmark);
+  }
   syncField(field){
     const b=this.blocks[+field?.dataset.block];
     if(!b)return;
@@ -22,14 +58,18 @@ export class BlockEditor {
     }else if(isCell(field)){
       const r=+field.dataset.cellRow,c=+field.dataset.cellCol,text=editableToMarkdown(field);
       if(r===0)b.headers[c]=text;else if(b.rows[r-1])b.rows[r-1][c]=text;
-    }else b.text=editableToMarkdown(field);
+    }else b.text=field.hasAttribute('data-run-field')?readRunField(field):editableToMarkdown(field);
   }
-  syncDOM(){this.el.querySelectorAll('[contenteditable=true][data-block]:not([data-child])').forEach(field=>this.syncField(field));}
+  syncDOM(){this.el.querySelectorAll('[contenteditable=true][data-block]:not([data-child])').forEach(field=>{if(this.owns(field))this.syncField(field);});}
   render(focus=null){
+    this.columns?.destroy();this.columnEditor=null;
     this.hideToolbar();this.range=null;
     this.el.innerHTML=this.blocks.map((b,i)=>{
+      if(b.type==='columns')return editableColumnsHTML(b,i);
       const tools=`<div class="block-tools" contenteditable="false"><button type="button" aria-label="Adicionar bloco" data-add="${i}">${icon('plus')}</button><button type="button" draggable="true" data-drag="${i}" data-block-menu="${i}" aria-label="Menu do bloco">${icon('grip')}</button></div>`;
-      const field=`<div class="block-content" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${BLOCK_TYPES[b.type]} ${i+1}" data-block="${i}" data-placeholder="Escreva ou digite / para inserir…" spellcheck="true" lang="pt-BR">${inlineHTML(b.text,this.options.pages,true)}</div>`;
+      const shared=isTextBlock(b);
+      const attributes=shared?'data-run-field':'contenteditable="true" role="textbox" aria-multiline="true"';
+      const field=`<div class="block-content" ${attributes} aria-label="${BLOCK_TYPES[b.type]} ${i+1}" data-block="${i}" data-placeholder="Escreva ou digite / para inserir…" spellcheck="true" lang="pt-BR">${inlineHTML(b.text,this.options.pages,true)||(shared?'<br data-editor-empty>':'')}</div>`;
       let body=field;
       if(b.type==='toggle'){
         const open=this.openToggles.has(b);
@@ -41,10 +81,10 @@ export class BlockEditor {
           `<div class="block-content script-toggle-text" contenteditable="plaintext-only" role="textbox" aria-multiline="true" aria-label="Texto do recolhível" data-placeholder="Escreva aqui…" data-toggle-field="text" data-block="${i}">${esc(b.text)}</div>`;
         body=`<div class="script-toggle"${toggleBackgroundAttribute(b.background)}>
           <div class="script-toggle-heading">
-            <button type="button" data-toggle-button="${i}" aria-label="${open?'Recolher':'Expandir'} bloco" aria-expanded="${open}" aria-controls="script-toggle-body-${i}">▸</button>
+            <button type="button" data-toggle-button="${i}" aria-label="${open?'Recolher':'Expandir'} bloco" aria-expanded="${open}" aria-controls="script-toggle-body-${this.surfaceId}-${i}">▸</button>
             <div class="script-toggle-title" contenteditable="plaintext-only" role="textbox" aria-label="Título do recolhível" data-placeholder="Recolhível" data-toggle-field="title" data-block="${i}">${esc(b.title)}</div>
           </div>
-          <div class="script-toggle-content${rich?' rich-toggle-editor':''}" id="script-toggle-body-${i}" ${open?'':'hidden'}>${content}</div>
+          <div class="script-toggle-content${rich?' rich-toggle-editor':''}" id="script-toggle-body-${this.surfaceId}-${i}" ${open?'':'hidden'}>${content}</div>
         </div>`;
       }
       if(b.type==='divider')body='<hr>';
@@ -53,11 +93,15 @@ export class BlockEditor {
       if(b.type==='clue')body=`<div class="editable-board-clue"><span aria-hidden="true">◇</span>${field}<button type="button" class="btn outline small" data-select-clue="${i}">${b.itemId?'Trocar pista':'Escolher pista'}</button><button type="button" class="icon-btn" data-preview-clue="${i}" aria-label="Revelar pista">${icon('eye')}</button></div>`;
       if(b.type==='cue')body=`<div class="editable-cue"><span>♫</span>${field}<select aria-label="Efeito da cue" data-trigger-select="${i}"><option value="">Escolher efeito</option>${this.options.triggers.map(t=>`<option value="${esc(t.id)}" ${t.id===b.triggerId?'selected':''}>${esc(t.name)}</option>`).join('')}</select><button type="button" class="icon-btn" data-preview-cue="${i}" aria-label="Testar cue">${icon('play')}</button></div>`;
       if(b.type==='table')body=renderTable(b,this.options.pages,true,i)+`<div class="table-controls" contenteditable="false"><button type="button" data-table-action="row" data-table="${i}">+ Linha</button><button type="button" data-table-action="column" data-table="${i}">+ Coluna</button><button type="button" data-table-action="remove-row" data-table="${i}">− Linha</button><button type="button" data-table-action="remove-column" data-table="${i}">− Coluna</button></div>`;
-      return `<div class="editor-block block-${b.type}" data-block-row="${i}">${tools}${body}</div>`;
+      return textRunMarkup(this.blocks,i,`<div class="editor-block block-${b.type}" data-block-row="${i}">${tools}${body}</div>`);
     }).join('')+`<button type="button" class="add-block-line" data-add="${this.blocks.length-1}">${icon('plus')} Adicionar bloco <span>/</span></button>`;
-    let typedShortcut=null;
+    let typedShortcut=null,verifyRun=false;
     this.el.onbeforeinput=e=>{
+      verifyRun=!e.cancelable;
       if(e.cancelable&&this.protectedSelection()){e.preventDefault();return;}
+      // Native typing inside a column still belongs to the scene history.
+      if(this.options.columnContext&&!e.inputType?.startsWith('history'))this.rememberBookmark({});
+      if(e.target.matches('.editor-text-run')&&this.editRunInput(e)){e.preventDefault();return;}
       if(childIndex(e.target)!==null&&e.cancelable&&!e.isComposing){
         if(e.inputType==='historyUndo'||e.inputType==='historyRedo'){e.preventDefault();this.undo(e.inputType==='historyUndo'?-1:1);return;}
         if(this.editChildBoundary(e.target,e.inputType)) {e.preventDefault();return;}
@@ -66,7 +110,7 @@ export class BlockEditor {
         e.preventDefault();
         return;
       }
-      if(!typedShortcut||e.target!==typedShortcut.field||e.isComposing||e.inputType!=='insertText'||e.data!==' '||!e.cancelable)return;
+      if(!typedShortcut||e.target!==(typedShortcut.field.closest('.editor-text-run')??typedShortcut.field)||e.isComposing||e.inputType!=='insertText'||e.data!==' '||!e.cancelable)return;
       const {field,marker}=typedShortcut;
       const parts=this.selectionParts(),index=+field.dataset.block;
       if(!parts?.collapsed||parts.startField!==field||parts.before!==marker||parts.after||field.textContent!==marker||this.blocks[index]?.type!=='paragraph'||this.blocks[index].text!==marker)return;
@@ -86,7 +130,14 @@ export class BlockEditor {
         this.blocks[this.active][key]=key==='title'?text.replace(/\n+/g,' '):text;
         this.changed(true);return;
       }
-      const field=e.target.closest('[data-block]');this.syncField(field);
+      const run=e.target.matches('.editor-text-run')?e.target:null;
+      const field=run?runField(getSelection()?.focusNode):e.target.closest('[data-block]');
+      if(!run&&!field)return;
+      const expectedRows=run?Number(run.dataset.runEnd)-Number(run.dataset.runStart)+1:0;
+      if(run&&(!field||!run.contains(field)||run.children.length!==expectedRows||verifyRun&&!intactTextRun(run))){
+        this.render({index:this.active});return;
+      }
+      this.syncField(field);
       if(field){
         this.active=+field.dataset.block;
         this.activeChild=childIndex(field);
@@ -96,7 +147,11 @@ export class BlockEditor {
       this.changed(!e.inputType?.startsWith('format'));
     };
     this.el.onfocusin=e=>{
-      const field=e.target.closest('[data-block]');if(!field)return;
+      if(this.options.columnContext)this.options.columnContext.activate(this);else this.columnEditor=null;
+      const inRun=e.target.matches('.editor-text-run');
+      const caret=inRun?runField(getSelection()?.focusNode):null;
+      const field=inRun?(e.target.contains(caret)?caret:e.target.querySelector('[data-run-field]')):e.target.closest('[data-block]');
+      if(!field)return;
       this.active=+field.dataset.block;this.activeChild=childIndex(field);
       this.activeCell=isCell(field)?{row:+field.dataset.cellRow,col:+field.dataset.cellCol}:null;
       const block=this.blocks[this.active];
@@ -127,35 +182,152 @@ export class BlockEditor {
     this.el.onchange=e=>{const {blockCheck,triggerSelect}=e.target.dataset;if(blockCheck!==undefined){this.blocks[+blockCheck].checked=e.target.checked;this.changed();}if(triggerSelect!==undefined){this.blocks[+triggerSelect].triggerId=e.target.value;this.changed();}};
     this.el.onpaste=e=>{
       if(this.protectedSelection()){e.preventDefault();return;}
+      if(e.target.matches('.editor-text-run')){
+        e.preventDefault();
+        const parts=this.currentRun();
+        if(!parts||!e.clipboardData)return;
+        const entries=readClipboardBlocks(e.clipboardData);
+        if(!entries.length||this.options.columnContext&&!entries.every(isColumnBlock))return;
+        this.rememberRun(parts);
+        this.finishRun(pasteTextBlocks(this.blocks,parts,entries));
+        return;
+      }
       if(e.target.dataset.toggleField==='title'){
         e.preventDefault();
         document.execCommand('insertText',false,e.clipboardData.getData('text/plain').replace(/[\r\n]+/g,' '));
       }else this.paste(e);
     };this.el.onkeydown=e=>this.keydown(e);
-    this.el.oncut=e=>{if(this.protectedSelection())e.preventDefault();};
-    this.el.ondragstart=e=>{const handle=e.target.closest('[data-drag]');if(handle){e.dataTransfer.setData('text/cris-block',handle.dataset.drag);e.dataTransfer.effectAllowed='move';}else if(e.target.closest('.rich-toggle-editor')||this.protectedSelection())e.preventDefault();};
-    this.el.ondragover=e=>{if([...e.dataTransfer.types].includes('text/cris-block'))e.preventDefault();};
-    this.el.ondrop=e=>{const row=e.target.closest('[data-block-row]'),from=e.dataTransfer.getData('text/cris-block');if(!row||from===''){if(e.target.closest('.rich-toggle-editor')||this.protectedSelection())e.preventDefault();return;}e.preventDefault();const target=+row.dataset.blockRow,[b]=this.blocks.splice(+from,1);this.blocks.splice(target,0,b);this.active=target;this.activeChild=null;this.changed();this.render({index:target});};
+    this.el.oncompositionstart=e=>{
+      if(!e.target.matches('.editor-text-run'))return;
+      const selection=getSelection(),field=runField(selection?.anchorNode);
+      if(!selection?.rangeCount||selection.isCollapsed||!field||!e.target.contains(field))return;
+      if(field!==runField(selection.focusNode))selection.collapse(selection.anchorNode,selection.anchorOffset);
+    };
+    this.el.oncopy=e=>this.copyRun(e,false);
+    this.el.oncut=e=>this.copyRun(e,true);
+    this.el.ondragstart=e=>{const handle=e.target.closest('[data-drag]');if(handle){e.dataTransfer.setData(this.dragType,handle.dataset.drag);e.dataTransfer.effectAllowed='move';}else if(e.target.closest('.rich-toggle-editor,.editor-text-run')||this.protectedSelection())e.preventDefault();};
+    this.el.ondragover=e=>{if([...e.dataTransfer.types].includes(this.dragType))e.preventDefault();};
+    this.el.ondrop=e=>{const row=e.target.closest('[data-block-row]'),from=e.dataTransfer.getData(this.dragType);if(!row||from===''||!this.blocks[+from]||!this.blocks[+row.dataset.blockRow]){if(e.target.closest('.rich-toggle-editor,.editor-text-run')||this.protectedSelection())e.preventDefault();return;}e.preventDefault();const target=+row.dataset.blockRow,[b]=this.blocks.splice(+from,1);this.blocks.splice(target,0,b);this.active=target;this.activeChild=null;this.changed();this.render({index:target});};
+    for(const name of ['beforeinput','input','focusin','click','change','paste','keydown','compositionstart','copy','cut','dragstart','dragover','drop']){
+      const handler=this.el['on'+name];
+      this.el['on'+name]=event=>{if(this.owns(event.target))handler(event);};
+    }
+    this.columns?.attach(BlockEditor);
     if(focus!==null)this.focus(typeof focus==='number'?{index:focus}:focus);
   }
   focus({index=this.active,offset=null,cell=null,child=null}={}){
     this.active=Math.max(0,Math.min(index,this.blocks.length-1));this.activeChild=child;
-    let field=this.el.querySelector(`[data-block="${this.active}"]${child!==null?`[data-child="${child}"]`:cell?`[data-cell-row="${cell.row}"][data-cell-col="${cell.col}"]`:''}`);
+    if(this.blocks[this.active]?.type==='columns'&&this.columns?.focus({layout:this.active,column:0,block:0}))return;
+    let field=this.ownField(`[data-block="${this.active}"]${child!==null?`[data-child="${child}"]`:cell?`[data-cell-row="${cell.row}"][data-cell-col="${cell.col}"]`:''}`);
+    if(field?.hasAttribute('data-run-field')){
+      field.closest('.editor-text-run').focus({preventScroll:true});
+      const point=pointAt(field,offset??textUnits(field));
+      getSelection().setBaseAndExtent(...point,...point);
+      this.options.onActive?.(this.blocks[this.active].type,true);
+      const bounds=field.getBoundingClientRect();
+      const pane=this.el.closest('.document-card')?.getBoundingClientRect();
+      if(bounds.bottom<Math.max(0,pane?.top??0)||bounds.top>Math.min(innerHeight,pane?.bottom??innerHeight))field.scrollIntoView({block:'nearest'});
+      return;
+    }
     if(field?.dataset.toggleField){
       field.focus();return;
     }
-    if(!field&&this.blocks[this.active]?.type==='divider'){this.add(this.active+1);return;}if(!field)return;field.focus();const selection=getSelection(),range=document.createRange();range.selectNodeContents(field);range.collapse(false);
+    if(!field&&this.blocks[this.active]?.type==='divider'){this.add(this.active+1);return;}if(!field){this.el.querySelector('.add-block-line')?.focus();return;}field.focus();const selection=getSelection(),range=document.createRange();range.selectNodeContents(field);range.collapse(false);
     if(offset!==null){const walker=document.createTreeWalker(field,4);let node,left=offset;while(node=walker.nextNode()){if(left<=node.textContent.length){range.setStart(node,left);range.collapse(true);break;}left-=node.textContent.length;}if(offset===0){range.setStart(field,0);range.collapse(true);}}
     selection.removeAllRanges();selection.addRange(range);
   }
-  fieldFor(node){const el=node?.nodeType===1?node:node?.parentElement;const field=el?.closest('[contenteditable=true][data-block]');return field&&this.el.contains(field)?field:null;}
+  fieldFor(node){const el=node?.nodeType===1?node:node?.parentElement;const field=el?.closest('[contenteditable=true][data-block],[data-run-field]');return field&&this.owns(field)?field:null;}
   protectedSelection(range){
     if(range===undefined){const selection=getSelection();range=selection?.rangeCount?selection.getRangeAt(0):null;}
-    if(!range||range.collapsed)return false;
-    const start=this.fieldFor(range.startContainer),end=this.fieldFor(range.endContainer);
-    if(start&&start===end)return false;
-    return [...this.el.querySelectorAll('.rich-toggle-editor')].some(content=>range.intersectsNode(content.closest('[data-block-row]')));
+    if(!range||range.collapsed||!range.intersectsNode(this.el))return false;
+    const field=node=>(node.nodeType===1?node:node.parentElement)?.closest('[data-block]');
+    const start=field(range.startContainer),end=field(range.endContainer);
+    if(start&&start===end&&this.owns(start))return false;
+    const firstRun=start?.closest('.editor-text-run'),lastRun=end?.closest('.editor-text-run');
+    return !firstRun||firstRun!==lastRun||!this.owns(firstRun);
   }
+  currentRun(){
+    const selection=getSelection();
+    const parts=selection?.rangeCount?runSelection(selection.getRangeAt(0)):null;
+    return parts&&this.owns(parts.first)?parts:null;
+  }
+  copyRun(event,cut){
+    if(this.protectedSelection()){event.preventDefault();return;}
+    const selection=getSelection();
+    if(!selection?.rangeCount||selection.isCollapsed||!event.clipboardData)return;
+    const range=selection.getRangeAt(0),parts=runSelection(range);
+    if(!parts)return;
+    const blocks=selectedTextBlocks(this.blocks,parts,range);
+    if(!blocks.length)return;
+    event.preventDefault();
+    writeTextBlocks(event.clipboardData,blocks,this.options.pages,this.el.ownerDocument);
+    if(cut){this.rememberRun(parts);this.finishRun(replaceTextBlocks(this.blocks,parts));}
+  }
+  rememberRun(parts){
+    this.rememberBookmark({
+      start:parts.start,end:parts.end,startOffset:parts.startOffset,endOffset:parts.endOffset,
+    });
+  }
+  finishRun(focus){
+    this.active=focus.index;this.activeChild=null;
+    const offset=focus.special?null:this.runLength(focus.prefix??'');
+    this.changed();
+    if(offset!==null)this.rememberBookmark({start:focus.index,end:focus.index,startOffset:offset,endOffset:offset});
+    this.render({index:focus.index,offset});
+  }
+  runLength(markdown){
+    const box=document.createElement('div');box.innerHTML=inlineHTML(markdown,this.options.pages,true);return textUnits(box);
+  }
+  editRunInput(event){
+    const type=event.inputType;
+    if(!event.cancelable)return false;
+    if(type==='historyUndo'||type==='historyRedo'){this.undo(type==='historyUndo'?-1:1);return true;}
+    const selection=getSelection(),range=selection?.rangeCount?selection.getRangeAt(0):null;
+    const first=runField(range?.startContainer),last=runField(range?.endContainer);
+    if(!first||!last||first.closest('.editor-text-run')!==event.target||last.closest('.editor-text-run')!==event.target)return true;
+    const structural=type==='insertParagraph'||type==='insertLineBreak'||first!==last||
+      (range.collapsed&&(type==='deleteContentBackward'||type==='deleteContentForward'));
+    if(!structural)return (event.getTargetRanges?.()??[]).some(target=>runField(target.startContainer)!==first||runField(target.endContainer)!==first);
+    const parts=runSelection(range);
+    const {start,end,before,after,collapsed}=parts;
+    if(type==='insertParagraph'){
+      this.rememberRun(parts);
+      const insertion=splitBlocks(this.blocks,start,end,before,after);
+      this.finishRun({index:insertion.index,prefix:''});
+      return true;
+    }
+    if(type==='insertLineBreak'){
+      this.rememberRun(parts);this.finishRun(replaceTextBlocks(this.blocks,parts,'\n'));return true;
+    }
+    if(!collapsed&&start!==end){
+      if(type.startsWith('delete')||type==='insertText'&&typeof event.data==='string'){
+        this.rememberRun(parts);this.finishRun(replaceTextBlocks(this.blocks,parts,type==='insertText'?event.data:''));return true;
+      }
+      return true;
+    }
+    if(collapsed&&type==='deleteContentBackward'&&!before){
+      if(this.blocks[start].type!=='paragraph'){
+        this.rememberRun(parts);
+        this.blocks[start]={type:'paragraph',text:after};
+        this.finishRun({index:start,prefix:''});
+      }else if(isTextBlock(this.blocks[start-1])){
+        const previous=this.blocks[start-1].text;
+        this.rememberRun(parts);
+        this.finishRun(replaceTextBlocks(this.blocks,{start:start-1,end:start,before:previous,after}));
+      }
+      return true;
+    }
+    if(collapsed&&type==='deleteContentForward'&&!after){
+      if(isTextBlock(this.blocks[start+1])){
+        this.rememberRun(parts);
+        this.finishRun(replaceTextBlocks(this.blocks,{start,end:start+1,before,after:this.blocks[start+1].text}));
+      }
+      return true;
+    }
+    // Reject browser target ranges outside the active field (word deletion, drag, spellcheck).
+    return (event.getTargetRanges?.()??[]).some(range=>runField(range.startContainer)!==parts.first||runField(range.endContainer)!==parts.first);
+  }
+
   selectionParts(){
     const s=getSelection();if(!s.rangeCount)return null;const range=s.getRangeAt(0),start=this.fieldFor(range.startContainer),end=this.fieldFor(range.endContainer);if(!start||!end)return null;
     const before=range.cloneRange();before.selectNodeContents(start);before.setEnd(range.startContainer,range.startOffset);const after=range.cloneRange();after.selectNodeContents(end);after.setStart(range.endContainer,range.endOffset);
@@ -207,7 +379,15 @@ export class BlockEditor {
     return true;
   }
   keydown(e){
-    if(e.isComposing)return;const field=e.target.closest('[data-block]');if(!field)return;
+    if(e.isComposing)return;
+    const field=e.target.matches('.editor-text-run')?runField(getSelection()?.focusNode):e.target.closest('[data-block]');
+    if(!field){
+      const key=e.key.toLowerCase();
+      if(e.target.closest('[data-columns-layout]')&&(e.ctrlKey||e.metaKey)&&['z','y'].includes(key)){
+        e.preventDefault();this.undo(key==='y'||e.shiftKey?1:-1);
+      }
+      return;
+    }
     if(['Enter','Backspace','Delete'].includes(e.key)&&this.protectedSelection()){e.preventDefault();return;}
     if(e.key==='Backspace'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&this.removeEmptyToggle(field)){
       e.preventDefault();
@@ -226,13 +406,26 @@ export class BlockEditor {
     if(field.dataset.toggleField)return;
     this.active=+field.dataset.block;this.activeChild=childIndex(field);const b=this.blocks[this.active];
     if(mod&&['b','i','e'].includes(key)){e.preventDefault();this.captureSelection();this.format({b:'bold',i:'italic',e:'code'}[key]);return;}
-    if(mod&&key==='k'){e.preventDefault();this.captureSelection();this.options.onRequestLink();return;}
+    if(mod&&key==='k'){e.preventDefault();const parts=this.currentRun();if(!parts||parts.start===parts.end){this.captureSelection();this.options.onRequestLink();}return;}
     if(this.activeChild!==null){
       const operation={Enter:'insertParagraph',Backspace:'deleteContentBackward',Delete:'deleteContentForward'}[e.key];
       if(operation&&!mod&&!e.altKey&&!(e.shiftKey&&e.key==='Enter')&&this.editChildBoundary(field,operation))e.preventDefault();
       return;
     }
     if(mod&&e.altKey&&['1','2','3','0'].includes(key)){e.preventDefault();this.setType(key==='0'?'paragraph':'h'+key);return;}
+    if(field.hasAttribute('data-run-field')){
+      if(mod&&key==='a'){
+        e.preventDefault();
+        const fields=field.closest('.editor-text-run').querySelectorAll('[data-run-field]');
+        getSelection().setBaseAndExtent(fields[0],0,fields[fields.length-1],fields[fields.length-1].childNodes.length);
+        return;
+      }
+      if(this.currentRun()?.collapsed){
+        if(e.key==='/'&&!field.textContent.trim()){e.preventDefault();this.menu(field,'convert');return;}
+        if(e.key===' '){const shortcuts={'-':'list','*':'list','1.':'numbered','[]':'todo','[ ]':'todo','---':'divider'},type=shortcuts[field.textContent];if(type&&this.canUseType(type)){e.preventDefault();b.text='';this.setType(type);}}
+      }
+      return;
+    }
     const parts=this.selectionParts();if(!parts)return;
     if((isCell(parts.startField)||isCell(parts.endField))&&parts.startField!==parts.endField&&['Enter','Backspace','Delete'].includes(e.key)){e.preventDefault();return;}
     if(isCell(field)){
@@ -241,21 +434,16 @@ export class BlockEditor {
     }
     if(parts.start!==parts.end&&['Enter','Backspace','Delete'].includes(e.key)&&this.blocks.slice(parts.start,parts.end+1).some(block=>block.type==='toggle')){e.preventDefault();return;}
     if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();this.syncDOM();const focus=splitBlocks(this.blocks,parts.start,parts.end,parts.before,parts.after);this.active=focus.index;this.changed();this.render(focus);return;}
-    if(e.key==='Backspace'||e.key==='Delete'){
-      if(!parts.collapsed&&parts.start!==parts.end){e.preventDefault();this.blocks.splice(parts.start,parts.end-parts.start+1,{...this.blocks[parts.start],text:parts.before+parts.after});this.active=parts.start;this.changed();this.render({index:this.active,offset:this.plainLength(parts.before)});return;}
-      if(parts.collapsed&&e.key==='Backspace'&&!parts.before){
-        if(b.type!=='paragraph'){e.preventDefault();this.setType('paragraph');return;}
-        const previous=this.blocks[this.active-1];if(previous?.type==='table'){e.preventDefault();this.focus({index:this.active-1,cell:{row:previous.rows.length,col:previous.headers.length-1}});return;}if(previous?.type==='divider'){e.preventDefault();this.blocks.splice(this.active-1,1);this.active--;this.changed();this.render({index:this.active,offset:0});return;}if(previous&&!['table','divider','toggle'].includes(previous.type)){e.preventDefault();const offset=this.plainLength(previous.text);previous.text+=b.text;this.blocks.splice(this.active,1);this.active--;this.changed();this.render({index:this.active,offset});return;}
-      }
-      if(parts.collapsed&&e.key==='Delete'&&!parts.after){const next=this.blocks[this.active+1];if(next&&!['table','divider','toggle'].includes(next.type)){e.preventDefault();const offset=this.plainLength(b.text);b.text+=next.text;this.blocks.splice(this.active+1,1);this.changed();this.render({index:this.active,offset});return;}}
-    }
+    if(parts.collapsed&&(e.key==='Backspace'&&!parts.before||e.key==='Delete'&&!parts.after)){e.preventDefault();return;}
     if(e.key==='/'&&!field.textContent.trim()){e.preventDefault();this.menu(field,'convert');return;}
-    if(e.key===' '&&parts.collapsed&&!parts.after){const shortcuts={'-':'list','*':'list','1.':'numbered','[]':'todo','[ ]':'todo','---':'divider'},type=shortcuts[field.textContent];if(type){e.preventDefault();b.text='';this.setType(type);}}
+    if(e.key===' '&&parts.collapsed&&!parts.after){const shortcuts={'-':'list','*':'list','1.':'numbered','[]':'todo','[ ]':'todo','---':'divider'},type=shortcuts[field.textContent];if(type&&this.canUseType(type)){e.preventDefault();b.text='';this.setType(type);}}
   }
   plainLength(markdown){const box=document.createElement('div');box.innerHTML=inlineHTML(markdown,this.options.pages);return box.textContent.length;}
-  add(index,type='paragraph'){const block=newBlock(type,this.options.triggers);this.blocks.splice(index,0,block);if(isRichToggle(block))this.openToggles.add(block);this.active=index;this.activeChild=null;this.changed();this.render({index,offset:0});if(type==='clue')this.options.onRequestClue?.(index);}
+  add(index,type='paragraph'){if(!this.canUseType(type))return;const block=newBlock(type,this.options.triggers);this.blocks.splice(index,0,block);if(isRichToggle(block))this.openToggles.add(block);this.active=index;this.activeChild=null;this.changed();this.render({index,offset:0});if(type==='clue')this.options.onRequestClue?.(index);}
   setType(type){
-    const prior=this.blocks[this.active];if(!prior||!BLOCK_TYPES[type]||isRichToggle(prior))return;
+    if(this.columnEditor){this.columnEditor.setType(type);return;}
+    const prior=this.blocks[this.active];if(!prior||prior.type==='columns'||!BLOCK_TYPES[type]||isRichToggle(prior)||!this.canUseType(type))return;
+    if(this.options.columnContext&&prior.type===type)return;
     if(type==='richToggle'){
       if(!TOGGLE_CHILD_TYPES.includes(prior.type))return;
       const block=newBlock(type);
@@ -265,10 +453,12 @@ export class BlockEditor {
     }else if(type==='table'&&prior.type!=='table'){this.blocks[this.active]=newBlock(type);if(prior.text)this.blocks[this.active].rows[0][0]=prior.text;}
     else if(prior.type==='table'&&type!=='table')this.blocks[this.active]={...newBlock(type,this.options.triggers),text:[prior.headers,...prior.rows].map(r=>r.join(' · ')).join('\n')};
     else if(prior.type==='toggle'&&type!=='toggle')this.blocks[this.active]={...newBlock(type,this.options.triggers),text:[prior.title,prior.text].filter(Boolean).join('\n')};
+    else if(this.options.columnContext)this.blocks[this.active]={...newBlock(type,this.options.triggers),text:prior.text};
     else this.blocks[this.active]={...newBlock(type,this.options.triggers),...prior,type};
     this.activeChild=null;this.changed();this.render({index:this.active,offset:0});if(type==='clue')this.options.onRequestClue?.(this.active);
   }
   undo(direction){
+    if(this.options.columnContext){this.options.columnContext.undo(direction);return;}
     const entry=this.history.move(direction);if(!entry)return;
     const stayInChild=entry.child==null&&this.activeChild!==null&&isRichToggle(entry.blocks[this.active]);
     const index=stayInChild?this.active:entry.active;
@@ -276,31 +466,68 @@ export class BlockEditor {
     const child=children?.length&&(entry.child!=null||stayInChild)?Math.min(entry.child??this.activeChild,children.length-1):null;
     this.blocks=entry.blocks;
     if(child!==null)this.openToggles.add(this.blocks[index]);
-    this.options.onChange(this.serialize());this.render({index,child});
+    this.options.onChange(this.serialize());
+    const bookmark=entry.bookmark,scope=bookmark?.scope??entry.scope;
+    if(scope){
+      this.render();
+      if(this.columns.focus(scope,bookmark))return;
+    }else if(!bookmark){this.render({index,child});return;}
+    else this.render();
+    this.restoreBookmark(bookmark,{index,child});
   }
-  captureSelection(){const s=getSelection();if(s.rangeCount&&this.el.contains(s.anchorNode))this.range=s.getRangeAt(0).cloneRange();}
+  restoreBookmark(bookmark,fallback){
+    this.focus(bookmark?.start!==undefined?{...fallback,index:bookmark.start,offset:bookmark.startOffset}:fallback);
+    if(bookmark?.start!==undefined&&bookmark.start!==bookmark.end){
+      const first=this.ownField(`[data-run-field][data-block="${bookmark.start}"]`);
+      const last=this.ownField(`[data-run-field][data-block="${bookmark.end}"]`);
+      if(first&&last&&first.closest('.editor-text-run')===last.closest('.editor-text-run')){
+        getSelection().setBaseAndExtent(...pointAt(first,bookmark.startOffset),...pointAt(last,bookmark.endOffset));
+      }
+    }
+  }
+  captureSelection(local=false){
+    const selection=getSelection();
+    if(!local&&this.columnEditor){this.columnEditor.captureSelection(true);return;}
+    if(!selection.rangeCount||!this.owns(selection.anchorNode))return;
+    this.range=selection.getRangeAt(0).cloneRange();
+    const field=selection.isCollapsed?runField(selection.focusNode):null;
+    if(field&&field.closest('.editor-text-run')===document.activeElement&&this.active!==+field.dataset.block){
+      this.active=+field.dataset.block;this.activeChild=null;
+      this.options.onActive?.(this.blocks[this.active].type,true);
+    }
+  }
   format(command){
-    if(this.range&&this.el.contains(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}
+    if(this.columnEditor){this.columnEditor.format(command);return;}
+    if(this.range&&this.owns(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}
     const s=getSelection();if(!s.rangeCount||!this.el.contains(s.anchorNode))return;
-    if(this.protectedSelection(s.getRangeAt(0)))return;
+    const range=s.getRangeAt(0),parts=runSelection(range);
+    if(this.protectedSelection(range)||(parts&&parts.start!==parts.end))return;
     if(command==='code'){const range=s.getRangeAt(0);if(range.collapsed||this.fieldFor(range.startContainer)!==this.fieldFor(range.endContainer))return;const code=document.createElement('code');code.textContent=range.toString();range.deleteContents();range.insertNode(code);range.selectNodeContents(code);s.removeAllRanges();s.addRange(range);}else document.execCommand(command,false);
     const field=this.fieldFor(s.anchorNode);
-    if(childIndex(field)!==null)this.syncField(field);else this.syncDOM();
+    if(childIndex(field)!==null||field?.hasAttribute('data-run-field'))this.syncField(field);else this.syncDOM();
     this.changed();this.captureSelection();
   }
   setClueBlock(index,block){this.syncDOM();this.blocks[index]=block;this.active=index;this.activeChild=null;this.changed();this.render({index});}
   insertClueBlock(block){
+    if(this.columnEditor){
+      const index=this.active+1;
+      this.blocks.splice(index,0,block);this.active=index;this.activeChild=null;
+      this.changed();this.render({index});return;
+    }
     this.syncDOM();if(this.range&&this.el.contains(this.range.startContainer)){const selection=getSelection(),range=this.range.cloneRange();range.collapse(false);selection.removeAllRanges();selection.addRange(range);}else this.focus({index:this.active});
     const parts=this.selectionParts();if(!parts||isCell(parts.startField)||this.blocks.slice(parts.start,parts.end+1).some(block=>block.type==='toggle')){const index=this.active+1;this.blocks.splice(index,0,block);this.active=index;}else{const insert=[];if(parts.before)insert.push({...this.blocks[parts.start],text:parts.before});insert.push(block);if(parts.after)insert.push({...this.blocks[parts.end],text:parts.after});this.blocks.splice(parts.start,parts.end-parts.start+1,...insert);this.active=parts.start+(parts.before?1:0);}
     this.activeChild=null;this.changed();this.render({index:this.active});
   }
   insertLink(page){
-    if(this.range&&this.el.contains(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}else this.focus({index:this.active});
+    if(this.columnEditor){this.columnEditor.insertLink(page);return;}
+    if(this.range&&this.owns(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}else this.focus({index:this.active});
     const selection=getSelection();if(!selection.rangeCount)return;const range=selection.getRangeAt(0);
+    const parts=runSelection(range);
+    if(parts&&parts.start!==parts.end)return;
     const start=this.fieldFor(range.startContainer),end=this.fieldFor(range.endContainer);
     if(!start||!end||this.el.querySelector('[data-toggle-field]:focus')||this.protectedSelection(range))return;
     const token=document.createElement('span');token.className='wiki-token';token.contentEditable='false';token.dataset.markdown=`[[page:${page.id}|${page.title}]]`;token.textContent='↗ '+page.title;range.deleteContents();range.insertNode(token);range.setStartAfter(token);range.collapse(true);selection.removeAllRanges();selection.addRange(range);
-    if(childIndex(start)!==null)this.syncField(start);else this.syncDOM();
+    if(childIndex(start)!==null||start.hasAttribute('data-run-field'))this.syncField(start);else this.syncDOM();
     this.changed();this.captureSelection();
   }
   paste(e){
@@ -330,9 +557,16 @@ export class BlockEditor {
   selectionToolbar(){
     const selection=getSelection();
     if(!selection.rangeCount||selection.isCollapsed||!this.el.contains(selection.anchorNode)||!this.el.isConnected||this.protectedSelection(selection.getRangeAt(0))){this.hideToolbar();return;}
+    const range=selection.getRangeAt(0);
+    const first=runField(range.startContainer),last=runField(range.endContainer);
+    if(first&&last&&first!==last){this.hideToolbar();return;}
+    const edge=range.cloneRange();
+    edge.setStart(selection.focusNode,selection.focusOffset);edge.collapse(true);
+    const rect=edge.getBoundingClientRect(),fallback=range.getBoundingClientRect();
+    const target=rect.height?rect:fallback;
+    const pane=this.el.closest('.document-card')?.getBoundingClientRect();
+    if(!target.height||target.bottom<Math.max(0,pane?.top??0)||target.top>Math.min(innerHeight,pane?.bottom??innerHeight)){this.hideToolbar();return;}
     this.captureSelection();
-    const range=selection.getRangeAt(0),rect=range.getBoundingClientRect();
-    if(!rect.width&&!rect.height)return;
     let bar=document.getElementById('editorSelectionToolbar');
     if(!bar){
       bar=document.createElement('div');
@@ -364,8 +598,10 @@ export class BlockEditor {
     const colorButton=bar.querySelector('[data-open-colors]');
     colorButton.hidden=!this.colorField(range);
     if(colorButton.hidden)this.showColors(bar,false);
-    bar.style.left=Math.max(8,Math.min(rect.left,innerWidth-285))+'px';
-    bar.style.top=Math.max(8,Math.min(rect.top-45,innerHeight-48))+'px';
+    const width=bar.offsetWidth,height=bar.offsetHeight;
+    bar.style.left=Math.max(8,Math.min(target.left,innerWidth-width-8))+'px';
+    const above=target.top-height-6,below=target.bottom+6;
+    bar.style.top=Math.max(8,Math.min(above>=8?above:below,innerHeight-height-8))+'px';
     if(!bar.querySelector('.script-color-menu').hidden)this.showColors(bar,true);
   }
   colorField(range){
@@ -403,18 +639,27 @@ export class BlockEditor {
     this.changed();
     this.captureSelection();
   }
+  addColumns(index,count){
+    this.blocks.splice(index,0,newColumns(count));this.active=index;this.activeChild=null;
+    this.changed(false,{layout:index,column:0,block:0});this.render({index});
+  }
   menu(anchor,mode){
     const index=this.active,block=this.blocks[index];
     const childMenu=mode==='child';
     const canTransform=mode!=='edit'||!isRichToggle(block);
     const availableTypes=Object.entries(BLOCK_TYPES).filter(([type])=>childMenu?TOGGLE_CHILD_TYPES.includes(type):
-      type!=='richToggle'||mode==='add'||TOGGLE_CHILD_TYPES.includes(block?.type));
+      this.canUseType(type)&&(type!=='richToggle'||mode==='add'||TOGGLE_CHILD_TYPES.includes(block?.type)));
     const colors=mode==='edit'&&block?.type==='toggle' ? `<div class="toggle-background-picker" role="group" aria-label="Fundo do Recolhível"><span>Fundo</span><div>${scriptColors.map(([color,name])=>{
       const label=color==='none'?'Sem fundo':name;
       return `<button type="button" data-toggle-color="${color}"${toggleBackgroundAttribute(color)} aria-label="${label}" title="${label}" aria-pressed="${color===(block.background??'none')}"></button>`;
     }).join('')}</div></div>` : '';
     document.getElementById('blockPopover')?.remove();const menu=document.createElement('div');menu.id='blockPopover';menu.className='block-popover searchable-block-menu';menu.setAttribute('role','dialog');menu.setAttribute('aria-label',canTransform?'Inserir ou transformar bloco':'Menu do Recolhível');
     menu.innerHTML=(canTransform?'<label class="block-menu-search">'+icon('search')+'<input type="search" placeholder="Buscar bloco…" aria-label="Buscar tipo de bloco"></label>':'')+colors+(canTransform?'<div class="block-menu-results"></div>':'')+(childMenu?'<hr><button type="button" class="danger-text" data-remove-child>Excluir bloco interno</button>':mode==='edit'?'<hr><button type="button" data-move="-1">↑ Mover para cima</button><button type="button" data-move="1">↓ Mover para baixo</button><button type="button" data-duplicate>Duplicar bloco</button><button type="button" class="danger-text" data-remove>Excluir bloco</button>':'');document.body.append(menu);
+    if(mode==='edit'&&this.options.columnContext){
+      menu.insertAdjacentHTML('beforeend',this.options.columnContext.destinations().map(column=>
+        `<button type="button" data-move-column="${column}">Mover para coluna ${column+1}</button>`
+      ).join(''));
+    }
     menu.querySelector('.toggle-background-picker')?.addEventListener('click',event=>{
       const button=event.target.closest('[data-toggle-color]');
       if(!button)return;
@@ -430,9 +675,22 @@ export class BlockEditor {
       this.changed();
     });
     const results=menu.querySelector('.block-menu-results'),search=menu.querySelector('input');
-    if(search){const update=()=>{results.innerHTML=availableTypes.filter(([type,label])=>(label+' '+type).toLocaleLowerCase().includes(search.value.toLocaleLowerCase())).map(([type,label])=>`<button type="button" data-type="${type}"><b>${({paragraph:'T',h1:'H₁',h2:'H₂',h3:'H₃',quote:'❞',note:'✦',toggle:'▸',richToggle:'▸',list:'•',numbered:'1.',todo:'☑',table:'▦',cue:'♫',clue:'◇',divider:'—'})[type]}</b>${label}</button>`).join('')||'<p>Nenhum bloco encontrado.</p>';};update();search.oninput=update;}
+    if(search){const update=()=>{results.innerHTML=availableTypes.filter(([type,label])=>(label+' '+type).toLocaleLowerCase().includes(search.value.toLocaleLowerCase())).map(([type,label])=>`<button type="button" data-type="${type}"><b>${({paragraph:'T',h1:'H₁',h2:'H₂',h3:'H₃',quote:'❞',note:'✦',toggle:'▸',richToggle:'▸',list:'•',numbered:'1.',todo:'☑',table:'▦',cue:'♫',clue:'◇',divider:'—'})[type]}</b>${label}</button>`).join('');
+      if(mode==='add'&&!this.options.columnContext&&'colunas'.includes(search.value.toLocaleLowerCase().trim())){
+        const choice='<button type="button" data-column-layout-choice><b>▥</b>Colunas</button>';
+        if(results.firstElementChild)results.firstElementChild.insertAdjacentHTML('afterend',choice);
+        else results.insertAdjacentHTML('beforeend',choice);
+      }
+      if(!results.children.length)results.innerHTML='<p>Nenhum bloco encontrado.</p>';
+    };update();search.oninput=update;}
     const rect=anchor.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(rect.left,innerWidth-250))+'px';menu.style.top=Math.max(8,Math.min(rect.bottom+6,innerHeight-430))+'px';
     menu.onclick=e=>{const button=e.target.closest('button');if(!button)return;const type=button.dataset.type;
+      if(button.hasAttribute('data-column-layout-choice')){
+        results.innerHTML='<button type="button" data-layout-count="2">Duas colunas</button><button type="button" data-layout-count="3">Três colunas</button>';
+        results.querySelector('button').focus();return;
+      }
+      if(button.dataset.layoutCount){this.addColumns(index+1,+button.dataset.layoutCount);menu.remove();return;}
+      if(button.dataset.moveColumn!==undefined){this.options.columnContext.move(index,+button.dataset.moveColumn);menu.remove();return;}
       if(childMenu){
         const children=block.blocks,child=+anchor.dataset.childMenu;
         if(type&&TOGGLE_CHILD_TYPES.includes(type)){
@@ -445,7 +703,7 @@ export class BlockEditor {
         }
         menu.remove();return;
       }
-      if(type)mode==='add'?this.add(this.active+1,type):this.setType(type);if(button.dataset.move){const target=this.active+Number(button.dataset.move);if(target>=0&&target<this.blocks.length){[this.blocks[this.active],this.blocks[target]]=[this.blocks[target],this.blocks[this.active]];this.active=target;this.changed();this.render({index:target});}}if(button.hasAttribute('data-duplicate')){this.blocks.splice(this.active+1,0,structuredClone(this.blocks[this.active]));this.active++;this.changed();this.render({index:this.active});}if(button.hasAttribute('data-remove')){this.blocks.splice(this.active,1);if(!this.blocks.length)this.blocks=[newBlock()];this.active=Math.max(0,this.active-1);this.changed();this.render({index:this.active});}menu.remove();};
+      if(type)mode==='add'?this.add(this.active+1,type):this.setType(type);if(button.dataset.move){const target=this.active+Number(button.dataset.move);if(target>=0&&target<this.blocks.length){[this.blocks[this.active],this.blocks[target]]=[this.blocks[target],this.blocks[this.active]];this.active=target;this.changed();this.render({index:target});}}if(button.hasAttribute('data-duplicate')){this.blocks.splice(this.active+1,0,structuredClone(this.blocks[this.active]));this.active++;this.changed();this.render({index:this.active});}if(button.hasAttribute('data-remove')){this.blocks.splice(this.active,1);if(!this.blocks.length&&!this.options.columnContext)this.blocks.push(newBlock());this.active=Math.max(0,this.active-1);this.changed();this.render({index:this.active});}menu.remove();};
     menu.onkeydown=e=>{const buttons=[...(results??menu).querySelectorAll('button')];if(e.key==='Escape'){e.preventDefault();menu.remove();this.focus({index:this.active,child:this.activeChild});}if(['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();const i=buttons.indexOf(document.activeElement);buttons[(i+(e.key==='ArrowDown'?1:buttons.length-1)+buttons.length)%buttons.length]?.focus();}if(e.key==='Enter'&&e.target===search){e.preventDefault();buttons[0]?.click();}};
     const close=event=>{if(!menu.contains(event.target)){menu.remove();document.removeEventListener('pointerdown',close);}};document.addEventListener('pointerdown',close,{signal:this.abort.signal});(search??menu.querySelector('[aria-pressed=true]')).focus();
   }
