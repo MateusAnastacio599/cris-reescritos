@@ -1,4 +1,4 @@
-import {recolorRange,scriptColors} from './editor-colors.js';
+import {recolorRange,scriptColors,toggleBackground,toggleBackgroundAttribute} from './editor-colors.js';
 import {parseBlocks,blocksToMarkdown,inlineHTML,editableToMarkdown,renderTable,escapeHTML as esc} from './markdown.js';
 import {BLOCK_TYPES,newBlock,splitBlocks,EditorHistory} from './editor-model.js';
 import {clipboardBlocks} from './editor-clipboard.js';
@@ -21,7 +21,7 @@ export class BlockEditor {
       let body=field;
       if(b.type==='toggle'){
         const open=this.openToggles.has(b);
-        body=`<div class="script-toggle">
+        body=`<div class="script-toggle"${toggleBackgroundAttribute(b.background)}>
           <div class="script-toggle-heading">
             <button type="button" data-toggle-button="${i}" aria-label="${open?'Recolher':'Expandir'} bloco" aria-expanded="${open}" aria-controls="script-toggle-body-${i}">▸</button>
             <div class="script-toggle-title" contenteditable="plaintext-only" role="textbox" aria-label="Título do recolhível" data-placeholder="Recolhível" data-toggle-field="title" data-block="${i}">${esc(b.title)}</div>
@@ -277,7 +277,26 @@ export class BlockEditor {
     this.captureSelection();
   }
   menu(anchor,mode){
-    document.getElementById('blockPopover')?.remove();const menu=document.createElement('div');menu.id='blockPopover';menu.className='block-popover searchable-block-menu';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Inserir ou transformar bloco');menu.innerHTML='<label class="block-menu-search">'+icon('search')+'<input type="search" placeholder="Buscar bloco…" aria-label="Buscar tipo de bloco"></label><div class="block-menu-results"></div>'+(mode==='edit'?'<hr><button type="button" data-move="-1">↑ Mover para cima</button><button type="button" data-move="1">↓ Mover para baixo</button><button type="button" data-duplicate>Duplicar bloco</button><button type="button" class="danger-text" data-remove>Excluir bloco</button>':'');document.body.append(menu);
+    const index=this.active,block=this.blocks[index];
+    const colors=mode==='edit'&&block?.type==='toggle' ? `<div class="toggle-background-picker" role="group" aria-label="Fundo do Recolhível"><span>Fundo</span><div>${scriptColors.map(([color,name])=>{
+      const label=color==='none'?'Sem fundo':name;
+      return `<button type="button" data-toggle-color="${color}"${toggleBackgroundAttribute(color)} aria-label="${label}" title="${label}" aria-pressed="${color===(block.background??'none')}"></button>`;
+    }).join('')}</div></div>` : '';
+    document.getElementById('blockPopover')?.remove();const menu=document.createElement('div');menu.id='blockPopover';menu.className='block-popover searchable-block-menu';menu.setAttribute('role','dialog');menu.setAttribute('aria-label','Inserir ou transformar bloco');menu.innerHTML='<label class="block-menu-search">'+icon('search')+'<input type="search" placeholder="Buscar bloco…" aria-label="Buscar tipo de bloco"></label>'+colors+'<div class="block-menu-results"></div>'+(mode==='edit'?'<hr><button type="button" data-move="-1">↑ Mover para cima</button><button type="button" data-move="1">↓ Mover para baixo</button><button type="button" data-duplicate>Duplicar bloco</button><button type="button" class="danger-text" data-remove>Excluir bloco</button>':'');document.body.append(menu);
+    menu.querySelector('.toggle-background-picker')?.addEventListener('click',event=>{
+      const button=event.target.closest('[data-toggle-color]');
+      if(!button)return;
+      event.stopPropagation();
+      const color=toggleBackground(button.dataset.toggleColor);
+      if(block.background===color||this.blocks[index]!==block||!this.el.contains(anchor))return;
+      const wrapper=anchor.closest('.block-toggle').querySelector('.script-toggle');
+      if(color){block.background=color;wrapper.dataset.toggleBackground=color;}
+      else{delete block.background;delete wrapper.dataset.toggleBackground;}
+      menu.querySelector('[data-toggle-color][aria-pressed="true"]')?.setAttribute('aria-pressed','false');
+      button.setAttribute('aria-pressed','true');
+      this.active=index;
+      this.changed();
+    });
     const results=menu.querySelector('.block-menu-results'),search=menu.querySelector('input');const update=()=>{results.innerHTML=Object.entries(BLOCK_TYPES).filter(([type,label])=>(label+' '+type).toLocaleLowerCase().includes(search.value.toLocaleLowerCase())).map(([type,label])=>`<button type="button" data-type="${type}"><b>${({paragraph:'T',h1:'H₁',h2:'H₂',h3:'H₃',quote:'❞',note:'✦',toggle:'▸',list:'•',numbered:'1.',todo:'☑',table:'▦',cue:'♫',clue:'◇',divider:'—'})[type]}</b>${label}</button>`).join('')||'<p>Nenhum bloco encontrado.</p>';};update();search.oninput=update;
     const rect=anchor.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(rect.left,innerWidth-250))+'px';menu.style.top=Math.max(8,Math.min(rect.bottom+6,innerHeight-430))+'px';
     menu.onclick=e=>{const button=e.target.closest('button');if(!button)return;const type=button.dataset.type;if(type)mode==='add'?this.add(this.active+1,type):this.setType(type);if(button.dataset.move){const target=this.active+Number(button.dataset.move);if(target>=0&&target<this.blocks.length){[this.blocks[this.active],this.blocks[target]]=[this.blocks[target],this.blocks[this.active]];this.active=target;this.changed();this.render({index:target});}}if(button.hasAttribute('data-duplicate')){this.blocks.splice(this.active+1,0,structuredClone(this.blocks[this.active]));this.active++;this.changed();this.render({index:this.active});}if(button.hasAttribute('data-remove')){this.blocks.splice(this.active,1);if(!this.blocks.length)this.blocks=[newBlock()];this.active=Math.max(0,this.active-1);this.changed();this.render({index:this.active});}menu.remove();};

@@ -1,4 +1,4 @@
-import {protectColorMarkup,serializeColor} from './editor-colors.js';
+import {protectColorMarkup,serializeColor,toggleBackground,toggleBackgroundAttribute} from './editor-colors.js';
 
 const decodeURIComponentSafe=value=>{try{return decodeURIComponent(value);}catch{return value;}};
 export const escapeHTML = value => String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -15,9 +15,12 @@ export function parseBlocks(markdown) {
     const toggle = raw.match(/^<!--cris:toggle:v1 (.+)-->$/);
     if(toggle){
       try {
-        const {title, text: content} = JSON.parse(toggle[1]);
+        const {title, text: content, background} = JSON.parse(toggle[1]);
         if(typeof title==='string' && typeof content==='string'){
-          flush();result.push({type:'toggle',title,text:content});continue;
+          const block={type:'toggle',title,text:content};
+          const color=toggleBackground(background);
+          if(color)block.background=color;
+          flush();result.push(block);continue;
         }
       } catch { /* Preserve malformed markers as ordinary text. */ }
     }
@@ -46,7 +49,7 @@ const tableEscape=value=>lineEscape(value).replace(/\|/g,'\\|');
 export function blocksToMarkdown(blocks){return blocks.map(b=>{
   const prefix={h1:'# ',h2:'## ',h3:'### ',quote:'> ',list:'- '};
   if(b.type==='toggle'){
-    const data=JSON.stringify({title:b.title??'',text:b.text??''}).replace(/-/g,'\\u002d').replace(/</g,'\\u003c');
+    const data=JSON.stringify({title:b.title??'',text:b.text??'',background:toggleBackground(b.background)}).replace(/-/g,'\\u002d').replace(/</g,'\\u003c');
     return '<!--cris:toggle:v1 '+data+'-->';
   }
   if(b.type==='table'){const headers=b.headers||['Coluna 1','Coluna 2'];return ['| '+headers.map(tableEscape).join(' | ')+' |','| '+headers.map((_,i)=>({left:'---',right:'---:',center:':---:'})[b.align?.[i]]||'---').join(' | ')+' |',...(b.rows||[]).map(row=>'| '+headers.map((_,i)=>tableEscape(row[i])).join(' | ')+' |')].join('\n');}
@@ -94,7 +97,7 @@ export function renderReadBlocks(blocks,pages=[]) {
     const list=['list','numbered'].includes(b.type)?b.type:null;if(listType&&listType!==list){html+=listType==='numbered'?'</ol>':'</ul>';listType=null;}
     if(b.type==='toggle'){
       const paragraphs=String(b.text??'').split(/\n{2,}/).map(part=>'<p>'+escapeHTML(part)+'</p>').join('');
-      html+=`<details class="script-toggle"><summary>${escapeHTML(b.title||'Recolhível')}</summary><div class="script-toggle-content">${paragraphs}</div></details>`;return;
+      html+=`<details class="script-toggle"${toggleBackgroundAttribute(b.background)}><summary>${escapeHTML(b.title||'Recolhível')}</summary><div class="script-toggle-content">${paragraphs}</div></details>`;return;
     }
     const text=inlineHTML(b.text,pages);
     if(list){if(!listType){html+=list==='numbered'?`<ol class="document-list" start="${b.number||1}">`:'<ul class="document-list">';listType=list;}html+=`<li>${text}</li>`;return;}
