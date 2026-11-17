@@ -1,6 +1,6 @@
 import {scriptColors,toggleBackground,toggleBackgroundAttribute} from './editor-colors.js';
 import {isColumnBlock,addColumn,removeColumn,columnBlockDestination,moveColumnBlock,columnTracks,resizedWidths,MIN_COLUMN_WIDTH} from './editor-columns-model.js';
-import {blocksToMarkdown,parseBlocks} from './markdown.js';
+import {planColumnRemoval} from './editor-column-removal.js';
 
 export const EDITOR_SURFACE = '[data-editor-surface]';
 
@@ -34,6 +34,8 @@ export function editableColumnsHTML(layout,index) {
         <div class="script-column-options-actions">
           ${three?'':'<button type="button" data-add-column>Adicionar terceira coluna</button>'}
           <button type="button" data-unpack-columns>Desagrupar colunas</button>
+          ${three?'':'<button type="button" data-unpack-columns>Remover coluna e desagrupar</button>'}
+          <button type="button" data-delete-columns>Excluir layout</button>
         </div>
         <span role="status" data-column-status></span>
       </div>
@@ -114,20 +116,26 @@ export class ColumnLayouts {
         const address=removeColumn(layout.columns,+button.dataset.removeColumn);
         if(address)this.commit({layout:index,...address});
       }));
-      container.querySelector('[data-unpack-columns]').addEventListener('click',()=>{
-        const blocks=layout.columns.flatMap(column=>column.blocks);
-        const payload=blocksToMarkdown(blocks);
-        const preserved=blocks.length===0||sameBlockContent(blocks,parseBlocks(payload));
-        if(!preserved){
-          container.querySelector('[data-column-status]').textContent='Este layout contém blocos que perderiam a estrutura ao desagrupar.';
-          return;
+      const changeLayout=action=>{
+        if(root.blocks[index]!==layout)return;
+        let plan=planColumnRemoval(layout,action);
+        if(plan.confirmation){
+          if(!window.confirm('Excluir este layout? Os blocos internos de todas as colunas também serão apagados.'))return;
+          plan=planColumnRemoval(layout,action,true);
         }
-        this.remember(index,0);
-        root.blocks.splice(index,1,...blocks);
+        if(plan.error){container.querySelector('[data-column-status]').textContent=plan.error;return;}
+        const activeColumn=Math.max(0,editors.indexOf(root.columnEditor));
+        const activeBlock=editors[activeColumn].active;
+        const offset=layout.columns.slice(0,activeColumn).reduce((total,column)=>total+column.blocks.length,0)+activeBlock;
+        this.remember(index,activeColumn);
+        root.blocks.splice(index,1,...plan.blocks);
         if(!root.blocks.length)root.blocks.push({type:'paragraph',text:''});
-        root.active=Math.min(index,root.blocks.length-1);root.activeChild=null;
+        root.active=Math.min(index+Math.min(offset,Math.max(0,plan.blocks.length-1)),root.blocks.length-1);
+        root.activeChild=null;
         root.changed();root.render({index:root.active});
-      });
+      };
+      container.querySelectorAll('[data-unpack-columns]').forEach(button=>button.addEventListener('click',()=>changeLayout('unpack')));
+      container.querySelector('[data-delete-columns]').addEventListener('click',()=>changeLayout('delete'));
       container.querySelectorAll('[data-column-background]').forEach(select=>select.addEventListener('change',()=>{
         const column=+select.dataset.columnBackground,track=layout.columns[column];
         const color=toggleBackground(select.value);
@@ -293,11 +301,4 @@ export class ColumnLayouts {
     editor.restoreBookmark(bookmark,{index,child:scope.child??null,cell:scope.cell??null,offset:scope.offset??null,toggleField:scope.toggleField});
     return true;
   }
-}
-
-// Property order and optional empty table metadata are irrelevant to the scene's content.
-function sameBlockContent(left,right){
-  const normalize=block=>Object.fromEntries(Object.entries(block.type==='table'?{text:'',align:block.headers.map(()=>'left'),...block}:block)
-    .filter(([,value])=>value!==undefined).sort(([a],[b])=>a.localeCompare(b)));
-  return JSON.stringify(left.map(normalize))===JSON.stringify(right.map(normalize));
 }

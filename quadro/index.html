@@ -13,6 +13,7 @@
         <link rel="stylesheet" href="Halloween2026-1.css">
         <link rel="stylesheet" href="Halloween2026-2.css">
 <link rel="stylesheet" href="board-integration.css?v=337"><link rel="stylesheet" href="board-polish.css">
+<link rel="stylesheet" href="../campaign-director/dist/cinematic.css">
     </head>
     <body class="ui cris-loading">
         <div id="crisLoading"><div class="cris-loading-card"><p role="status">Abrindo quadro…</p><div class="cris-loading-actions" hidden><button type="button">Tentar novamente</button><a href="../#quadro">Voltar ao CRIS</a></div></div></div>
@@ -448,7 +449,14 @@
         import {mountCluePanel} from './board-clue-panel.js?v=332';
         window.CRISMOUNT_CLUE_PANEL=mountCluePanel;
         window.CRISBridge=CRISBridge;
-        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);const script=document.createElement('script');script.src='quadro-cris-v7.js?v=337';script.onerror=()=>window.CRIS_BOARD_BOOT.fail('O motor do quadro não carregou. Tente novamente.');document.body.append(script);}}
+        try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);
+        const script=document.createElement('script');script.src='quadro-cris-v7.js?v=337';script.onerror=()=>window.CRIS_BOARD_BOOT.fail('O motor do quadro não carregou. Tente novamente.');document.body.append(script);
+        if(identity.isMaster&&!CRISBridge.archiveId)import('./board-cinematic.js').then(({mountBoardCinematic})=>{
+          mountBoardCinematic({userId:identity.userId,boardCampaignId:CRISBridge.campaignId,isMaster:identity.isMaster,
+            archiveId:CRISBridge.archiveId,ready:()=>!document.body.classList.contains('cris-loading')&&
+              !document.querySelector('dialog:modal')&&CRISBridge.identity?.userId===identity.userId&&CRISBridge.identity.isMaster});
+        }).catch(error=>console.warn('CRIS: apresentação local indisponível no quadro.',error));
+        }}
         catch(error){window.CRIS_BOARD_BOOT.fail('Não foi possível confirmar o acesso. Tente novamente ou volte ao CRIS.');}
         </script>
 </body>

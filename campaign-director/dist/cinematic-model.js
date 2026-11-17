@@ -1,0 +1,56 @@
+export const CINEMATIC_VERSION=1;
+export const CINEMATIC_MAX_ITEMS=12;
+export const CINEMATIC_MAX_BYTES=12*1024*1024;
+export const CINEMATIC_MOTIONS=Object.freeze({
+  static:'Estático', zoomIn:'Aproximação', zoomOut:'Afastamento', pan:'Panorâmica',
+});
+export const CINEMATIC_LIMITS=Object.freeze({seconds:[3,60],intensity:[0,30]});
+export const CINEMATIC_TYPES=Object.freeze(['image/png','image/jpeg','image/webp']);
+export const isCinematicImageId=value=>typeof value==='string'&&/^image-[a-f0-9]{64}$/.test(value);
+export const isCinematicKey=value=>typeof value==='string'&&/^[\w-]{1,128}$/.test(value);
+const integerBetween=(value,[min,max])=>Number.isInteger(value)&&value>=min&&value<=max;
+export const cinematicItems=scene=>scene.cinematic?.items??[];
+
+export function isCinematic(item){
+  return !!item&&typeof item==='object'&&Object.keys(item).every(key=>['id','imageId','name','motion','seconds','intensity'].includes(key))&&
+    isCinematicKey(item.id)&&isCinematicImageId(item.imageId)&&
+    typeof item.name==='string'&&!!item.name.trim()&&item.name.length<=100&&
+    typeof item.motion==='string'&&Object.hasOwn(CINEMATIC_MOTIONS,item.motion)&&integerBetween(item.seconds,CINEMATIC_LIMITS.seconds)&&integerBetween(item.intensity,CINEMATIC_LIMITS.intensity);
+}
+export function validateSceneCinematics(value){
+  if(value===undefined)return;
+  if(!value||Object.keys(value).some(key=>key!=='version'&&key!=='items')||value.version!==CINEMATIC_VERSION||!Array.isArray(value.items)||
+    value.items.length>CINEMATIC_MAX_ITEMS||!value.items.every(isCinematic)||new Set(value.items.map(item=>item.id)).size!==value.items.length){
+    throw Error('Configuração cinematográfica inválida na cena.');
+  }
+}
+export function withCinematic(scene,item){
+  if(!isCinematic(item))throw Error('Confira o nome, a imagem e os limites do movimento.');
+  const items=cinematicItems(scene);
+  const existing=items.some(entry=>entry.id===item.id);
+  const result={version:CINEMATIC_VERSION,items:existing?items.map(entry=>entry.id===item.id?item:entry):[...items,item]};
+  validateSceneCinematics(result);
+  return result;
+}
+export function cinematicReferences(state){
+  const refs=new Map();
+  for(const campaign of state.campaigns)for(const page of campaign.pages)for(const scene of page.scenes){
+    for(const item of cinematicItems(scene))refs.set(item.imageId,item.name);
+  }
+  return refs;
+}
+export const isCinematicBlob=image=>image instanceof Blob&&CINEMATIC_TYPES.includes(image.type)&&
+  image.size>0&&image.size<=CINEMATIC_MAX_BYTES;
+
+export async function checkCinematicImage(image){
+  if(!isCinematicBlob(image))throw Error('Use uma imagem PNG, JPEG ou WebP de até 12 MB.');
+  const head=new Uint8Array(await image.slice(0,12).arrayBuffer());
+  const matches=(offset,signature)=>signature.every((value,i)=>head[offset+i]===value);
+  const valid={
+    'image/png':matches(0,[137,80,78,71,13,10,26,10]),
+    'image/jpeg':matches(0,[255,216,255]),
+    'image/webp':matches(0,[82,73,70,70])&&matches(8,[87,69,66,80]),
+  };
+  if(!valid[image.type])throw Error('O conteúdo da imagem não corresponde ao formato informado.');
+  return image;
+}

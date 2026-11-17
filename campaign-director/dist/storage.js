@@ -1,3 +1,5 @@
+import {validateSceneCinematics} from './cinematic-model.js';
+import {cinematicImages,exportCinematicImages,readCinematicBackup} from './cinematic-media.js';
 import {scriptDisplay} from './script-display.js';
 import { originalCampaign } from './campaign-data.js';
 import {applySceneTextUpdate} from './scene-updates.js';
@@ -62,6 +64,7 @@ export function validateState(s) {
       for (const x of p.scenes) {
         if(typeof x.id!=='string'||sceneIds.has(x.id)||typeof x.title!=='string'||typeof x.markdown!=='string'||!Array.isArray(x.layers)||!Array.isArray(x.triggers)||!Array.isArray(x.timeline)) throw new Error('Cena inválida no backup.');
         sceneIds.add(x.id);
+        validateSceneCinematics(x.cinematic);
         x.layers.forEach(fades);x.triggers.forEach(fades);x.timeline.forEach(fades);
         musicLoop(x.music);
         for(const l of x.layers) if(typeof l.id!=='string'||typeof l.name!=='string'||!Number.isFinite(l.volume)||l.volume<0||l.volume>1) throw new Error('Camada de áudio inválida.');
@@ -143,15 +146,19 @@ export async function resolveAsset(asset) {
   return {...asset,url:objectURLs.get(asset.id)};
 }
 export function releaseAsset(id) {if(objectURLs.has(id)){URL.revokeObjectURL(objectURLs.get(id));objectURLs.delete(id);}}
-export async function exportWorkspace(state,includeMedia=true) {
+export async function exportWorkspace(state,includeMedia=true,images=cinematicImages) {
   const data={application:'CRIS Campaign Director',exportedAt:new Date().toISOString(),state:clone(state),media:{}};
   if(includeMedia)for(const asset of state.audioAssets.filter(a=>a.provider==='upload')) {
     const blob=await getMedia(asset.id);if(!blob)throw new Error(`O áudio “${asset.name}” está ausente. Reimporte o arquivo antes de criar um backup completo.`);
     data.media[asset.id]=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob);});
   }
+  if(includeMedia){
+    const imageMedia=await exportCinematicImages(data.state,images);
+    if(Object.keys(imageMedia).length)data.cinematicMedia=imageMedia;
+  }
   return new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
 }
-export async function importWorkspace(text) {
+export async function importWorkspace(text,images=cinematicImages) {
   const data=JSON.parse(text);const validated=validateState(data.state);
   const blobs=[];
   for(const a of validated.audioAssets.filter(a=>a.provider==='upload')) {
@@ -159,8 +166,10 @@ export async function importWorkspace(text) {
     const head=value.indexOf(',');const bytes=Uint8Array.from(atob(value.slice(head+1)),c=>c.charCodeAt(0));
     blobs.push([a.id,new Blob([bytes],{type:value.slice(5,head).split(';')[0]})]);
   }
+  const imageEntries=await readCinematicBackup(validated,data.cinematicMedia,images);
   // Valida tudo antes de alterar o estado; arquivos existentes ficam preservados.
   localStorage.setItem(STORAGE_KEY+':before-import',localStorage.getItem(STORAGE_KEY)||'');
   for(const [id,blob] of blobs){await putMedia(id,blob);releaseAsset(id);}
+  await images.putAll(imageEntries);
   saveState(validated);return validated;
 }
