@@ -1,7 +1,6 @@
 import {scriptColors,toggleBackground,toggleBackgroundAttribute} from './editor-colors.js';
-import {addColumn,removeColumn,moveColumnBlock,columnTracks,resizedWidths,MIN_COLUMN_WIDTH} from './editor-columns-model.js';
+import {isColumnBlock,addColumn,removeColumn,columnBlockDestination,moveColumnBlock,columnTracks,resizedWidths,MIN_COLUMN_WIDTH} from './editor-columns-model.js';
 import {blocksToMarkdown,parseBlocks} from './markdown.js';
-import {runSelection} from './editor-text-runs.js';
 
 export const EDITOR_SURFACE = '[data-editor-surface]';
 
@@ -41,8 +40,10 @@ export class ColumnLayouts {
     this.editor=editor;
     this.layouts=new Map();
     this.surfaces=new WeakMap();
+    this.drag=null;
   }
   destroy() {
+    this.clearDrop();
     for(const editors of this.layouts.values())for(const column of editors)column.destroy();
     this.layouts.clear();
   }
@@ -69,12 +70,19 @@ export class ColumnLayouts {
             undo:direction=>root.undo(direction),
             destinations:()=>layout.columns.map((_,i)=>i).filter(i=>i!==column),
             move:(from,to)=>this.move(index,column,from,to),
+            dragStart:(event,block)=>this.startDrag(event,index,column,block),
+            dragOver:event=>this.overDrag(event,index,column),
+            drop:event=>this.drop(event,index,column),
           },
         });
         this.surfaces.set(surface,editor);
         return editor;
       });
       this.layouts.set(index,editors);
+      container.addEventListener('dragend',()=>this.clearDrop());
+      container.addEventListener('dragleave',event=>{
+        if(this.drag?.marker?.contains(event.target)&&!this.drag.marker.contains(event.relatedTarget))this.clearMarker();
+      });
       this.resizeControls(container,index,layout.columns,editors);
       container.querySelector('[data-add-column]')?.addEventListener('click',()=>{
         this.remember(index,1);
@@ -173,16 +181,72 @@ export class ColumnLayouts {
   }
   remember(layout,column,bookmark={}) {
     const editor=this.layouts.get(layout)?.[column];
-    this.editor.history.remember({...bookmark,scope:{layout,column,block:editor?.active??0,child:editor?.activeChild??null,cell:editor?.activeCell??null}});
+    this.editor.history.remember({scope:{layout,column,block:editor?.active??0,child:editor?.activeChild??null,cell:editor?.activeCell??null},...bookmark});
   }
-  move(layout,column,block,destination) {
+  startDrag(event,layout,column,block) {
+    this.clearDrop();
+    const value=this.editor.blocks[layout]?.columns[column]?.blocks[block];
+    if(!isColumnBlock(value)||!event.dataTransfer){event.preventDefault();return;}
+    // Identity checks at drop time prevent a stale drag from moving a different block.
+    const type=this.editor.dragType+'-column';
+    this.drag={layout,column,block,value,type,marker:null};
+    event.dataTransfer.setData(type,String(block));
+    event.dataTransfer.effectAllowed='move';
+  }
+  clearMarker() {
+    if(this.drag?.marker){
+      delete this.drag.marker.dataset.columnDrop;
+      this.drag.marker=null;
+    }
+  }
+  clearDrop() {
+    this.clearMarker();
+    this.drag=null;
+  }
+  dropTarget(event,layout,column) {
+    const drag=this.drag,columns=this.editor.blocks[layout]?.columns;
+    if(!drag||drag.layout!==layout||!event.dataTransfer?.types.includes(drag.type)||
+      columns?.[drag.column]?.blocks[drag.block]!==drag.value)return null;
+    const row=event.target.closest('[data-block-row]');
+    const surface=this.layouts.get(layout)?.[column]?.el;
+    const ownRow=row?.closest(EDITOR_SURFACE)===surface?row:null;
+    const bottom=surface?.querySelector('.add-block-line');
+    if(!ownRow&&!bottom?.contains(event.target)&&event.target!==surface)return null;
+    const bounds=ownRow?.getBoundingClientRect();
+    const after=!!bounds&&event.clientY>bounds.top+bounds.height/2;
+    const slot=ownRow?+ownRow.dataset.blockRow+Number(after):columns[column].blocks.length;
+    if(columnBlockDestination(columns,drag.column,drag.block,column,slot)===null)return null;
+    return {marker:ownRow??bottom,edge:after?'after':'before',slot};
+  }
+  overDrag(event,layout,column) {
+    const target=this.dropTarget(event,layout,column);
+    this.clearMarker();
+    if(!target)return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect='move';
+    this.drag.marker=target.marker;
+    target.marker.dataset.columnDrop=target.edge;
+  }
+  drop(event,layout,column) {
+    // Even a refused internal drop must never fall through to native DOM insertion.
+    if(!event.dataTransfer?.types.includes(this.editor.dragType+'-column'))return false;
+    event.preventDefault();
+    const target=this.dropTarget(event,layout,column),drag=this.drag;
+    this.clearDrop();
+    if(target&&event.dataTransfer.getData(drag.type)===String(drag.block)){
+      this.move(layout,drag.column,drag.block,column,target.slot);
+    }
+    return true;
+  }
+  move(layout,column,block,destination,slot) {
     const columns=this.editor.blocks[layout]?.columns;
-    if(!columns)return;
-    const source=this.layouts.get(layout)?.[column],parts=source?.range&&runSelection(source.range);
-    const offset=parts?.start===block&&parts.end===block?parts.endOffset:undefined;
-    this.remember(layout,column,{start:block,end:block,startOffset:offset});
-    const index=moveColumnBlock(columns,column,block,destination);
-    if(index!==null)this.commit({layout,column:destination,block:index,offset});
+    if(!columns||columnBlockDestination(columns,column,block,destination,slot)===null)return;
+    const source=this.layouts.get(layout)?.[column];
+    const focus=source?.moveFocus(block)??{};
+    this.remember(layout,column,{start:block,end:block,startOffset:focus.offset,
+      scope:{layout,column,block,child:focus.child,cell:focus.cell,toggleField:focus.toggleField}});
+    const index=moveColumnBlock(columns,column,block,destination,slot);
+    this.commit({layout,column:destination,block:index,...focus});
   }
   commit(scope) {
     const root=this.editor;
@@ -197,14 +261,14 @@ export class ColumnLayouts {
     editor.options.columnContext.activate(editor);
     if(!editor.blocks.length){editor.el.querySelector('.add-block-line')?.focus();return true;}
     const index=bookmark?.start??scope.block;
-    if(scope.child!=null){
+    if(scope.child!=null||scope.toggleField==='text'){
       const toggle=editor.blocks[index];
-      if(toggle?.blocks&&!editor.openToggles.has(toggle)){
+      if(toggle?.type==='toggle'&&!editor.openToggles.has(toggle)){
         editor.openToggles.add(toggle);
         editor.render();
       }
     }
-    editor.restoreBookmark(bookmark,{index,child:scope.child??null,cell:scope.cell??null,offset:scope.offset??null});
+    editor.restoreBookmark(bookmark,{index,child:scope.child??null,cell:scope.cell??null,offset:scope.offset??null,toggleField:scope.toggleField});
     return true;
   }
 }

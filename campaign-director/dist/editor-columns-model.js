@@ -52,11 +52,20 @@ export function removeColumn(columns,index) {
   return {column:index===0?0:destination,block};
 }
 
-export function moveColumnBlock(columns,from,index,to) {
+export function columnBlockDestination(columns,from,index,to,slot=columns[to]?.blocks.length) {
   const source=columns[from]?.blocks,target=columns[to]?.blocks;
-  if(!source||!target||from===to||!Number.isInteger(index)||index<0||index>=source.length)return null;
-  const [block]=source.splice(index,1);
-  return target.push(block)-1;
+  if(!source||!target||!Number.isInteger(index)||!isColumnBlock(source[index])||
+    !Number.isInteger(slot)||slot<0||slot>target.length)return null;
+  const destination=from===to&&slot>index?slot-1:slot;
+  return from===to&&destination===index?null:destination;
+}
+
+export function moveColumnBlock(columns,from,index,to,slot) {
+  const destination=columnBlockDestination(columns,from,index,to,slot);
+  if(destination===null)return null;
+  const [block]=columns[from].blocks.splice(index,1);
+  columns[to].blocks.splice(destination,0,block);
+  return destination;
 }
 
 export function columnTracks(widths, editable=false) {

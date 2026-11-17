@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CRIS · Reescritos · Cena de teste UX-12</title>
+<link rel="stylesheet" href="../../dist/director.css">
+<link rel="stylesheet" href="../../dist/editor-tools.css">
+<link rel="stylesheet" href="../../dist/session-layout.css">
+<style>
+  main{max-width:1250px;margin:auto;padding:14px}
+  nav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+  nav button{padding:8px 12px;color:var(--text);background:#262133;border-radius:4px}
+  .document-card{overflow:visible}
+</style>
+<main>
+  <nav><button id="edit">Editar</button><button id="read">Ler</button><button id="reset">Restaurar cena</button><button id="verify">Testar UX-12</button><output id="result" aria-live="polite"></output></nav>
+  <section class="document-card"><article class="document-body" id="script"></article></section>
+</main>
+<script type="module">
+import {BlockEditor} from '../../dist/editor.js';
+import {blocksToMarkdown,parseBlocks,renderReadBlocks} from '../../dist/markdown.js';
+import {initialState,exportWorkspace} from '../../dist/storage.js';
+
+const canvas=document.querySelector('#script'),key='cris-ux12-fixture',pages=[{id:'map',title:'Mapa'}];
+const sample=blocksToMarkdown([
+  {type:'h1',text:'Reescritos: o mapa da mansão que desapareceu durante a tempestade'},
+  {type:'paragraph',text:'A luz do saguão revela marcas na madeira da porta.'},
+  {type:'paragraph',text:'No corredor, **pegadas** seguem até a [[page:map|Mapa]] e somem.'},
+  {type:'note',text:'Os guardas só chegam depois do segundo sino.'},
+  {type:'list',text:'Inspecionar os retratos.'},
+  {type:'columns',columns:[
+    {width:55,background:'blue',blocks:[
+      {type:'h2',text:'O salão principal'},
+      {type:'paragraph',text:'Observe a janela e as **luzes**.'},
+      {type:'paragraph',text:'Há cartas no armário.'},
+      {type:'toggle',title:'Segredo do salão',background:'purple',blocks:[
+        {type:'h3',text:'Atrás do espelho'}, {type:'paragraph',text:'*Runas* na madeira.'},
+        {type:'paragraph',text:'Outra carta escondida.'},
+      ]},
+    ]},
+    {width:45,blocks:[
+      {type:'h3',text:'Notas da investigação'}, {type:'note',text:'Pistas para o mestre.'},
+      {type:'list',text:'Ler o relatório.'}, {type:'toggle',title:'Anotação v1',text:'Texto literal.'},
+      {type:'table',headers:['Pista','Local'],rows:[['Chave','Corredor']]},
+      {type:'cue',triggerId:'steps',text:'Passos distantes'},
+    ]},
+  ]},
+  {type:'paragraph',text:'O vento vem da torre.'},
+  {type:'clue',campaignId:'demo',itemId:'letter',action:'reveal',text:'Carta do quadro'},
+  {type:'columns',columns:[
+    {width:25,blocks:[{type:'h3',text:'Entrada'}]},
+    {width:40,blocks:[{type:'paragraph',text:'A passagem estreita para o terraço'}]},
+    {width:35,blocks:[]},
+  ]},
+  ...Array.from({length:18},(_,i)=>({type:'paragraph',text:`Registro ${i+1}. O sino tocou à meia-noite. As luzes da rua se apagaram uma a uma.`})),
+]);
+let editor;
+const saved=()=>localStorage.getItem(key)??sample;
+function read(){
+  editor?.destroy();editor=null;
+  canvas.classList.remove('is-editing');canvas.innerHTML=renderReadBlocks(parseBlocks(saved()),pages);
+}
+document.querySelector('#edit').onclick=()=>{
+  if(editor)return;
+  canvas.classList.add('is-editing');
+  editor=new BlockEditor(canvas,{markdown:saved(),pages,triggers:[{id:'steps',name:'Passos'}],
+    onCue:id=>{canvas.dataset.cue=id;},
+    onChange:markdown=>{localStorage.setItem(key,markdown);},
+  });
+};
+document.querySelector('#read').onclick=read;
+document.querySelector('#reset').onclick=()=>{localStorage.removeItem(key);read();};
+window.fixture={
+  get editor(){return editor;},
+  saved,sample,
+  async backup(){
+    const state=initialState();
+    state.campaigns[0].pages[0].scenes[0].markdown=saved();
+    const backup=await exportWorkspace(state);
+    // Import writes to localStorage. A worker with an in-memory store keeps the demo independent.
+    const storageModule=new URL('../../dist/storage.js',location.href).href;
+    const url=URL.createObjectURL(new Blob([`
+      import {importWorkspace} from ${JSON.stringify(storageModule)};
+      const values=new Map();
+      self.localStorage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};
+      self.onmessage=async({data})=>{
+        try{self.postMessage({state:await importWorkspace(data)});}
+        catch(error){self.postMessage({error:error.message});}
+      };
+    `],{type:'text/javascript'}));
+    const worker=new Worker(url,{type:'module'});
+    try{
+      const text=await backup.text();
+      const {state:imported,error}=await new Promise((resolve,reject)=>{
+        worker.onmessage=event=>resolve(event.data);
+        worker.onerror=event=>reject(Error(event.message));
+        worker.postMessage(text);
+      });
+      if(error)throw Error(error);
+      return imported.campaigns[0].pages[0].scenes[0].markdown;
+    }finally{worker.terminate();URL.revokeObjectURL(url);}
+  },
+};
+read();
+document.querySelector('#verify').onclick=async()=>{
+  const output=document.querySelector('#result');
+  try{
+    const {verifyEditor}=await import('./ux12-browser.js');
+    await verifyEditor();
+    output.textContent='Regressões UX-12 aprovadas';
+  }catch(error){
+    output.textContent='Falha: '+error.message;
+    console.error(error);
+  }
+};
+</script>
