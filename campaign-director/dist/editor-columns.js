@@ -9,28 +9,35 @@ export function editableColumnsHTML(layout,index) {
   const dividers=layout.columns.slice(0,-1).map((_,i)=>
     `<div class="script-column-divider" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Ajustar colunas ${i+1} e ${i+2}" data-column-divider="${i}"></div>`
   );
-  const groups=layout.columns.map((column,i)=>{
+  const options=layout.columns.map((column,i)=>{
     const target=i===0?2:i;
-    return `<section class="script-column" aria-label="Coluna ${i+1}"${toggleBackgroundAttribute(column.background)}>
-      <div class="script-column-heading">
-        <label>Coluna ${i+1}<select data-column-background="${i}" aria-label="Fundo da coluna ${i+1}">${scriptColors.map(([color,label])=>
-          `<option value="${color}"${color===(column.background??'none')?' selected':''}>${color==='none'?'Sem fundo':label}</option>`
-        ).join('')}</select></label>
-        ${three?`<button type="button" data-remove-column="${i}">Transferir para coluna ${target} e remover</button>`:''}
-      </div>
-      <div class="script-column-editor" data-column-editor="${i}"></div>
-    </section>`;
+    return `<div class="script-column-options-row">
+      <label>Coluna ${i+1}<select data-column-background="${i}" aria-label="Fundo da coluna ${i+1}">${scriptColors.map(([color,label])=>
+        `<option value="${color}"${color===(column.background??'none')?' selected':''}>${color==='none'?'Sem fundo':label}</option>`
+      ).join('')}</select></label>
+      ${three?`<button type="button" data-remove-column="${i}">Transferir para coluna ${target} e remover</button>`:''}
+    </div>`;
   });
+  const groups=layout.columns.map((column,i)=>
+    `<section class="script-column" aria-label="Coluna ${i+1}"${toggleBackgroundAttribute(column.background)}>
+      <div class="script-column-editor" data-column-editor="${i}"></div>
+    </section>`
+  );
   return `<section class="editor-block script-columns script-columns-edit" data-block-row="${index}" data-columns-layout="${index}" aria-label="Layout de colunas">
-    <div class="script-columns-toolbar">
-      <span>Colunas</span>
-      ${three?'':'<button type="button" data-add-column>Adicionar terceira coluna</button>'}
-      <button type="button" data-unpack-columns>Desagrupar colunas</button>
-      <span role="status" data-column-status></span>
-    </div>
-    <details class="script-column-widths"><summary>Larguras</summary>${dividers.map((_,i)=>
-      `<label>Colunas ${i+1} e ${i+2} <input type="range" step="1" data-column-slider="${i}"><output data-column-widths="${i}"></output></label>`
-    ).join('')}</details>
+    <details class="script-columns-options">
+      <summary>Opções das colunas</summary>
+      <div class="script-columns-menu">
+        ${options.join('')}
+        <div class="script-column-widths">${dividers.map((_,i)=>
+          `<label>Colunas ${i+1} e ${i+2} <input type="range" step="1" data-column-slider="${i}"><output data-column-widths="${i}"></output></label>`
+        ).join('')}</div>
+        <div class="script-column-options-actions">
+          ${three?'':'<button type="button" data-add-column>Adicionar terceira coluna</button>'}
+          <button type="button" data-unpack-columns>Desagrupar colunas</button>
+        </div>
+        <span role="status" data-column-status></span>
+      </div>
+    </details>
     <div class="script-column-grid" data-count="${layout.columns.length}" style="--script-column-tracks:${columnTracks(layout.columns.map(column=>column.width),true)}">${layout.columns.map((_,i)=>groups[i]+(dividers[i]??'')).join('')}</div>
   </section>`;
 }
@@ -75,10 +82,21 @@ export class ColumnLayouts {
             drop:event=>this.drop(event,index,column),
           },
         });
+        const section=surface.closest('.script-column');
+        section.addEventListener('click',event=>{
+          if((event.target===section||event.target===surface)&&getSelection()?.isCollapsed!==false)editor.writeInColumn();
+        });
         this.surfaces.set(surface,editor);
         return editor;
       });
       this.layouts.set(index,editors);
+      const options=container.querySelector('.script-columns-options');
+      options.addEventListener('keydown',event=>{
+        if(event.key==='Escape'&&options.open){
+          options.open=false;
+          options.querySelector('summary').focus();
+        }
+      });
       container.addEventListener('dragend',()=>this.clearDrop());
       container.addEventListener('dragleave',event=>{
         if(this.drag?.marker?.contains(event.target)&&!this.drag.marker.contains(event.relatedTarget))this.clearMarker();
@@ -86,7 +104,10 @@ export class ColumnLayouts {
       this.resizeControls(container,index,layout.columns,editors);
       container.querySelector('[data-add-column]')?.addEventListener('click',()=>{
         this.remember(index,1);
-        if(addColumn(layout.columns))this.commit({layout:index,column:2,block:0});
+        if(addColumn(layout.columns)){
+          layout.columns[2].blocks.push({type:'paragraph',text:''});
+          this.commit({layout:index,column:2,block:0,offset:0});
+        }
       });
       container.querySelectorAll('[data-remove-column]').forEach(button=>button.addEventListener('click',()=>{
         this.remember(index,+button.dataset.removeColumn);
@@ -112,8 +133,9 @@ export class ColumnLayouts {
         const color=toggleBackground(select.value);
         if(color===track.background)return;
         this.remember(index,column);
-        if(color){track.background=color;select.closest('.script-column').dataset.toggleBackground=color;}
-        else{delete track.background;delete select.closest('.script-column').dataset.toggleBackground;}
+        const section=editors[column].el.closest('.script-column');
+        if(color){track.background=color;section.dataset.toggleBackground=color;}
+        else{delete track.background;delete section.dataset.toggleBackground;}
         root.active=index;root.activeChild=null;
         root.changed(false,{layout:index,column,block:editors[column].active});
       }));
@@ -259,7 +281,7 @@ export class ColumnLayouts {
     const editor=this.layouts.get(scope.layout)?.[scope.column];
     if(!editor)return false;
     editor.options.columnContext.activate(editor);
-    if(!editor.blocks.length){editor.el.querySelector('.add-block-line')?.focus();return true;}
+    if(!editor.blocks.length){editor.el.querySelector('[data-start-column]')?.focus({preventScroll:true});return true;}
     const index=bookmark?.start??scope.block;
     if(scope.child!=null||scope.toggleField==='text'){
       const toggle=editor.blocks[index];

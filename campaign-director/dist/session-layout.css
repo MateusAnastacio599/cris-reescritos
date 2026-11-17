@@ -22,15 +22,14 @@
  .document-top{position:sticky;top:0;z-index:5;background:#19191ff5;backdrop-filter:blur(12px)}.editor-toolbar{top:53px;z-index:4}
  .director-panel{position:relative;top:auto;max-height:100%;min-height:0;height:100%;overflow:auto;overscroll-behavior:contain;padding-top:0}
  .director-heading{position:sticky;top:0;z-index:6;background:#17171df5;backdrop-filter:blur(12px);margin-top:0;min-height:49px}
- .document-body{max-width:94ch;margin-inline:auto;font-size:16px;line-height:1.8}.session-mode .document-body{font-size:17px;line-height:1.8;max-width:94ch}.session-mode .document-body em{font:italic 1em/1.8 var(--sans)}
- .document-body.is-editing{max-width:none}.session-mode .page-title-row h1{margin-bottom:0}.session-mode .scene-navigation{margin-top:16px}
+ .session-mode .page-title-row h1{margin-bottom:0}.session-mode .scene-navigation{margin-top:16px}
 }
 @media(min-width:961px){
  .session-mode .sidebar{display:flex;width:var(--sidebar-width)}.session-mode .main-shell{margin-left:var(--sidebar-width)}.session-mode .workspace{max-width:none}.session-mode .menu-toggle{display:none}.session-mode.sidebar-open .sidebar-scrim{display:none}
  .session-mode .sidebar .brand{padding-bottom:20px}.session-mode .workspace-label,.session-mode .brand small,.session-mode #newPage,.session-mode #newPageBottom,.session-mode #manageCampaigns{display:none}.session-mode .sidebar-divider{margin-top:14px;margin-bottom:10px}
 }
 @media(min-width:761px) and (max-height:700px){body:has(.stage-layout) .workspace{padding-top:14px;padding-bottom:12px}.page-eyebrow,.page-tags{display:none}.page-title-row h1{margin-bottom:0;font-size:26px}.scene-navigation{margin-top:10px;margin-bottom:10px}.scene-tab{padding-top:9px;padding-bottom:10px}}
-@media(max-width:760px){.director-tabs button{min-height:36px;font-size:13px}.director-heading{position:sticky;top:54px;z-index:6;background:#17171df5}.session-mode .document-body,.session-mode .document-body em{font-size:16px;line-height:1.8}.inline-board-clue{flex-wrap:nowrap}.inline-board-clue>div{flex-basis:auto}.inline-board-clue .btn{min-height:36px;white-space:normal}.track-search input{font-size:16px}.session-track{min-height:54px}.session-track strong{font-size:13px}.track-library-label select{font-size:16px}.session-mode .page-actions{display:flex}.session-mode .page-actions #toggleEdit{display:none}}
+@media(max-width:760px){.director-tabs button{min-height:36px;font-size:13px}.director-heading{position:sticky;top:54px;z-index:6;background:#17171df5}.inline-board-clue{flex-wrap:nowrap}.inline-board-clue>div{flex-basis:auto}.inline-board-clue .btn{min-height:36px;white-space:normal}.track-search input{font-size:16px}.session-track{min-height:54px}.session-track strong{font-size:13px}.track-library-label select{font-size:16px}.session-mode .page-actions{display:flex}.session-mode .page-actions #toggleEdit{display:none}}
 
 .scene-clues-toggle{display:flex;align-items:center;gap:7px;font:inherit;padding:0;text-align:left;color:inherit}.scene-clues-toggle>.icon{width:13px;height:13px}.scene-clues-toggle>.icon:last-child{width:11px;transition:transform .15s}.scene-clues-toggle[aria-expanded=false]>.icon:last-child{transform:rotate(-90deg)}.scene-clues-toggle>span{color:var(--dim);font:9px var(--mono)}
 
@@ -44,14 +43,13 @@
 .session-mode .scene-music-summary{padding:10px 0 13px}.session-mode .scene-music-summary>div{gap:7px}.session-mode .scene-music-summary strong{font-size:11px;font-weight:400;color:var(--muted)}.session-mode .scene-music-summary small{font:8px var(--sans);letter-spacing:0;color:var(--dim)}
 .session-mode .trigger-button{display:flex;align-items:center;gap:8px;min-height:48px;padding:10px 24px 10px 10px;background:#ffffff03;border-color:var(--line)}.session-mode .trigger-button .trigger-icon{margin:0;width:14px;height:14px;flex:none}.session-mode .trigger-button .trigger-icon .icon{width:14px;height:14px}.session-mode .trigger-button strong{font-size:12px;line-height:1.45}.session-mode .trigger-button small{display:none}.session-mode .trigger-button kbd{right:6px;top:6px;font-size:8px;opacity:.7}.session-mode .trigger-button.composed{border-color:#b4a0ee30}.session-mode .trigger-button:hover,.session-mode .trigger-button.fired{border-color:var(--accent);background:#b4a0ee15}
 .session-mode .document-top,.session-mode .scene-position,.session-mode .page-eyebrow,.session-mode .page-actions>#openBoardClues,.session-mode .page-actions>#pageOptions,.session-mode .new-scene{display:none}
-.session-mode .session-board-link{display:inline-flex}.session-mode .page-actions{display:flex}.session-mode .page-title-row h1{font-size:25px;letter-spacing:-.6px}.session-mode .document-card{scroll-padding-top:24px}.session-mode .document-body{max-width:82ch;font-size:18px;line-height:1.85;padding-top:30px}.session-mode .document-body em{font:italic 1em/1.85 var(--sans)}.session-mode .document-body p{margin-bottom:18px}.session-mode .document-body h1{font-size:24px}.session-mode .document-body h2{font-size:20px}.session-mode .document-end{letter-spacing:0}
+.session-mode .session-board-link{display:inline-flex}.session-mode .page-actions{display:flex}.session-mode .page-title-row h1{font-size:25px;letter-spacing:-.6px}.session-mode .document-card{scroll-padding-top:24px}.session-mode .document-body p{margin-bottom:18px}.session-mode .document-end{letter-spacing:0}
 .session-mode .audio-ready,.session-mode .breadcrumbs>b,.session-mode .breadcrumbs>span:last-child,.session-mode .sidebar-bottom>small,.session-mode #openCloud small,.session-mode .engine-badge,.session-mode .save-status:not(.failed):not(.saving){display:none}
 .session-mode .sidebar .brand{padding:0 7px 18px}.session-mode .brand-mark{width:32px;height:34px}.session-mode .brand strong{font-size:16px}.session-mode .campaign-switch-wrap{margin-bottom:12px}.session-tools-toggle>.icon{width:14px;height:14px}.session-tools-toggle>.icon:last-child{margin-left:auto;width:11px}.session-tools-toggle[aria-expanded=false]>.icon:last-child{transform:rotate(-90deg)}.session-mode .sidebar-tools.expanded{padding-bottom:7px}.session-mode .sidebar-tools .nav-item{font-size:11px;min-height:34px;padding-block:7px}.session-mode .sidebar-tools kbd{display:none}
 .session-mode .spotify-sidebar{background:transparent;border-color:#1ed76020;margin-top:7px}.session-mode .spotify-sidebar .nav-item{min-height:34px;padding-block:7px;font-size:11px}.session-mode .spotify-sidebar small{font-size:9px;color:var(--dim);padding-bottom:8px}.session-mode .sidebar-bottom{padding-top:12px}.session-mode #openCloud{background:transparent;border-color:var(--line-soft);font-size:11px;min-height:34px}.session-mode #returnCris{font-size:10px;min-height:30px}.session-mode .sidebar-divider{margin-top:15px}
-.has-spotify #dockTime{display:none}
-@media(min-width:761px){body.session-mode:has(.stage-layout) .workspace{padding-top:17px}.session-mode .scene-navigation{margin-top:8px;margin-bottom:14px}.session-mode .scene-tab{padding-top:10px;padding-bottom:11px}.session-mode .document-body{padding-inline:clamp(25px,3.2vw,58px)}}
+@media(min-width:761px){body.session-mode:has(.stage-layout) .workspace{padding-top:17px}.session-mode .scene-navigation{margin-top:8px;margin-bottom:14px}.session-mode .scene-tab{padding-top:10px;padding-bottom:11px}}
 @media(min-width:961px){.session-mode{--sidebar-width:218px}.session-mode .sidebar{padding:23px 12px 14px}.session-mode .stage-layout{grid-template-columns:minmax(0,1fr) clamp(280px,20vw,320px);gap:20px}}
-@media(max-width:760px){.session-mode .document-body,.session-mode .document-body em{font-size:16px;line-height:1.8}.session-mode .document-body{padding-top:24px}.session-mode .page-title-row h1{font-size:25px}.session-mode .page-actions>.session-board-link span{display:inline}.session-mode .page-actions>.session-board-link{padding:7px 9px;font-size:10px;gap:5px}.session-mode .trigger-button{min-height:48px}.session-mode .trigger-button strong{font-size:12px}.session-mode .scene-launch{min-height:44px}.session-mode .director-heading{top:54px}}
+@media(max-width:760px){.session-mode .document-body{padding-top:24px}.session-mode .page-title-row h1{font-size:25px}.session-mode .page-actions>.session-board-link span{display:inline}.session-mode .page-actions>.session-board-link{padding:7px 9px;font-size:10px;gap:5px}.session-mode .trigger-button{min-height:48px}.session-mode .trigger-button strong{font-size:12px}.session-mode .scene-launch{min-height:44px}.session-mode .director-heading{top:54px}}
 
 
 .desktop-sidebar-toggle{display:none}
@@ -112,7 +110,7 @@
 .session-mode .page-actions:not(.editing-actions) .script-tools summary{color:var(--muted)}
 .session-mode .page-actions.editing-actions #toggleEdit{display:inline-flex}
 .session-mode .document-card:has(.editor-toolbar) .document-top,
-.session-mode .document-top:has(#toggleNotesLayout:not([hidden])){display:flex}
+.session-mode .document-top:has(.script-display){display:flex}
 .director-extras-toggle{margin-inline-start:auto}
 .director-panel:not(.show-director-extras) .director-section-head>.icon-btn,
 .director-panel:not(.show-director-extras) .crossfade-control,
@@ -127,18 +125,53 @@
 
 @media(min-width:961px){[data-director-layout=compact] .director-panel.show-director-extras .crossfade-control{display:none}}
 
-/* Keep reading typography separate from the editor and interface controls. */
-#scriptReadingLayout .document-body{font-family:Georgia,"Times New Roman",serif}
-#scriptReadingLayout .document-body :is(button,input,small,.inline-cue,.inline-board-clue,.read-todo){font-family:var(--sans)}
-#scriptReadingLayout .document-body strong{font-size:inherit;font-weight:700}
-#scriptReadingLayout .document-body em{font-family:inherit;font-size:inherit}
-#scriptReadingLayout .master-note strong{font-size:inherit}
-@media(min-width:961px){
- #scriptReadingLayout .document-body{max-width:100ch;padding-inline:clamp(20px,2.1vw,36px)}
- #scriptReadingLayout.script-reading-columns{gap:16px;padding-inline-end:18px;grid-template-columns:minmax(0,1fr) minmax(185px,26%)}
- #scriptReadingLayout.script-reading-columns .document-body{max-width:none;padding-inline-end:0}
- #scriptReadingLayout .script-notes-column{padding-block-start:30px}
+/* Presentation settings apply to the scene surface, including notes moved to the side. */
+.document-card{
+  --script-family:Georgia,"Times New Roman",serif;
+  --script-scale:1;
+  --script-size:calc(1.0625rem * var(--script-scale));
+  --script-inset:clamp(16px,1.6vw,30px);
 }
+.document-card .document-body{
+  width:100%;max-width:none;min-width:0;margin-inline:auto;
+  padding-inline:var(--script-inset);font:var(--script-size)/1.75 var(--script-family);
+}
+.document-card[data-script-width=comfortable] .document-body{max-width:calc(72ch + 2 * var(--script-inset))}
+.document-card .document-body.is-editing{padding-inline-start:max(43px,var(--script-inset))}
+.script-reading-columns .document-body{padding-inline-end:0}
+.document-card :is(.document-body,.script-notes-column) .master-note{
+  font:var(--script-size)/1.65 var(--script-family);
+}
+.document-card :is(.document-body,.script-notes-column) :is(strong,em){font-family:inherit;font-size:inherit;line-height:inherit;color:inherit}
+.document-card .document-body strong{font-weight:700}
+.document-card .document-body :is(h1,h2,h3,.block-h1,.block-h2,.block-h3){
+  font-family:var(--script-family);line-height:1.3;letter-spacing:normal;
+}
+.document-card .document-body :is(h1,.block-h1){font-size:calc(var(--script-size) * 1.55)}
+.document-card .document-body :is(h2,.block-h2){font-size:calc(var(--script-size) * 1.3)}
+.document-card .document-body :is(h3,.block-h3){font-size:calc(var(--script-size) * 1.12)}
+.document-card .document-body blockquote{font-family:inherit;font-size:inherit}
+.document-card .document-body :is(.inline-cue,.editable-cue,.inline-board-clue,.editable-board-clue){font:13px/1.5 var(--sans)}
+.document-card .document-body :is(button,input,select,.note-label){font-family:var(--sans)}
+.document-card .document-body .script-toggle-heading button{font-size:14px}
+.script-display{position:relative;flex:none}
+.script-display summary{list-style:none;cursor:pointer}
+.script-display summary::-webkit-details-marker{display:none}
+.script-display-options{
+  position:absolute;inset-block-start:calc(100% + 4px);inset-inline-end:0;
+  width:max-content;max-width:calc(100vw - 52px);padding:9px;display:grid;gap:8px;
+  border:1px solid var(--line);border-radius:6px;background:var(--panel);
+  box-shadow:0 8px 20px #0006;font:12px/1.4 var(--sans);color:var(--text);
+}
+.script-display:not([open]) .script-display-options{display:none}
+.script-display-options label,.script-font-controls{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.script-display-options select,.script-font-controls button{
+  min-height:28px;padding:3px 6px;background:var(--panel);color:inherit;border:1px solid var(--line);border-radius:4px;
+}
+.script-font-controls button[aria-disabled=true]{opacity:.5}
+.script-font-controls output{min-width:34px;text-align:center;font-variant-numeric:tabular-nums}
+@media(max-width:760px){.document-card{--script-size:calc(1rem * var(--script-scale))}}
+@media(max-width:425px){.document-meta>span{display:none}}
 
 .quick-pages{display:flex;align-items:center;gap:2px;flex:none;color:var(--muted);font:10px var(--mono)}
 .quick-pages[hidden]{display:none}
@@ -168,16 +201,9 @@ body.session-mode:has(.stage-layout) .topbar .breadcrumbs>span:first-of-type{dis
 .director-panel .trigger-button kbd{grid-column:3;grid-row:1;position:static}
 .director-panel .trigger-button small{grid-column:2;margin:0}
 
-body:has(.stage-layout){--dock-height:60px}
-body.spotify-dock-active:has(.stage-layout){--dock-height:83px}
+body:not(.spotify-dock-active):has(.stage-layout){--dock-height:60px}
 body:has(.stage-layout) .audio-dock:not(.has-spotify){gap:clamp(6px,1.2vw,16px)}
 body:has(.stage-layout) .audio-dock .track-art{width:34px;height:34px}
-body:has(.stage-layout) .audio-dock.has-spotify{grid-template-rows:39px 25px;padding-block:7px calc(8px + env(safe-area-inset-bottom))}
-body:has(.stage-layout) .audio-dock.has-spotify .spotify-progress{height:24px}
-@media(max-width:680px){
- body.spotify-dock-active:has(.stage-layout){--dock-height:117px}
- body:has(.stage-layout) .audio-dock.has-spotify{grid-template-rows:43px 27px 30px}
-}
 @media(max-width:480px){
  body:has(.stage-layout) .audio-dock .track-art{width:28px;height:28px}
  body:has(.stage-layout) .audio-dock .dock-track{gap:5px}

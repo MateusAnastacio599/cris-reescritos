@@ -117,3 +117,13 @@ test('an invalid column slot, no-op and incompatible block leave the model untou
     assert.deepEqual(columns,before);
   }
 });
+
+test('column actions share a closed disclosure while the writing surfaces remain visible',()=>{
+  const layout=newColumns(3);
+  layout.columns[0].background='purple';
+  const html=editableColumnsHTML(layout,0);
+  assert.match(html,/<details class="script-columns-options">/);
+  assert.match(html,/<details[^>]*>.*data-column-background="0".*data-remove-column="0".*data-column-slider="0".*data-unpack-columns.*<\/details>\s*<div class="script-column-grid"/s);
+  assert.match(html,/<section class="script-column" aria-label="Coluna 1" data-toggle-background="purple">/);
+  assert.equal(layout.columns.every(column=>column.blocks.length===0),true);
+});

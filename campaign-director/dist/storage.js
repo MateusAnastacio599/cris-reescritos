@@ -1,3 +1,4 @@
+import {scriptDisplay} from './script-display.js';
 import { originalCampaign } from './campaign-data.js';
 import {applySceneTextUpdate} from './scene-updates.js';
 
@@ -43,7 +44,7 @@ export function initialState() {
     audioAssets:seedFiles.map(([id,name,kind,tags,file])=>({id:`asset-${id}`,name,kind,tags,provider:'local',src:`assets/audio/${file}`,builtin:true})),
     playlists:[{id:'playlist-sao-martinho',name:'Casa São Martinho',assetIds:['asset-rain','asset-room','asset-bell','asset-thunder','asset-door','asset-riser']}],
     ambiences:defaultAmbiences(),settings:initialDefaults(),
-    ui:{campaignId:campaign.id,pageId:campaign.pages[0].id,sceneId:'quarto',view:'document',sessionMode:false}
+    ui:{campaignId:campaign.id,pageId:campaign.pages[0].id,sceneId:'quarto',view:'document',sessionMode:false,...scriptDisplay()}
   };applySceneTextUpdate(state);return state;
 }
 export function validateState(s) {
@@ -109,7 +110,7 @@ export function validateState(s) {
   for(const key of ['musicFadeIn','musicFadeOut','spotifyFadeIn','spotifyFadeOut','effectFadeIn','effectFadeOut','ambientFadeIn','ambientFadeOut','stopFade'])s.settings[key]=Math.max(0,Math.min(30,Number(s.settings[key])||0));
   s.settings.autoAdvance=s.settings.autoAdvance!==false;
   s.settings.youtubeCompact=s.settings.youtubeCompact!==false;
-  s.ui = s.ui || {}; return s;
+  s.ui = {...s.ui,...scriptDisplay(s.ui)}; return s;
 }
 function initialDefaults(){return {master:.8,music:.7,ambience:.85,sfx:.85,crossfade:1.8,musicFadeIn:2.5,musicFadeOut:2.5,spotifyVolume:1,spotifyFadeIn:.7,spotifyFadeOut:.5,effectFadeIn:.06,effectFadeOut:.25,ambientFadeIn:.2,ambientFadeOut:.45,stopFade:.8,autoAdvance:true,youtubeCompact:true};}
 export function loadState() {
