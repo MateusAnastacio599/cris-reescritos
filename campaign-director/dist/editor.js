@@ -95,7 +95,8 @@ export class BlockEditor {
       if(b.type==='cue')body=`<div class="editable-cue"><span>♫</span>${field}<select aria-label="Efeito da cue" data-trigger-select="${i}"><option value="">Escolher efeito</option>${this.options.triggers.map(t=>`<option value="${esc(t.id)}" ${t.id===b.triggerId?'selected':''}>${esc(t.name)}</option>`).join('')}</select><button type="button" class="icon-btn" data-preview-cue="${i}" aria-label="Testar cue">${icon('play')}</button></div>`;
       if(b.type==='table')body=renderTable(b,this.options.pages,true,i)+`<div class="table-controls" contenteditable="false"><button type="button" data-table-action="row" data-table="${i}">+ Linha</button><button type="button" data-table-action="column" data-table="${i}">+ Coluna</button><button type="button" data-table-action="remove-row" data-table="${i}">− Linha</button><button type="button" data-table-action="remove-column" data-table="${i}">− Coluna</button></div>`;
       return textRunMarkup(this.blocks,i,`<div class="editor-block block-${b.type}" data-block-row="${i}">${tools}${body}</div>`);
-    }).join('')+`<button type="button" class="add-block-line" data-add="${this.blocks.length-1}">${icon('plus')} Adicionar bloco <span>/</span></button>`;
+    }).join('')+(this.options.columnContext&&!this.blocks.length?
+      '<button type="button" class="column-write" data-start-column>Escreva aqui…</button>':'')+`<button type="button" class="add-block-line" data-add="${this.blocks.length-1}">${icon('plus')} Adicionar bloco <span>/</span></button>`;
     let typedShortcut=null,verifyRun=false;
     this.el.onbeforeinput=e=>{
       verifyRun=!e.cancelable;
@@ -159,6 +160,7 @@ export class BlockEditor {
       this.options.onActive?.(block.type,!isRichToggle(block));
     };
     this.el.onclick=e=>{
+      if(e.target.closest('[data-start-column]')){this.writeInColumn();return;}
       const childMenu=e.target.closest('[data-child-menu]');
       if(childMenu){this.active=+childMenu.dataset.parent;this.activeChild=+childMenu.dataset.childMenu;this.menu(childMenu,'child');return;}
       const addChild=e.target.closest('[data-add-child]');
@@ -719,8 +721,15 @@ export class BlockEditor {
     this.changed();
     this.captureSelection();
   }
+  writeInColumn(){
+    const last=this.blocks.at(-1);
+    if(last?.type==='paragraph'&&!last.text)this.focus({index:this.blocks.length-1,offset:0});
+    else this.add(this.blocks.length);
+  }
   addColumns(index,count){
-    this.blocks.splice(index,0,newColumns(count));this.active=index;this.activeChild=null;
+    const layout=newColumns(count);
+    layout.columns[0].blocks.push(newBlock());
+    this.blocks.splice(index,0,layout);this.active=index;this.activeChild=null;
     this.changed(false,{layout:index,column:0,block:0});this.render({index});
   }
   menu(anchor,mode){

@@ -131,6 +131,21 @@ export async function verifyEditor(){
   equal(localStorage.getItem('cris-campaign-director:v3'),store,'O teste de importação preserva o armazenamento da aplicação');
   document.querySelector('#read').click();document.querySelector('#edit').click();
   equal(fixture.editor.serialize(),saved,'Reabrir o roteiro com Markdown completo');
+  const emptyColumn=column(8,0);
+  emptyColumn.querySelector('[data-start-column]').click();
+  equal(fixture.editor.blocks[8].columns[0].blocks,[{type:'paragraph',text:''}],'Começar a escrever na coluna vazia');
+  check(document.activeElement.closest('[data-column-editor]')===emptyColumn,'Cursor na coluna recém-preenchida');
+  emptyColumn.click();
+  equal(fixture.editor.blocks[8].columns[0].blocks.length,1,'Reutilizar o parágrafo vazio');
+  fixture.editor.undo(-1);
+  equal(fixture.editor.blocks[8].columns[0].blocks,[],'Desfazer volta à coluna vazia');
+  const beforeNew=fixture.saved();
+  fixture.editor.addColumns(fixture.editor.blocks.length,2);
+  const inserted=fixture.editor.blocks.at(-1);
+  equal(inserted.columns[0].blocks,[{type:'paragraph',text:''}],'Criar colunas com primeiro parágrafo disponível');
+  check(document.activeElement.closest('[data-column-editor="0"]'),'Cursor no primeiro parágrafo do layout novo');
+  fixture.editor.undo(-1);
+  equal(fixture.saved(),beforeNew,'Criação de colunas ocupa uma entrada no histórico');
   if(innerWidth<=390){
     const grid=script.querySelector('.script-column-grid');
     check(getComputedStyle(grid).gridTemplateColumns.split(' ').length===1,'Colunas empilham a 390 px');
