@@ -95,3 +95,25 @@ test('typing in separate columns has independent history and a complete backup r
     assert.deepEqual(parseBlocks(restored.campaigns[0].pages[0].scenes[0].markdown),blocks);
   }finally{delete globalThis.localStorage;}
 });
+
+test('a column drop inserts at the specified slot and reorders without duplication',()=>{
+  const {columns}=structuredClone(build());
+  const [left,right]=columns;
+  const block=left.blocks[1];
+  assert.equal(moveColumnBlock(columns,0,1,1,1),1);
+  assert.equal(right.blocks[1],block);
+  assert.equal(moveColumnBlock(columns,1,1,1,4),3);
+  assert.equal(right.blocks[3],block);
+  assert.equal(right.blocks.filter(value=>value===block).length,1);
+  assert.deepEqual(parseBlocks(blocksToMarkdown([{type:'columns',columns}]))[0].columns,columns);
+});
+
+test('an invalid column slot, no-op and incompatible block leave the model untouched',()=>{
+  const {columns}=structuredClone(build());
+  columns[0].blocks.push({type:'clue',text:'Restrito'});
+  const before=structuredClone(columns);
+  for(const args of [[0,0,0,1],[0,0,1,-1],[0,0,1,999],[0,0,1,0.5],[0,0,2,0],[0,3,1,0]]){
+    assert.equal(moveColumnBlock(columns,...args),null);
+    assert.deepEqual(columns,before);
+  }
+});

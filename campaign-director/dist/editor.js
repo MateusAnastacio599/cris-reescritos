@@ -2,6 +2,7 @@ import {recolorRange,scriptColors,toggleBackground,toggleBackgroundAttribute} fr
 import {parseBlocks,blocksToMarkdown,inlineHTML,editableToMarkdown,renderTable,isRichToggle,TOGGLE_CHILD_TYPES,escapeHTML as esc} from './markdown.js';
 import {BLOCK_TYPES,newBlock,splitBlocks,EditorHistory} from './editor-model.js';
 import {clipboardBlocks,readClipboardBlocks,writeTextBlocks} from './editor-clipboard.js';
+import {formatTextFields,preservesMarkdownBlock} from './editor-inline-format.js';
 import {icon} from './icons.js';
 import {ColumnLayouts,EDITOR_SURFACE,editableColumnsHTML} from './editor-columns.js';
 import {isColumnBlock,isColumnBlockType,newColumns} from './editor-columns-model.js';
@@ -205,20 +206,41 @@ export class BlockEditor {
     };
     this.el.oncopy=e=>this.copyRun(e,false);
     this.el.oncut=e=>this.copyRun(e,true);
-    this.el.ondragstart=e=>{const handle=e.target.closest('[data-drag]');if(handle){e.dataTransfer.setData(this.dragType,handle.dataset.drag);e.dataTransfer.effectAllowed='move';}else if(e.target.closest('.rich-toggle-editor,.editor-text-run')||this.protectedSelection())e.preventDefault();};
-    this.el.ondragover=e=>{if([...e.dataTransfer.types].includes(this.dragType))e.preventDefault();};
-    this.el.ondrop=e=>{const row=e.target.closest('[data-block-row]'),from=e.dataTransfer.getData(this.dragType);if(!row||from===''||!this.blocks[+from]||!this.blocks[+row.dataset.blockRow]){if(e.target.closest('.rich-toggle-editor,.editor-text-run')||this.protectedSelection())e.preventDefault();return;}e.preventDefault();const target=+row.dataset.blockRow,[b]=this.blocks.splice(+from,1);this.blocks.splice(target,0,b);this.active=target;this.activeChild=null;this.changed();this.render({index:target});};
-    for(const name of ['beforeinput','input','focusin','click','change','paste','keydown','compositionstart','copy','cut','dragstart','dragover','drop']){
+    const column=this.options.columnContext;
+    this.el.ondragstart=e=>{
+      const handle=e.target.closest('[data-drag]');
+      if(handle){
+        if(column)column.dragStart(e,+handle.dataset.drag);
+        else{e.dataTransfer.setData(this.dragType,handle.dataset.drag);e.dataTransfer.effectAllowed='move';}
+      }else if(e.target.closest('.rich-toggle-editor,.editor-text-run')||this.protectedSelection())e.preventDefault();
+    };
+    this.el.ondragenter=e=>{if(column)column.dragOver(e);};
+    this.el.ondragover=e=>{
+      if(column){column.dragOver(e);return;}
+      if(e.dataTransfer.types.includes(this.dragType))e.preventDefault();
+    };
+    this.el.ondrop=e=>{
+      if(column?.drop(e))return;
+      const row=e.target.closest('[data-block-row]'),from=e.dataTransfer.getData(this.dragType);
+      if(!row||from===''||!this.blocks[+from]||!this.blocks[+row.dataset.blockRow]){
+        if(e.target.closest('.rich-toggle-editor,.editor-text-run')||this.protectedSelection())e.preventDefault();
+        return;
+      }
+      e.preventDefault();
+      const target=+row.dataset.blockRow,[b]=this.blocks.splice(+from,1);
+      this.blocks.splice(target,0,b);this.active=target;this.activeChild=null;this.changed();this.render({index:target});
+    };
+    for(const name of ['beforeinput','input','focusin','click','change','paste','keydown','compositionstart','copy','cut','dragstart','dragenter','dragover','drop']){
       const handler=this.el['on'+name];
       this.el['on'+name]=event=>{if(this.owns(event.target))handler(event);};
     }
     this.columns?.attach(BlockEditor);
     if(focus!==null)this.focus(typeof focus==='number'?{index:focus}:focus);
   }
-  focus({index=this.active,offset=null,cell=null,child=null}={}){
+  focus({index=this.active,offset=null,cell=null,child=null,toggleField}={}){
     this.active=Math.max(0,Math.min(index,this.blocks.length-1));this.activeChild=child;
     if(this.blocks[this.active]?.type==='columns'&&this.columns?.focus({layout:this.active,column:0,block:0}))return;
-    let field=this.ownField(`[data-block="${this.active}"]${child!==null?`[data-child="${child}"]`:cell?`[data-cell-row="${cell.row}"][data-cell-col="${cell.col}"]`:''}`);
+    let field=this.ownField(`[data-block="${this.active}"]${child!==null?`[data-child="${child}"]`:cell?`[data-cell-row="${cell.row}"][data-cell-col="${cell.col}"]`:toggleField?`[data-toggle-field="${toggleField}"]`:''}`);
     if(field?.hasAttribute('data-run-field')){
       field.closest('.editor-text-run').focus({preventScroll:true});
       const point=pointAt(field,offset??textUnits(field));
@@ -229,12 +251,21 @@ export class BlockEditor {
       if(bounds.bottom<Math.max(0,pane?.top??0)||bounds.top>Math.min(innerHeight,pane?.bottom??innerHeight))field.scrollIntoView({block:'nearest'});
       return;
     }
-    if(field?.dataset.toggleField){
-      field.focus();return;
-    }
-    if(!field&&this.blocks[this.active]?.type==='divider'){this.add(this.active+1);return;}if(!field){this.el.querySelector('.add-block-line')?.focus();return;}field.focus();const selection=getSelection(),range=document.createRange();range.selectNodeContents(field);range.collapse(false);
+    if(field?.dataset.toggleField&&offset===null){field.focus();return;}
+    if(!field){(this.ownField(`[data-block-menu="${this.active}"]`)??this.el.querySelector('.add-block-line'))?.focus();return;}field.focus();const selection=getSelection(),range=document.createRange();range.selectNodeContents(field);range.collapse(false);
     if(offset!==null){const walker=document.createTreeWalker(field,4);let node,left=offset;while(node=walker.nextNode()){if(left<=node.textContent.length){range.setStart(node,left);range.collapse(true);break;}left-=node.textContent.length;}if(offset===0){range.setStart(field,0);range.collapse(true);}}
     selection.removeAllRanges();selection.addRange(range);
+  }
+  moveFocus(index){
+    const range=this.range,node=range?.startContainer;
+    const element=node?.nodeType===1?node:node?.parentElement;
+    const field=this.fieldFor(node)??element?.closest('[data-toggle-field]');
+    if(!field||!this.owns(field)||+field.dataset.block!==index||!field.contains(range.endContainer))return {};
+    const prefix=range.cloneRange();
+    prefix.selectNodeContents(field);
+    prefix.setEnd(range.endContainer,range.endOffset);
+    return {offset:textUnits(prefix.cloneContents()),child:childIndex(field),
+      cell:isCell(field)?{row:+field.dataset.cellRow,col:+field.dataset.cellCol}:null,toggleField:field.dataset.toggleField};
   }
   fieldFor(node){const el=node?.nodeType===1?node:node?.parentElement;const field=el?.closest('[contenteditable=true][data-block],[data-run-field]');return field&&this.owns(field)?field:null;}
   protectedSelection(range){
@@ -265,7 +296,7 @@ export class BlockEditor {
   }
   rememberRun(parts){
     this.rememberBookmark({
-      start:parts.start,end:parts.end,startOffset:parts.startOffset,endOffset:parts.endOffset,
+      start:parts.start,end:parts.end,startOffset:parts.startOffset,endOffset:parts.endOffset,backward:parts.backward,
     });
   }
   finishRun(focus){
@@ -380,7 +411,10 @@ export class BlockEditor {
   }
   keydown(e){
     if(e.isComposing)return;
-    const field=e.target.matches('.editor-text-run')?runField(getSelection()?.focusNode):e.target.closest('[data-block]');
+    const run=e.target.matches('.editor-text-run')?e.target:null;
+    const selection=getSelection();
+    const field=run?[runField(selection?.focusNode),runField(selection?.anchorNode)].find(node=>run.contains(node))??
+      run.querySelector('[data-run-field]'):e.target.closest('[data-block]');
     if(!field){
       const key=e.key.toLowerCase();
       if(e.target.closest('[data-columns-layout]')&&(e.ctrlKey||e.metaKey)&&['z','y'].includes(key)){
@@ -403,16 +437,17 @@ export class BlockEditor {
     }
     const mod=e.ctrlKey||e.metaKey,key=e.key.toLowerCase();
     if(mod&&key==='z'){e.preventDefault();this.undo(e.shiftKey?1:-1);return;}if(mod&&key==='y'){e.preventDefault();this.undo(1);return;}
-    if(field.dataset.toggleField)return;
+    if(!this.owns(field)||field.dataset.toggleField)return;
+    const protectedRange=this.protectedSelection();
     this.active=+field.dataset.block;this.activeChild=childIndex(field);const b=this.blocks[this.active];
-    if(mod&&['b','i','e'].includes(key)){e.preventDefault();this.captureSelection();this.format({b:'bold',i:'italic',e:'code'}[key]);return;}
-    if(mod&&key==='k'){e.preventDefault();const parts=this.currentRun();if(!parts||parts.start===parts.end){this.captureSelection();this.options.onRequestLink();}return;}
+    if(mod&&['b','i','e'].includes(key)){e.preventDefault();this.captureSelection(true);this.format({b:'bold',i:'italic',e:'code'}[key]);return;}
+    if(mod&&key==='k'){e.preventDefault();const parts=this.currentRun();if(!protectedRange&&(!parts||parts.start===parts.end)){this.captureSelection();this.options.onRequestLink();}return;}
     if(this.activeChild!==null){
       const operation={Enter:'insertParagraph',Backspace:'deleteContentBackward',Delete:'deleteContentForward'}[e.key];
       if(operation&&!mod&&!e.altKey&&!(e.shiftKey&&e.key==='Enter')&&this.editChildBoundary(field,operation))e.preventDefault();
       return;
     }
-    if(mod&&e.altKey&&['1','2','3','0'].includes(key)){e.preventDefault();this.setType(key==='0'?'paragraph':'h'+key);return;}
+    if(mod&&e.altKey&&['1','2','3','0'].includes(key)){e.preventDefault();if(protectedRange)return;this.setType(key==='0'?'paragraph':'h'+key);return;}
     if(field.hasAttribute('data-run-field')){
       if(mod&&key==='a'){
         e.preventDefault();
@@ -481,15 +516,50 @@ export class BlockEditor {
       const first=this.ownField(`[data-run-field][data-block="${bookmark.start}"]`);
       const last=this.ownField(`[data-run-field][data-block="${bookmark.end}"]`);
       if(first&&last&&first.closest('.editor-text-run')===last.closest('.editor-text-run')){
-        getSelection().setBaseAndExtent(...pointAt(first,bookmark.startOffset),...pointAt(last,bookmark.endOffset));
+        this.selectTextRun(first,last,bookmark);
       }
     }
+  }
+  selectTextRun(first,last,parts){
+    const start=pointAt(first,parts.startOffset),end=pointAt(last,parts.endOffset);
+    getSelection().setBaseAndExtent(...(parts.backward?end:start),...(parts.backward?start:end));
+  }
+  formatRun(range,command,value,backward=this.rangeBackward){
+    if(this.protectedSelection(range)||range.collapsed)return;
+    const parts=runSelection(range);
+    if(!parts||parts.start===parts.end)return;
+    const run=parts.first.closest('.editor-text-run');
+    const fields=[...run.querySelectorAll('[data-run-field]')].filter(field=>+field.dataset.block>=parts.start&&+field.dataset.block<=parts.end);
+    if(fields.length!==parts.end-parts.start+1||!this.blocks.slice(parts.start,parts.end+1).every(isTextBlock))return;
+    parts.backward=backward;
+    const changes=formatTextFields(fields,parts,this.options.pages,command,value);
+    if(!changes||!this.options.columnContext&&changes.some(({field,text})=>!preservesMarkdownBlock(this.blocks[+field.dataset.block],text))){
+      const status=document.querySelector('#editorSelectionToolbar [role="status"]');
+      if(status)status.textContent='A formatação deste trecho foi preservada.';
+      return;
+    }
+    if(!changes.length)return;
+    const status=document.querySelector('#editorSelectionToolbar [role="status"]');
+    if(status)status.textContent='';
+    this.active=parts.backward?parts.start:parts.end;
+    this.activeChild=null;
+    this.rememberRun(parts);
+    for(const {field,text,html} of changes){
+      this.blocks[+field.dataset.block].text=text;
+      field.innerHTML=html;
+    }
+    run.focus({preventScroll:true});
+    this.selectTextRun(parts.first,parts.last,parts);
+    this.changed();
+    this.rememberRun(parts);
+    this.selectionToolbar();
   }
   captureSelection(local=false){
     const selection=getSelection();
     if(!local&&this.columnEditor){this.columnEditor.captureSelection(true);return;}
     if(!selection.rangeCount||!this.owns(selection.anchorNode))return;
     this.range=selection.getRangeAt(0).cloneRange();
+    this.rangeBackward=selection.anchorNode===this.range.endContainer&&selection.anchorOffset===this.range.endOffset;
     const field=selection.isCollapsed?runField(selection.focusNode):null;
     if(field&&field.closest('.editor-text-run')===document.activeElement&&this.active!==+field.dataset.block){
       this.active=+field.dataset.block;this.activeChild=null;
@@ -498,10 +568,15 @@ export class BlockEditor {
   }
   format(command){
     if(this.columnEditor){this.columnEditor.format(command);return;}
-    if(this.range&&this.owns(this.range.startContainer)){const s=getSelection();s.removeAllRanges();s.addRange(this.range);}
+    if(this.range&&this.owns(this.range.startContainer)){
+      const {startContainer,startOffset,endContainer,endOffset}=this.range;
+      const start=[startContainer,startOffset],end=[endContainer,endOffset];
+      getSelection().setBaseAndExtent(...(this.rangeBackward?end:start),...(this.rangeBackward?start:end));
+    }
     const s=getSelection();if(!s.rangeCount||!this.el.contains(s.anchorNode))return;
     const range=s.getRangeAt(0),parts=runSelection(range);
-    if(this.protectedSelection(range)||(parts&&parts.start!==parts.end))return;
+    if(this.protectedSelection(range))return;
+    if(parts&&parts.start!==parts.end){this.formatRun(range,command);return;}
     if(command==='code'){const range=s.getRangeAt(0);if(range.collapsed||this.fieldFor(range.startContainer)!==this.fieldFor(range.endContainer))return;const code=document.createElement('code');code.textContent=range.toString();range.deleteContents();range.insertNode(code);range.selectNodeContents(code);s.removeAllRanges();s.addRange(range);}else document.execCommand(command,false);
     const field=this.fieldFor(s.anchorNode);
     if(childIndex(field)!==null||field?.hasAttribute('data-run-field'))this.syncField(field);else this.syncDOM();
@@ -559,7 +634,7 @@ export class BlockEditor {
     if(!selection.rangeCount||selection.isCollapsed||!this.el.contains(selection.anchorNode)||!this.el.isConnected||this.protectedSelection(selection.getRangeAt(0))){this.hideToolbar();return;}
     const range=selection.getRangeAt(0);
     const first=runField(range.startContainer),last=runField(range.endContainer);
-    if(first&&last&&first!==last){this.hideToolbar();return;}
+    const multi=first&&last&&first!==last;
     const edge=range.cloneRange();
     edge.setStart(selection.focusNode,selection.focusOffset);edge.collapse(true);
     const rect=edge.getBoundingClientRect(),fallback=range.getBoundingClientRect();
@@ -579,24 +654,26 @@ export class BlockEditor {
         return `<button type="button" data-channel="${channel}" data-color="${color}"><span aria-hidden="true" data-cris-ink="${highlight?'none':color}" data-cris-highlight="${highlight?color:'none'}">A</span>${name}</button>`;
       }).join('');
       bar.innerHTML='<button type="button" data-format="bold" title="Negrito (Ctrl+B)"><b>B</b></button><button type="button" data-format="italic" title="Itálico (Ctrl+I)"><em>I</em></button><button type="button" data-format="strikeThrough" title="Tachado"><s>S</s></button><button type="button" data-format="code" title="Código">&lt;/&gt;</button><button type="button" data-link title="Link interno">'+icon('link')+'</button>'+
-        `<button type="button" data-open-colors aria-expanded="false" aria-controls="scriptColors">Cor</button><div id="scriptColors" class="script-color-menu" hidden><div role="group" aria-label="Cor do texto"><strong>Cor do texto</strong>${choices('crisInk',false)}</div><div role="group" aria-label="Destaque"><strong>Destaque</strong>${choices('crisHighlight',true)}</div></div>`;
+        `<button type="button" data-open-colors aria-expanded="false" aria-controls="scriptColors">Cor</button><div id="scriptColors" class="script-color-menu" hidden><div role="group" aria-label="Cor do texto"><strong>Cor do texto</strong>${choices('crisInk',false)}</div><div role="group" aria-label="Destaque"><strong>Destaque</strong>${choices('crisHighlight',true)}</div></div><span class="selection-status" role="status"></span>`;
       bar.onpointerdown=e=>e.preventDefault();
       bar.onclick=e=>{
         const button=e.target.closest('button');
         if(!button)return;
-        if(button.dataset.format)this.format(button.dataset.format);
-        if(button.hasAttribute('data-link'))this.options.onRequestLink();
+        if(button.dataset.format)bar.editor.format(button.dataset.format);
+        if(button.hasAttribute('data-link'))bar.editor.options.onRequestLink();
         if(button.hasAttribute('data-open-colors'))this.showColors(bar,bar.querySelector('.script-color-menu').hidden);
         if(button.dataset.channel){
-          this.applyColor(button.dataset.channel,button.dataset.color);
+          bar.editor.applyColor(button.dataset.channel,button.dataset.color);
           this.showColors(bar,false);
         }
       };
       bar.onkeydown=e=>{if(e.key==='Escape')this.showColors(bar,false);};
       document.body.append(bar);
     }
+    bar.editor=this;
+    for(const button of bar.querySelectorAll('[data-format="strikeThrough"],[data-format="code"],[data-link]'))button.hidden=!!multi;
     const colorButton=bar.querySelector('[data-open-colors]');
-    colorButton.hidden=!this.colorField(range);
+    colorButton.hidden=!multi&&!this.colorField(range);
     if(colorButton.hidden)this.showColors(bar,false);
     const width=bar.offsetWidth,height=bar.offsetHeight;
     bar.style.left=Math.max(8,Math.min(target.left,innerWidth-width-8))+'px';
@@ -627,7 +704,10 @@ export class BlockEditor {
     }
   }
   applyColor(channel,color){
-    const range=this.range,field=this.colorField(range);
+    const range=this.range;
+    const parts=runSelection(range);
+    if(parts&&parts.start!==parts.end){this.formatRun(range,channel,color);return;}
+    const field=this.colorField(range);
     if(!field)return;
     recolorRange(field,range,channel,color);
     const selection=getSelection();
@@ -704,7 +784,20 @@ export class BlockEditor {
         menu.remove();return;
       }
       if(type)mode==='add'?this.add(this.active+1,type):this.setType(type);if(button.dataset.move){const target=this.active+Number(button.dataset.move);if(target>=0&&target<this.blocks.length){[this.blocks[this.active],this.blocks[target]]=[this.blocks[target],this.blocks[this.active]];this.active=target;this.changed();this.render({index:target});}}if(button.hasAttribute('data-duplicate')){this.blocks.splice(this.active+1,0,structuredClone(this.blocks[this.active]));this.active++;this.changed();this.render({index:this.active});}if(button.hasAttribute('data-remove')){this.blocks.splice(this.active,1);if(!this.blocks.length&&!this.options.columnContext)this.blocks.push(newBlock());this.active=Math.max(0,this.active-1);this.changed();this.render({index:this.active});}menu.remove();};
-    menu.onkeydown=e=>{const buttons=[...(results??menu).querySelectorAll('button')];if(e.key==='Escape'){e.preventDefault();menu.remove();this.focus({index:this.active,child:this.activeChild});}if(['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();const i=buttons.indexOf(document.activeElement);buttons[(i+(e.key==='ArrowDown'?1:buttons.length-1)+buttons.length)%buttons.length]?.focus();}if(e.key==='Enter'&&e.target===search){e.preventDefault();buttons[0]?.click();}};
+    menu.onkeydown=e=>{
+      const buttons=[...menu.querySelectorAll('button:not(:disabled)')];
+      if(e.key==='Escape'){
+        e.preventDefault();menu.remove();
+        this.focus({index:this.active,child:this.activeChild});
+      }
+      if(buttons.length&&['ArrowDown','ArrowUp'].includes(e.key)){
+        e.preventDefault();
+        const current=buttons.indexOf(document.activeElement);
+        const next=current<0?(e.key==='ArrowDown'?0:buttons.length-1):current+(e.key==='ArrowDown'?1:-1);
+        buttons[(next+buttons.length)%buttons.length].focus();
+      }
+      if(e.key==='Enter'&&e.target===search){e.preventDefault();results.querySelector('button')?.click();}
+    };
     const close=event=>{if(!menu.contains(event.target)){menu.remove();document.removeEventListener('pointerdown',close);}};document.addEventListener('pointerdown',close,{signal:this.abort.signal});(search??menu.querySelector('[aria-pressed=true]')).focus();
   }
 }
