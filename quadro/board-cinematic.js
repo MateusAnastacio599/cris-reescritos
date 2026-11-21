@@ -12,7 +12,7 @@ export function mountBoardCinematic({userId,boardCampaignId,isMaster,archiveId,r
   const connect=()=>{
     if(channel)return;
     channel=new BroadcastChannel(CINEMATIC_CHANNEL);
-    receiver=new CinematicReceiver({scope,boardId:crypto.randomUUID(),frame:new CinematicFrame(frame,{mount:document.body}),ready,
+    receiver=new CinematicReceiver({scope,boardId:crypto.randomUUID(),frame:new CinematicFrame(frame,{mount:document.body,onMotion:reduced=>receiver?.motionChanged(reduced)}),ready,
       send:message=>channel?.postMessage(message)});
     channel.onmessage=event=>void receiver.handle(event.data);
     timer=setInterval(()=>receiver.expire(),5000);

@@ -11,11 +11,11 @@ export class CinematicLink{
   get running(){return !!(this.active||this.operation);}
   notify(message){
     this.message=message;
-    for(const update of this.subscribers)update({message,active:this.running});
+    for(const update of this.subscribers)update({message,active:this.running,name:this.active?.name,motionReduced:this.active?.motionReduced});
   }
   subscribe(update){
     this.subscribers.add(update);
-    update({message:this.message,active:this.running});
+    update({message:this.message,active:this.running,name:this.active?.name,motionReduced:this.active?.motionReduced});
     return ()=>this.subscribers.delete(update);
   }
   connect(){
@@ -35,6 +35,7 @@ export class CinematicLink{
         manual:'Apresentação encerrada.',
         expired:'Apresentação encerrada por perda de comunicação.',
       }[reply.reason]);
+      if(reply.type==='motion'){active.motionReduced=reply.motionReduced;this.notify(this.activeMessage());}
       if(reply.type==='alive')active.lastSeen=Date.now();
     };
   }
@@ -52,18 +53,24 @@ export class CinematicLink{
       catch(error){finish(error);}
     });
   }
-  send(active,type){
-    const {scope,senderId,boardId,sessionId,scene}=active;
-    this.channel?.postMessage(cinematicEnvelope(scope,{type,senderId,boardId,sessionId,scene,requestId:crypto.randomUUID(),sequence:++this.sequence}));
+  activeMessage(){
+    return `Apresentação “${this.active.name}” ativa no quadro deste navegador.`+(this.active.motionReduced
+      ?' Movimentos reduzidos no quadro. Use Permitir movimentos nesta ferramenta na janela do quadro para ativá-los.':'');
   }
-  async present(scope,scene,item,image){
+  send(active,type,fields={}){
+    const {scope,senderId,boardId,sessionId,scene}=active;
+    this.channel?.postMessage(cinematicEnvelope(scope,{...fields,type,senderId,boardId,sessionId,scene,requestId:crypto.randomUUID(),sequence:++this.sequence}));
+  }
+  async present(scope,scene,item,image,{replace=true}={}){
+    if(this.running&&!replace){this.notify('Apresentação atual mantida. A cue está configurada para não substituir.');return false;}
+    if(this.operation&&replace)this.stop('Substituindo apresentação anterior.');
     if(!validBoard(scope))throw Error('Entre como mestre e vincule o Director à campanha do quadro em Conta e nuvem.');
     if(this.operation)throw Error('Aguarde o quadro responder ou encerre a tentativa.');
     if(this.active&&(!sameBoard(this.active.scope,scope)||!sameCinematicScene(this.active.scene,scene)))this.stop('Apresentação anterior encerrada.');
     this.connect();
     clearTimeout(this.stopTimer);
     clearInterval(this.heartbeat);
-    const operation={scope,scene};
+    const operation={scope,scene,previous:this.active};
     this.operation=operation;
     this.notify('Procurando a janela do quadro…');
     try{
@@ -71,42 +78,48 @@ export class CinematicLink{
       const boardId=prior?.boardId??(await this.request(scope,{type:'discover'},reply=>reply.type==='ready',1800,
         'Quadro indisponível. Abra o quadro ao vivo da campanha e deixe a mesa pronta nesta conta e navegador.')).boardId;
       if(this.operation!==operation)return;
-      const active=this.active={scope,senderId:this.senderId,boardId,sessionId:crypto.randomUUID(),scene,lastSeen:Date.now()};
+      const active=this.active={scope,senderId:this.senderId,boardId,sessionId:crypto.randomUUID(),scene,name:item.name,fadeOut:item.fadeOut??.3,lastSeen:Date.now()};
       const reply=await this.request(scope,{type:'start',boardId,sessionId:active.sessionId,scene,item,image,sequence:++this.sequence},
         result=>result.type==='started'&&sameCinematicSession(active,result),6500,'O quadro não confirmou a abertura da imagem.');
       if(this.operation!==operation)return;
       if(!reply.ok)throw Error('O quadro não abriu a imagem. Confira o arquivo e se outra apresentação está ativa.');
       this.operation=null;
       active.started=true;
+      active.motionReduced=reply.motionReduced;
       active.lastSeen=Date.now();
       this.heartbeat=setInterval(()=>{
         if(Date.now()-active.lastSeen>CINEMATIC_LEASE){this.stop('O quadro deixou de responder. Abra-o novamente.');return;}
         this.send(active,'heartbeat');
       },4000);
-      this.notify('Apresentação ativa no quadro deste navegador.');
+      this.notify(this.activeMessage());
+      return true;
     }catch(error){
-      if(this.operation===operation)this.stop(error.message);
+      if(this.operation===operation){
+        if(operation.previous)this.send(operation.previous,'stop');
+        this.stop(error.message);
+      }
     }
   }
   reconcile(scope,scene){
     const current=this.operation??this.active;
     if(current&&(!sameBoard(scope,current.scope)||!sameCinematicScene(scene,current.scene)))this.stop('Apresentação encerrada ao sair da cena.');
   }
-  stop(message){
+  stop(message,{immediate=false}={}){
     if(!this.running)return;
     const active=this.active;
     if(!message&&active?.started){
-      if(active.stopping)return;
+      if(active.stopping&&!immediate)return;
+      clearTimeout(this.stopTimer);
       active.stopping=true;
       clearInterval(this.heartbeat);
-      this.send(active,'stop');
+      this.send(active,'stop',{immediate});
       this.notify('Encerrando apresentação…');
       this.stopTimer=setTimeout(()=>{
         if(this.active===active)this.reset('O quadro não confirmou o encerramento.');
-      },2500);
+      },(immediate?0:active.fadeOut*1000)+2500);
       return;
     }
-    if(active)this.send(active,'stop');
+    if(active)this.send(active,'stop',{immediate});
     this.reset(message??'Apresentação encerrada.');
   }
   reset(message){

@@ -1,3 +1,5 @@
+import {CinematicCues} from './cinematic-cues.js';
+import {cinematicImages} from './cinematic-media.js';
 import {openCinematic} from './cinematic-editor.js';
 import {CinematicLink} from './cinematic-link.js';
 import {mountScriptDisplay,scriptDisplayHTML} from './script-display.js';
@@ -33,12 +35,20 @@ const cinematicScope=()=>({
   userId:cloudUI?.account.profile?.is_operator?cloudUI.account.user?.id:null,
   boardCampaignId:cloudUI?.sync.workspace.binding?.campaignId,
 });
-const reconcileCinematic=()=>cinematic.reconcile(cinematicScope(),state.ui.view==='document'?locationForScene():null);
+let cinematicLocation;
+const cinematicCues=new CinematicCues({engine,link:cinematic,getScope:cinematicScope,
+  getLocation:()=>state.ui.view==='document'?locationForScene():null,getState:()=>state,images:cinematicImages,onError:message=>toast(message,true)});
+const reconcileCinematic=()=>{
+  const location=state.ui.view==='document'?locationForScene():null;
+  const key=JSON.stringify([cinematicScope(),location]);
+  if(cinematicLocation!==key){cinematicCues.invalidate();cinematicLocation=key;}
+  cinematic.reconcile(cinematicScope(),location);
+};
 const openSceneCinematic=()=>{
   const target=scene(),location=locationForScene();
   openCinematic({scene:target,save:()=>scene()===target&&persist(),
-    present:(item,image)=>cinematic.present(cinematicScope(),location,item,image),
-    stop:()=>cinematic.stop(),subscribe:listener=>cinematic.subscribe(listener),
+    present:(item,image)=>{cinematicCues.command++;return cinematic.present(cinematicScope(),location,item,image);},
+    stop:()=>{cinematicCues.command++;cinematic.stop();},subscribe:listener=>cinematic.subscribe(listener),
   });
 };
 cinematic.subscribe(({active,message})=>{
@@ -201,7 +211,7 @@ function renderDocument(){
   setupDirectorResize();
   $$('[data-scene]').forEach(b=>b.onclick=()=>navigate({sceneId:b.dataset.scene}));
   $('#openBoardClues').onpointerdown=()=>editor?.captureSelection();$('#newScene').onclick=()=>createScene();$('#toggleEdit').onclick=()=>{editing=!editing;persist();renderDocument();updateAudioUI();};
-  $('#stopCinematic').onclick=()=>cinematic.stop();
+  $('#stopCinematic').onclick=()=>{cinematicCues.command++;cinematic.stop();};
   const tools=$('.script-tools');
   tools.onkeydown=e=>{if(e.key==='Escape'&&tools.open){e.stopPropagation();tools.open=false;tools.querySelector('summary').focus();}};
   for(const [id,action] of [['openSceneCinematic',openSceneCinematic],['openBoardClues',()=>pickBoardClue()],['pageOptions',pageOptions],['markdownSource',openMarkdown]]){
