@@ -1,4 +1,4 @@
-.cinematic-frame{position:relative;overflow:hidden;isolation:isolate;background:#100e14;color:#e8dfef;opacity:0;transition:opacity .22s ease-out}
+.cinematic-frame{position:relative;overflow:hidden;isolation:isolate;background:#100e14;color:#e8dfef;opacity:0;transition:opacity var(--cinematic-fade,300ms) ease-out}
 .cinematic-frame.cinematic-visible{opacity:1}
 .cinematic-frame[hidden]{display:none}
 .cinematic-frame>img{width:100%;height:100%;object-fit:cover;display:block}
@@ -9,7 +9,13 @@
 .cinematic-actions{display:flex;flex-wrap:wrap;gap:6px}
 .cinematic-status{min-height:1.4em;margin:9px 0;color:var(--muted);font:12px/1.5 var(--sans)}
 .cinematic-frame.cinematic-board-layer{position:fixed;inset:0;z-index:2147483646}
-.cinematic-board-layer:not(.cinematic-visible){pointer-events:none}
-@media(prefers-reduced-motion:reduce){.cinematic-frame{transition:none}.cinematic-frame>img{transform:none!important}}
+.cinematic-atmosphere{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse,transparent 40%,#100b17 100%)}
+.cinematic-atmosphere.cinematic-shade{background:#100b17}
+@media(prefers-reduced-motion:reduce){.cinematic-frame{transition:none}.cinematic-frame>img{transform:none!important}.cinematic-atmosphere{display:none}}
 #stopCinematic[hidden]{display:none}
 .cinematic-sr-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+.cinematic-form-grid .field[hidden]{display:none}
+.cinematic-form-grid:has(.field[hidden]){grid-template-columns:1fr}
+@media(max-width:480px){.cinematic-form-grid:has([name=ending]){grid-template-columns:1fr}}
+.cinematic-draft{color:var(--accent-light,#d2b5ef)}

@@ -7,7 +7,7 @@ import {randomUUID} from 'node:crypto';
 if(!process.argv[2])throw Error('Informe um diretório novo para a demonstração.');
 const destination=resolve(process.argv[2]),repo=resolve(import.meta.dirname,'../../..');
 mkdirSync(destination);
-const web=join(destination,'public'),scope={userId:'cinematic-demo-master',boardCampaignId:'cinematic-demo-campaign'};
+const web=join(destination,'public'),scope={userId:'cinematic-demo-master',boardCampaignId:'cinematic-demo-'+randomUUID()};
 const storageKey='cris-cinematic-demo-'+randomUUID(),encodedKey=JSON.stringify(storageKey);
 mkdirSync(web);
 for(const directory of ['quadro','campaign-director/dist']){
@@ -57,12 +57,11 @@ boardHTML=boardHTML.slice(0,source)+`
           capture.remove();
         };
         const watch=new MutationObserver(()=>{
-          const frame=document.querySelector('.cinematic-board-layer');
-          if(!frame||!window.CRIS_BOARD_API||document.body.classList.contains('cris-loading'))return;
+          if(!saved||!window.CRIS_BOARD_API||document.body.classList.contains('cris-loading'))return;
           const now=JSON.stringify(window.CRIS_BOARD_API.snapshot());
           if(saved)document.body.dataset.demoSnapshot=saved===now?'igual':'alterado';
         });
-        watch.observe(document.body,{attributes:true,attributeFilter:['hidden','class'],subtree:true});
+        watch.observe(document.body,{childList:true,attributes:true,attributeFilter:['hidden','class'],subtree:true});
 `+boardHTML.slice(end);
 boardHTML=boardHTML.replace("        import {mountBoardSession} from './board-session.js?v=337';\n",'')
   .replace('await mountBoardSession(identity);','');

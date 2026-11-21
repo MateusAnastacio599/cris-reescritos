@@ -29,7 +29,12 @@ export class CinematicLink{
       if(request&&validCinematicMessage(reply,request.scope)&&request.matches(reply))request.finish(null,reply);
       const active=this.active;
       if(!active||!validCinematicMessage(reply,active.scope)||!sameCinematicSession(active,reply))return;
-      if(reply.type==='closed')this.stop('A janela do quadro foi fechada ou recarregada.');
+      if(reply.type==='closed')this.reset('A janela do quadro foi fechada ou recarregada.');
+      if(reply.type==='ended')this.reset({
+        automatic:'Apresentação encerrada automaticamente.',
+        manual:'Apresentação encerrada.',
+        expired:'Apresentação encerrada por perda de comunicação.',
+      }[reply.reason]);
       if(reply.type==='alive')active.lastSeen=Date.now();
     };
   }
@@ -54,8 +59,10 @@ export class CinematicLink{
   async present(scope,scene,item,image){
     if(!validBoard(scope))throw Error('Entre como mestre e vincule o Director à campanha do quadro em Conta e nuvem.');
     if(this.operation)throw Error('Aguarde o quadro responder ou encerre a tentativa.');
-    if(this.active&&(!sameBoard(this.active.scope,scope)||!sameCinematicScene(this.active.scene,scene)))this.stop();
+    if(this.active&&(!sameBoard(this.active.scope,scope)||!sameCinematicScene(this.active.scene,scene)))this.stop('Apresentação anterior encerrada.');
     this.connect();
+    clearTimeout(this.stopTimer);
+    clearInterval(this.heartbeat);
     const operation={scope,scene};
     this.operation=operation;
     this.notify('Procurando a janela do quadro…');
@@ -64,14 +71,14 @@ export class CinematicLink{
       const boardId=prior?.boardId??(await this.request(scope,{type:'discover'},reply=>reply.type==='ready',1800,
         'Quadro indisponível. Abra o quadro ao vivo da campanha e deixe a mesa pronta nesta conta e navegador.')).boardId;
       if(this.operation!==operation)return;
-      const active=this.active={scope,senderId:this.senderId,boardId,sessionId:prior?.sessionId??crypto.randomUUID(),scene,lastSeen:Date.now()};
-      const reply=await this.request(scope,{type:prior?'update':'start',boardId,sessionId:active.sessionId,scene,item,image,sequence:++this.sequence},
+      const active=this.active={scope,senderId:this.senderId,boardId,sessionId:crypto.randomUUID(),scene,lastSeen:Date.now()};
+      const reply=await this.request(scope,{type:'start',boardId,sessionId:active.sessionId,scene,item,image,sequence:++this.sequence},
         result=>result.type==='started'&&sameCinematicSession(active,result),6500,'O quadro não confirmou a abertura da imagem.');
       if(this.operation!==operation)return;
       if(!reply.ok)throw Error('O quadro não abriu a imagem. Confira o arquivo e se outra apresentação está ativa.');
       this.operation=null;
+      active.started=true;
       active.lastSeen=Date.now();
-      clearInterval(this.heartbeat);
       this.heartbeat=setInterval(()=>{
         if(Date.now()-active.lastSeen>CINEMATIC_LEASE){this.stop('O quadro deixou de responder. Abra-o novamente.');return;}
         this.send(active,'heartbeat');
@@ -83,19 +90,35 @@ export class CinematicLink{
   }
   reconcile(scope,scene){
     const current=this.operation??this.active;
-    if(current&&(!sameBoard(scope,current.scope)||!sameCinematicScene(scene,current.scene)))this.stop();
+    if(current&&(!sameBoard(scope,current.scope)||!sameCinematicScene(scene,current.scene)))this.stop('Apresentação encerrada ao sair da cena.');
   }
-  stop(message='Apresentação encerrada.'){
+  stop(message){
     if(!this.running)return;
+    const active=this.active;
+    if(!message&&active?.started){
+      if(active.stopping)return;
+      active.stopping=true;
+      clearInterval(this.heartbeat);
+      this.send(active,'stop');
+      this.notify('Encerrando apresentação…');
+      this.stopTimer=setTimeout(()=>{
+        if(this.active===active)this.reset('O quadro não confirmou o encerramento.');
+      },2500);
+      return;
+    }
+    if(active)this.send(active,'stop');
+    this.reset(message??'Apresentação encerrada.');
+  }
+  reset(message){
     this.operation=null;
-    if(this.active)this.send(this.active,'stop');
     this.active=null;
+    clearTimeout(this.stopTimer);
     clearInterval(this.heartbeat);
     for(const request of this.requests.values())request.finish(Error('Apresentação encerrada.'));
     this.notify(message);
   }
   close(){
-    this.stop();
+    this.stop('Apresentação encerrada.');
     this.channel?.close();
     this.channel=null;
   }
