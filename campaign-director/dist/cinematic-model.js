@@ -3,12 +3,14 @@ export const CINEMATIC_MAX_ITEMS=12;
 export const CINEMATIC_MAX_BYTES=12*1024*1024;
 export const CINEMATIC_MOTIONS=Object.freeze({
   static:'Estático', zoomIn:'Aproximação', zoomOut:'Afastamento', pan:'Panorâmica',
-  living:'Ambiente vivo', breath:'Respiração', reveal:'Revelação', tension:'Tensão',
+  living:'Ambiente vivo', breath:'Respiração', reveal:'Revelação', tension:'Tensão', memory:'Memória', apparition:'Aparição',
 });
-export const CINEMATIC_LIMITS=Object.freeze({seconds:[3,60],intensity:[0,30],hold:[0,20]});
-export const CINEMATIC_DEFAULTS=Object.freeze({motion:'living',seconds:12,intensity:22,ending:'auto',hold:2});
-export const canLoopCinematic=motion=>['living','breath','tension'].includes(motion);
+export const CINEMATIC_LIMITS=Object.freeze({seconds:[3,60],intensity:[0,30],hold:[0,20],fadeIn:[0,5],fadeOut:[0,5]});
+export const CINEMATIC_DEFAULTS=Object.freeze({motion:'living',seconds:12,intensity:22,ending:'auto',hold:2,fadeIn:.3,fadeOut:.3});
+export const canLoopCinematic=motion=>['living','breath','tension','memory'].includes(motion);
 export const cinematicEnding=item=>({ending:item.ending??'auto',hold:item.hold??CINEMATIC_DEFAULTS.hold});
+export const cinematicFades=item=>({fadeIn:item.fadeIn??CINEMATIC_DEFAULTS.fadeIn,fadeOut:item.fadeOut??CINEMATIC_DEFAULTS.fadeOut});
+export const cinematicTotal=item=>item.seconds+cinematicEnding(item).hold+cinematicFades(item).fadeOut;
 export const CINEMATIC_TYPES=Object.freeze(['image/png','image/jpeg','image/webp']);
 export const isCinematicImageId=value=>typeof value==='string'&&/^image-[a-f0-9]{64}$/.test(value);
 export const isCinematicKey=value=>typeof value==='string'&&/^[\w-]{1,128}$/.test(value);
@@ -16,12 +18,13 @@ const integerBetween=(value,[min,max])=>Number.isInteger(value)&&value>=min&&val
 export const cinematicItems=scene=>scene.cinematic?.items??[];
 
 export function isCinematic(item){
-  return !!item&&typeof item==='object'&&Object.keys(item).every(key=>['id','imageId','name','motion','seconds','intensity','ending','hold'].includes(key))&&
+  return !!item&&typeof item==='object'&&Object.keys(item).every(key=>['id','imageId','name','motion','seconds','intensity','ending','hold','fadeIn','fadeOut'].includes(key))&&
     isCinematicKey(item.id)&&isCinematicImageId(item.imageId)&&
     typeof item.name==='string'&&!!item.name.trim()&&item.name.length<=100&&
     typeof item.motion==='string'&&Object.hasOwn(CINEMATIC_MOTIONS,item.motion)&&integerBetween(item.seconds,CINEMATIC_LIMITS.seconds)&&integerBetween(item.intensity,CINEMATIC_LIMITS.intensity)&&
     (item.ending===undefined||item.ending==='auto'||item.ending==='loop'&&canLoopCinematic(item.motion))&&
-    (item.hold===undefined||integerBetween(item.hold,CINEMATIC_LIMITS.hold));
+    (item.hold===undefined||integerBetween(item.hold,CINEMATIC_LIMITS.hold))&&
+    ['fadeIn','fadeOut'].every(key=>item[key]===undefined||Number.isFinite(item[key])&&item[key]>=0&&item[key]<=5);
 }
 export function validateSceneCinematics(value){
   if(value===undefined)return;

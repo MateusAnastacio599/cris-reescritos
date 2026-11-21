@@ -1,13 +1,14 @@
-import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,checkCinematicImage,withCinematic} from './cinematic-model.js';
+import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,cinematicFades,cinematicTotal,checkCinematicImage,withCinematic} from './cinematic-model.js';
 import {cinematicImages,storeCinematicImage} from './cinematic-media.js';
+import {mountMotionNotice} from './cinematic-motion.js';
 import {CinematicFrame} from './cinematic-frame.js';
 import {$,esc,field,openForm,option} from './ui.js';
 
 export function openCinematic({scene,save,present,stop,subscribe}){
   const dialog=$('#appDialog'),initial=cinematicItems(scene)[0];
-  let root,frame,unsubscribe,closed=false,selectionVersion=0,presenting=false;
+  let root,frame,unsubscribe,removeNotice,closed=false,selectionVersion=0,presenting=false;
   const item=()=>cinematicItems(scene).find(entry=>entry.id===$('[name=selected]',root).value);
-  const status=message=>{if(!closed)$('[role=status]',root).textContent=message;};
+  const status=message=>{if(!closed)$('.cinematic-status',root).textContent=message;};
   const imageFor=async()=>{
     const file=$('[name=image]',root).files[0];
     const image=file??(item()&&await cinematicImages.get(item().imageId));
@@ -19,12 +20,13 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     name:$('[name=title]',root).value.trim(),motion:$('[name=motion]',root).value,
     seconds:Number($('[name=seconds]',root).value),intensity:Number($('[name=intensity]',root).value),
     ending:$('[name=ending]',root).value,hold:Number($('[name=hold]',root).value),
+    fadeIn:Number($('[name=fadeIn]',root).value),fadeOut:Number($('[name=fadeOut]',root).value),
   });
   const dirty=()=>{
     const saved=item();
     if(!saved||$('[name=image]',root).files.length)return true;
-    const draft=values(),settings={...saved,...cinematicEnding(saved)};
-    return ['name','motion','seconds','intensity','ending','hold'].some(key=>draft[key]!==settings[key]);
+    const draft=values(),settings={...saved,...cinematicEnding(saved),...cinematicFades(saved)};
+    return ['name','motion','seconds','intensity','ending','hold','fadeIn','fadeOut'].some(key=>draft[key]!==settings[key]);
   };
   const syncDraft=()=>{
     const motion=$('[name=motion]',root).value,ending=$('[name=ending]',root);
@@ -34,6 +36,10 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     const hold=$('[name=hold]',root);
     hold.disabled=ending.value==='loop';
     hold.closest('label').hidden=hold.disabled;
+    const draft=values();
+    $('[data-duration]',root).textContent=ending.value==='loop'
+      ?'Repete até encerrar. A saída respeita o fade configurado.'
+      :`Duração total: ${cinematicTotal(draft).toLocaleString('pt-BR')} s. A entrada acontece durante o movimento, seguida da permanência e da saída.`;
     const changed=dirty();
     $('[data-present]',root).disabled=changed;
     $('[data-cinematic-draft]',root).textContent=changed
@@ -44,8 +50,8 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     selectionVersion++;
     const selected=item();
     $('[name=title]',root).value=selected?.name??'';
-    const config=selected?{...selected,...cinematicEnding(selected)}:CINEMATIC_DEFAULTS;
-    for(const key of ['motion','seconds','intensity','ending','hold'])$('[name='+key+']',root).value=config[key];
+    const config=selected?{...selected,...cinematicEnding(selected),...cinematicFades(selected)}:CINEMATIC_DEFAULTS;
+    for(const key of ['motion','seconds','intensity','ending','hold','fadeIn','fadeOut'])$('[name='+key+']',root).value=config[key];
     $('[name=image]',root).value='';
     syncDraft();
     frame.clear({immediate:true});
@@ -64,11 +70,14 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       ${field('Nome','title','','required maxlength="100"')}
       ${field('Imagem (PNG, JPEG ou WebP, até 12 MB)','image','',`type="file" accept="${CINEMATIC_TYPES.join(',')}"`)}
       <label class="field"><span>Estilo cinematográfico</span><select name="motion">${Object.entries(CINEMATIC_MOTIONS).map(([id,label])=>option(id,label)).join('')}</select></label>
-      <div class="cinematic-form-grid">${field('Duração (segundos)','seconds','12','type="number" min="3" max="60" required')}${field('Intensidade (0–30%)','intensity','12','type="number" min="0" max="30" required')}</div>
+      <div class="cinematic-form-grid">${field('Duração do movimento (s)','seconds','12','type="number" min="3" max="60" required')}${field('Intensidade (0–30%)','intensity','12','type="number" min="0" max="30" required')}</div>
       <div class="cinematic-form-grid">
         <label class="field"><span>Ao terminar</span><select name="ending"><option value="auto">Encerrar automaticamente</option><option value="loop">Repetir até encerrar</option></select></label>
         ${field('Permanência (segundos)','hold','2','type="number" min="0" max="20" required')}
       </div>
+      <div class="cinematic-form-grid">${field('Fade de entrada (s)','fadeIn','.3','type="number" min="0" max="5" step="0.1" required')}${field('Fade de saída (s)','fadeOut','.3','type="number" min="0" max="5" step="0.1" required')}</div>
+      <p class="form-hint" data-duration></p>
+      <div class="cinematic-motion-notice" data-motion-notice role="status" hidden></div>
       <p class="form-hint">A prévia testa o rascunho. Salvar guarda os ajustes. Apresentar exibe a versão salva.</p>
       <p class="form-hint cinematic-draft" data-cinematic-draft aria-live="polite"></p>
       <div class="cinematic-actions"><button class="btn outline" type="button" data-preview>Prévia</button>
@@ -97,10 +106,10 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       return false;
     },
     onReady(body){
-      root=body;frame=new CinematicFrame($('.cinematic-frame',root));
+      root=body;removeNotice=mountMotionNotice($('[data-motion-notice]',root));frame=new CinematicFrame($('.cinematic-frame',root));
       $('[name=selected]',root).onchange=fill;
       const refresh=event=>{
-        if(event.target.name==='selected')return;
+        if(closed||!frame.element.isConnected||event.target.name==='selected')return;
         selectionVersion++;
         syncDraft();
       };
@@ -108,7 +117,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       root.addEventListener('change',refresh);
       $('[data-preview]',root).onclick=()=>run(async current=>{
         const draft=values();
-        if(['seconds','intensity','hold'].some(key=>!$('[name='+key+']',root).reportValidity()))return;
+        if(['seconds','intensity','hold','fadeIn','fadeOut'].some(key=>!$('[name='+key+']',root).reportValidity()))return;
         const image=await imageFor();
         if(!current())return;
         const shown=await frame.show(image,{...draft,name:draft.name||'Prévia'},()=>{
@@ -125,9 +134,14 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       $('[data-stop]',root).onclick=()=>stop();
       fill();
       unsubscribe=subscribe(({message,active})=>{presenting=active;if(message)status(message);$('[data-stop]',root).disabled=!active;});
-      dialog.addEventListener('close',()=>{
-        closed=true;selectionVersion++;unsubscribe();frame.clear({immediate:true});
-      },{once:true});
+      const cleanup=()=>{
+        if(dialog.open&&frame.element.isConnected)return;
+        closed=true;selectionVersion++;
+        root.removeEventListener('input',refresh);root.removeEventListener('change',refresh);
+        dialog.removeEventListener('close',cleanup);
+        unsubscribe();removeNotice();frame.clear({immediate:true});
+      };
+      dialog.addEventListener('close',cleanup);
     },
   });
 }

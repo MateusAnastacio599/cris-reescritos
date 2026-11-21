@@ -8,20 +8,27 @@ if(!process.argv[2])throw Error('Informe um diretório novo para a demonstraçã
 const destination=resolve(process.argv[2]),repo=resolve(import.meta.dirname,'../../..');
 mkdirSync(destination);
 const web=join(destination,'public'),scope={userId:'cinematic-demo-master',boardCampaignId:'cinematic-demo-'+randomUUID()};
-const storageKey='cris-cinematic-demo-'+randomUUID(),encodedKey=JSON.stringify(storageKey);
+const storageKey='cris-cinematic-demo-'+randomUUID(),encodedKey='('+JSON.stringify(storageKey)+"+(new URLSearchParams(location.search).get('demoSession')||''))";
 mkdirSync(web);
 for(const directory of ['quadro','campaign-director/dist']){
   cpSync(join(repo,directory),join(web,directory),{recursive:true});
 }
 for(const file of readdirSync(repo).filter(name=>name.endsWith('.js')))cpSync(join(repo,file),join(web,file));
 const director=join(web,'campaign-director/dist/app.js'),board=join(web,'quadro/index.html');
-let app=readFileSync(director,'utf8');
+const simulateMotion=`if(location.search.includes('cinematicReduced')){
+  sessionStorage.removeItem('cris-cinematic-motion');
+  const original=window.matchMedia.bind(window);
+  const media=Object.assign(new EventTarget(),{matches:true});
+  window.matchMedia=query=>query.includes('prefers-reduced-motion')?media:original(query);
+}`;
+let app=readFileSync(director,'utf8').replace('let state,recoveryError;',simulateMotion+'\nlet state,recoveryError;');
 app=app.replace('state=loadState();',`state=JSON.parse(localStorage.getItem(${encodedKey}))??initialState();`)
   .replaceAll('saveState(state)',`localStorage.setItem(${encodedKey},JSON.stringify(state))`);
 const cloud=app.indexOf('cloudUI=new CloudUI(');
 if(cloud<0)throw Error('Não foi possível identificar a inicialização do Director.');
 app=app.slice(0,cloud)+`
 const demoScope=${JSON.stringify(scope)};
+if(new URLSearchParams(location.search).get('demoSession'))demoScope.boardCampaignId='cinematic-demo-'+new URLSearchParams(location.search).get('demoSession');
 const account=Object.assign(new EventTarget(),{user:{id:demoScope.userId},profile:{is_operator:true}});
 const sync=Object.assign(new EventTarget(),{workspace:{binding:{campaignId:demoScope.boardCampaignId}},changed(){}});
 cloudUI={account,sync,renderStatus(){}};
@@ -37,7 +44,9 @@ const source=boardHTML.indexOf("        import {CRISBridge}");
 const end=boardHTML.indexOf('\n',source);
 if(source<0)throw Error('Não foi possível identificar a inicialização do quadro.');
 boardHTML=boardHTML.slice(0,source)+`
+        ${simulateMotion}
         const demoScope=${JSON.stringify(scope)};
+if(new URLSearchParams(location.search).get('demoSession'))demoScope.boardCampaignId='cinematic-demo-'+new URLSearchParams(location.search).get('demoSession');
         const identity={userId:demoScope.userId,name:'Mestre · Demonstração',isMaster:true};
         const note=(id,text,x,y,rot)=>({id,type:'note',style:'postit',text,font:'Hand',size:32,color:'#1d2a55',x,y,w:220,h:172,rot,scale:1,z:1,seed:1,parent:null});
         const snapshot={state:{v:3,cam:{x:-42,y:-54,z:.79},
@@ -74,3 +83,8 @@ writeFileSync(join(web,'index.html'),`<!doctype html><html lang="pt-BR"><meta ch
 mkdirSync(join(destination,'.openai'));
 writeFileSync(join(destination,'.openai/hosting.json'),'{"static":{"directory":"public"}}\n');
 console.log(`Demonstração pronta em ${web}`);
+
+cpSync(new URL('./cinematic-qa.js',import.meta.url),join(web,'cinematic-qa.js'));
+writeFileSync(join(web,'qa.html'),`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>CINEMATIC-01.2 · Validação local</title>
+<style>body{margin:12px;background:#111017;color:#eee;font:14px system-ui}nav{display:flex;gap:14px;align-items:center}a{color:#e0c4ff}main{display:flex;gap:10px}iframe{flex:none;width:950px;height:1000px;border:1px solid #715e82}main{zoom:.67}body.mobile main{zoom:1}body.mobile iframe{width:390px;height:750px}pre{white-space:pre-wrap;max-height:125px;overflow:auto}button{padding:8px}</style>
+<nav><button id="run">Validar Quadro vivo e cues</button><button id="show" hidden>Demonstrar Respiração</button><button id="recover" hidden>Validar recarga e quadro indisponível</button><a href="qa.html">Desktop</a><a href="?mobile">390 px</a><a href="?reduced">Movimento reduzido</a></nav><pre id="result"></pre><main><iframe id="director" title="Director"></iframe><iframe id="board" title="Quadro"></iframe></main><script type="module" src="cinematic-qa.js"></script>`);

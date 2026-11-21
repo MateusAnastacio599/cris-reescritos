@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {CinematicFrame,cinematicFrames,CINEMATIC_FADE_MS} from '../dist/cinematic-frame.js';
 import {canLoopCinematic,cinematicEnding,isCinematic,validateSceneCinematics} from '../dist/cinematic-model.js';
 import {CinematicReceiver,CINEMATIC_CHANNEL,cinematicEnvelope} from '../dist/cinematic-protocol.js';
+import {CinematicMotionPreference} from '../dist/cinematic-motion.js';
 import {CinematicLink} from '../dist/cinematic-link.js';
 
 const image=new Blob([Uint8Array.of(137,80,78,71,13,10,26,10)],{type:'image/png'});
@@ -36,7 +37,7 @@ test('cyclic presets close on the same pose, and reveal zooms in only once',()=>
 function fakeLayer(){
   const calls=[],classes=new Set();
   const document={createElement:tag=>({tag,naturalWidth:100,naturalHeight:100,
-    setAttribute(){},decode:async()=>{},animate(frames,timing){
+    ownerDocument:document,replaceChildren(){},append(){},setAttribute(){},decode:async()=>{},animate(frames,timing){
       const animation={frames,timing,cancelled:false,cancel(){this.cancelled=true;}};
       calls.push(animation);return animation;
     }})};
@@ -44,7 +45,7 @@ function fakeLayer(){
     classList:{add:value=>classes.add(value),remove:value=>classes.delete(value),contains:value=>classes.has(value)},
     getBoundingClientRect(){},replaceChildren(...nodes){this.children=nodes;},append(node){this.children.push(node);},
     remove(){this.isConnected=false;}};
-  const frame=new CinematicFrame(layer,{mount:{append(node){node.isConnected=true;}}});
+  const frame=new CinematicFrame(layer,{motion:new CinematicMotionPreference({media:globalThis.matchMedia(),storage:null}),mount:{append(node){node.isConnected=true;}}});
   return {frame,layer,calls};
 }
 
@@ -60,6 +61,8 @@ test('reduced motion holds a static image for duration plus hold and still remov
   t.mock.timers.tick(3999);
   assert.equal(layer.isConnected,true);
   t.mock.timers.tick(1);
+  assert.equal(layer.isConnected,true);
+  t.mock.timers.tick(CINEMATIC_FADE_MS+30);
   await Promise.resolve();
   assert.equal(layer.isConnected,false);
   assert.equal(ended,1);
@@ -127,4 +130,40 @@ test('the active playback alone can end the Director session; manual stop waits 
     await until(()=>!link.running);
     assert.match(link.message,/encerrada/);
   }finally{link.close();receiver.close();channel.close();}
+});
+
+test('failed replacement also stops the earlier looping image',async t=>{
+  // Node's channel groups retain closed ports briefly. Isolate this case.
+  const NativeChannel=globalThis.BroadcastChannel;
+  globalThis.BroadcastChannel=class extends NativeChannel{constructor(name){super(name+'-replacement');}};
+  t.after(()=>{globalThis.BroadcastChannel=NativeChannel;});
+  const channel=new BroadcastChannel(CINEMATIC_CHANNEL),link=new CinematicLink(),shown=[];
+  let ready=true,clears=0;
+  const receiver=new CinematicReceiver({scope,boardId:'replace-board',ready:()=>ready,
+    frame:{show:async()=>{shown.push(true);return true;},clear:()=>{clears++;return true;}},send:message=>channel.postMessage(message)});
+  channel.onmessage=event=>void receiver.handle(event.data);
+  try{
+    assert.equal(await link.present(scope,scene,legacy,image),true,link.message);
+    ready=false;
+    await link.present(scope,scene,legacy,image);
+    for(let i=0;i<30&&receiver.active;i++)await new Promise(resolve=>setTimeout(resolve,5));
+    assert.equal(link.running,false);
+    assert.equal(receiver.active,null);
+    assert.equal(shown.length,1);
+    assert.ok(clears>0);
+  }finally{link.close();receiver.close();channel.close();}
+});
+
+test('an immediate stop can supersede a fade already in progress and acknowledges only once',async()=>{
+  const replies=[],active={senderId:'director',boardId:'board',sessionId:'session',scene,requestId:'request',started:true};
+  let finishFade;
+  const receiver=new CinematicReceiver({scope,boardId:'board',frame:{
+    clear:({immediate})=>{if(immediate){finishFade(false);return true;}return new Promise(resolve=>{finishFade=resolve;});},
+  },send:reply=>replies.push(reply)});
+  receiver.active=active;
+  const fading=receiver.finish(active,'manual');
+  await receiver.handle(cinematicEnvelope(scope,{...active,type:'stop',sequence:2,immediate:true}));
+  await fading;
+  assert.equal(replies.filter(reply=>reply.type==='ended').length,1);
+  assert.equal(receiver.ending,null);
 });

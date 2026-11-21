@@ -137,6 +137,7 @@ export class AudioEngine extends EventTarget {
   }
   fireCue(cue) {
     if(!cue)return;this.pendingCue=cue.name;
+    const context={};this.emit('cue-context',{cue,context});
     for(const action of planCueActions(cue.actions)){const execute=()=>{
       if(action.assetId&&this.removedAssets.has(action.assetId)&&!action.playlistId)return;
       if(action.type==='play')this.oneShot(this.asset(action.assetId),action.volume??.8,{fadeIn:action.fadeIn,fadeOut:action.fadeOut}).catch(e=>this.error(e.message));
@@ -149,6 +150,7 @@ export class AudioEngine extends EventTarget {
       if(action.type==='ambience-stop')this.ambiences.stop(action.duration);
       if(action.type==='mix')this.fadeMix(action.group||'master',action.to,action.duration??2);
       if(['board-reveal','board-hide'].includes(action.type))this.emit('board-action',{itemId:action.itemId,campaignId:action.boardCampaignId,action:action.type==='board-hide'?'hide':'reveal'});
+      if(['cinematic-start','cinematic-stop'].includes(action.type))this.emit('cinematic-action',{action,context});
       if(action.type==='message')this.emit('message',{message:action.message||cue.name});
       if(action.type==='navigate')this.emit('navigate',{pageId:action.pageId,sceneId:action.sceneId||null});
       this.emit();

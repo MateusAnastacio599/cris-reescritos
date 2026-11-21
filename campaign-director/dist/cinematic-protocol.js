@@ -18,9 +18,11 @@ export function validCinematicMessage(message,scope,now=Date.now()){
   if(message.type==='ready')return true;
   if(!isCinematicKey(message.sessionId)||!validScene(message.scene))return false;
   if(message.type==='ended')return ['automatic','manual','expired'].includes(message.reason);
-  if(['started','closed','alive'].includes(message.type))return message.type!=='started'||typeof message.ok==='boolean';
+  if(message.type==='motion')return typeof message.motionReduced==='boolean';
+  if(['started','closed','alive'].includes(message.type))return (message.motionReduced===undefined||typeof message.motionReduced==='boolean')&&
+    (message.type!=='started'||typeof message.ok==='boolean');
   if(!Number.isSafeInteger(message.sequence)||message.sequence<1)return false;
-  if(['stop','heartbeat'].includes(message.type))return true;
+  if(['stop','heartbeat'].includes(message.type))return message.immediate===undefined||typeof message.immediate==='boolean';
   return ['start','update'].includes(message.type)&&isCinematic(message.item)&&isCinematicBlob(message.image);
 }
 
@@ -51,7 +53,15 @@ export class CinematicReceiver{
     if(message.sequence<=(this.watermarks.get(message.senderId)?.sequence??0))return;
     this.watermarks.set(message.senderId,{at:now,sequence:message.sequence});
     const matches=sameCinematicSession(this.active,message);
-    if(message.type==='stop'){if(matches)await this.finish(this.active,'manual');return;}
+    if(message.type==='stop'){
+      if(matches)await this.finish(this.active,'manual',message.immediate===true);
+      else if(message.immediate&&sameCinematicSession(this.ending,message)){
+        const ending=this.ending;this.ending=null;
+        await this.frame.clear({immediate:true});
+        this.reply(ending,{type:'ended',reason:'manual'});
+      }
+      return;
+    }
     if(message.type==='heartbeat'){
       if(matches){this.active.expires=now+CINEMATIC_LEASE;this.reply(message,{type:'alive'});}
       return;
@@ -74,7 +84,7 @@ export class CinematicReceiver{
       });
       if(this.active===active&&shown){
         active.started=true;
-        this.reply(active,{type:'started',ok:true});
+        this.reply(active,{type:'started',ok:true,motionReduced:!!this.frame.motionReduced});
       }
     }catch{
       if(this.active===active){
@@ -83,13 +93,16 @@ export class CinematicReceiver{
       }
     }
   }
-  async finish(active,reason){
+  async finish(active,reason,immediate=false){
     this.active=null;
     this.ending=active;
-    const removed=await this.frame.clear();
+    const removed=await this.frame.clear({immediate});
     if(this.ending!==active)return;
     this.ending=null;
     if(removed!==false&&active.started)this.reply(active,{type:'ended',reason});
+  }
+  motionChanged(reduced){
+    if(this.active?.started)this.reply(this.active,{type:'motion',motionReduced:reduced});
   }
   expire(){
     if(this.active&&this.now()>=this.active.expires)void this.finish(this.active,'expired');
