@@ -63,6 +63,9 @@ test('complete backup transfers image bytes and leaves scene markdown unchanged;
   assert.equal(await storeCinematicImage(img,origin),imageId);
   assert.equal(origin.entries.size,1);
   sceneOf(state).cinematic=withCinematic(sceneOf(state),{...item,imageId});
+  sceneOf(state).cinematic=withCinematic(sceneOf(state),{
+    ...item,id:'breath-show',imageId,motion:'breath',ending:'loop',hold:3,
+  });
   const backup=await (await exportWorkspace(state,true,origin)).text();
   const raw=JSON.parse(backup),values=new Map();
   globalThis.localStorage={setItem:(k,v)=>values.set(k,v),getItem:k=>values.get(k)??null};

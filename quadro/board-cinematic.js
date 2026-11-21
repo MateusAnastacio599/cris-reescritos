@@ -8,18 +8,18 @@ export function mountBoardCinematic({userId,boardCampaignId,isMaster,archiveId,r
   frame.className='cinematic-frame cinematic-board-layer';
   frame.hidden=true;
   frame.setAttribute('aria-label','Apresentação cinematográfica');
-  document.body.append(frame);
   let channel,receiver,timer;
   const connect=()=>{
     if(channel)return;
     channel=new BroadcastChannel(CINEMATIC_CHANNEL);
-    receiver=new CinematicReceiver({scope,boardId:crypto.randomUUID(),frame:new CinematicFrame(frame),ready,
+    receiver=new CinematicReceiver({scope,boardId:crypto.randomUUID(),frame:new CinematicFrame(frame,{mount:document.body}),ready,
       send:message=>channel?.postMessage(message)});
     channel.onmessage=event=>void receiver.handle(event.data);
     timer=setInterval(()=>receiver.expire(),5000);
   };
   connect();
   window.addEventListener('pagehide',()=>{
+    if(!channel)return;
     receiver.close();
     channel.close();
     channel=null;
