@@ -1,3 +1,4 @@
+import {CAMERA_EASINGS,cameraPoseValid,validCameraExtensions} from './cinematic-camera-model.js';
 // Optional, additive direction metadata. Old presentations are never migrated on read.
 export const STUDIO_VERSION=1;
 export const EFFECT_TYPES={breath:'Respiração',sway:'Balanço',shake:'Instabilidade',opacity:'Opacidade',move:'Movimento'};
@@ -7,9 +8,9 @@ export const bounded=(v,min,max)=>Math.min(max,Math.max(min,v));
 const number=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
 const object=(v,keys)=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(k=>keys.includes(k));
 export const validPoint=p=>object(p,['x','y'])&&number(p.x,0,1)&&number(p.y,0,1);
-export const validPose=p=>object(p,['x','y','zoom'])&&number(p.x,0,1)&&number(p.y,0,1)&&number(p.zoom,1,12);
+export const validPose=cameraPoseValid;
 export const defaultCamera=()=>({from:{x:.5,y:.5,zoom:1},to:{x:.5,y:.5,zoom:1.25},easing:'ease-in-out',shake:0});
-export const validCamera=c=>object(c,['from','to','easing','shake'])&&validPose(c.from)&&validPose(c.to)&&EASINGS.includes(c.easing)&&number(c.shake,0,.02);
+export const validCamera=c=>object(c,['from','to','easing','shake','path','instability'])&&validPose(c.from)&&validPose(c.to)&&EASINGS.includes(c.easing)&&number(c.shake,0,.02)&&validCameraExtensions(c);
 const movePoint=p=>object(p,['x','y','scale'])&&number(p.x,-.5,.5)&&number(p.y,-.5,.5)&&number(p.scale,.1,3);
 export function validEffect(e){
   const keys=['id','type','enabled','start','duration','repeat','easing','amount','vertical','x','y','frequency','from','to'];
