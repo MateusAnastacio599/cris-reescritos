@@ -1,3 +1,4 @@
+import {loadCinematicMedia} from './cinematic-media.js';
 import {cinematicItems,isCinematicKey} from './cinematic-model.js';
 import {sameBoard,sameCinematicScene} from './cinematic-protocol.js';
 
@@ -45,7 +46,7 @@ export class CinematicCues{
     const scene=state.campaigns.find(value=>value.id===location.campaignId)?.pages.find(value=>value.id===location.pageId)?.scenes.find(value=>value.id===location.sceneId);
     const item=cinematicItems(scene??{}).find(value=>value.id===action.cinematicId);
     if(!item)throw Error('A Cinematic desta cue não está disponível na cena atual. Edite a cue e escolha uma apresentação salva.');
-    const image=await this.images.get(item.imageId);
+    const image=await loadCinematicMedia(item,this.images);
     if(!valid()||command!==this.command)return false;
     if(!image)throw Error('Imagem da Cinematic indisponível neste navegador. Anexe novamente ou importe o backup completo.');
     const started=await this.link.present(context.scope,context.scene,item,image,{replace:action.replace!==false});

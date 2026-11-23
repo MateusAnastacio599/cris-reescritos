@@ -1,5 +1,9 @@
 export const CINEMATIC_VERSION=1;
 export const CINEMATIC_MAX_ITEMS=12;
+export const CINEMATIC_MAX_LAYERS=4;
+export const CINEMATIC_COMPOSITION_BYTES=24*1024*1024;
+export const CINEMATIC_COMPOSITION_PIXELS=24000000;
+export const cinematicImageIds=item=>[...new Set([item.imageId,...(item.layers??[]).map(layer=>layer.imageId)])];
 export const CINEMATIC_MAX_BYTES=12*1024*1024;
 export const CINEMATIC_MOTIONS=Object.freeze({
   static:'Estático', zoomIn:'Aproximação', zoomOut:'Afastamento', pan:'Panorâmica',
@@ -17,8 +21,15 @@ export const isCinematicKey=value=>typeof value==='string'&&/^[\w-]{1,128}$/.tes
 const integerBetween=(value,[min,max])=>Number.isInteger(value)&&value>=min&&value<=max;
 export const cinematicItems=scene=>scene.cinematic?.items??[];
 
+export function isCinematicLayer(layer){
+  return !!layer&&typeof layer==='object'&&Object.keys(layer).every(key=>['id','name','imageId','x','y','scale','visible','parallax'].includes(key))&&
+    isCinematicKey(layer.id)&&layer.id!=='background'&&isCinematicImageId(layer.imageId)&&typeof layer.name==='string'&&layer.name.length>0&&layer.name.length<=100&&
+    typeof layer.visible==='boolean'&&['x','y','scale','parallax'].every(key=>Number.isFinite(layer[key]))&&
+    layer.x>=0&&layer.x<=1&&layer.y>=0&&layer.y<=1&&layer.scale>=.1&&layer.scale<=2&&layer.parallax>=0&&layer.parallax<=2;
+}
 export function isCinematic(item){
-  return !!item&&typeof item==='object'&&Object.keys(item).every(key=>['id','imageId','name','motion','seconds','intensity','ending','hold','fadeIn','fadeOut'].includes(key))&&
+  return !!item&&typeof item==='object'&&Object.keys(item).every(key=>['id','imageId','name','motion','seconds','intensity','ending','hold','fadeIn','fadeOut','layers'].includes(key))&&
+    (item.layers===undefined||Array.isArray(item.layers)&&item.layers.length<=CINEMATIC_MAX_LAYERS&&item.layers.every(isCinematicLayer)&&new Set(item.layers.map(layer=>layer.id)).size===item.layers.length)&&
     isCinematicKey(item.id)&&isCinematicImageId(item.imageId)&&
     typeof item.name==='string'&&!!item.name.trim()&&item.name.length<=100&&
     typeof item.motion==='string'&&Object.hasOwn(CINEMATIC_MOTIONS,item.motion)&&integerBetween(item.seconds,CINEMATIC_LIMITS.seconds)&&integerBetween(item.intensity,CINEMATIC_LIMITS.intensity)&&
@@ -44,7 +55,10 @@ export function withCinematic(scene,item){
 export function cinematicReferences(state){
   const refs=new Map();
   for(const campaign of state.campaigns)for(const page of campaign.pages)for(const scene of page.scenes){
-    for(const item of cinematicItems(scene))refs.set(item.imageId,item.name);
+    for(const item of cinematicItems(scene)){
+      refs.set(item.imageId,item.name);
+      for(const layer of item.layers??[])refs.set(layer.imageId,item.name+' / '+layer.name);
+    }
   }
   return refs;
 }
@@ -61,5 +75,28 @@ export async function checkCinematicImage(image){
     'image/webp':matches(0,[82,73,70,70])&&matches(8,[87,69,66,80]),
   };
   if(!valid[image.type])throw Error('O conteúdo da imagem não corresponde ao formato informado.');
+  return image;
+}
+
+export function duplicateCinematic(scene,id){
+  const original=cinematicItems(scene).find(item=>item.id===id);
+  if(!original)throw Error('Escolha uma apresentação salva para duplicar.');
+  const copy={...structuredClone(original),id:crypto.randomUUID(),name:(original.name+' (cópia)').slice(0,100)};
+  if(copy.layers)copy.layers=copy.layers.map(layer=>({...layer,id:crypto.randomUUID()}));
+  return copy;
+}
+export function isCinematicPayload(asset,item){
+  if(!item.layers?.length)return isCinematicBlob(asset);
+  if(!asset||typeof asset!=='object'||asset instanceof Blob)return false;
+  const ids=cinematicImageIds(item),keys=Object.keys(asset);
+  return keys.length===ids.length&&keys.every(id=>ids.includes(id)&&isCinematicBlob(asset[id]))&&
+    keys.reduce((sum,id)=>sum+asset[id].size,0)<=CINEMATIC_COMPOSITION_BYTES;
+}
+
+export async function checkCinematicUpload(image){
+  await checkCinematicImage(image);
+  if(typeof image.name==='string'&&!({
+    'image/png':/\.png$/i,'image/jpeg':/\.jpe?g$/i,'image/webp':/\.webp$/i,
+  }[image.type]?.test(image.name)))throw Error('A extensão do arquivo deve corresponder ao formato PNG, JPEG ou WebP.');
   return image;
 }

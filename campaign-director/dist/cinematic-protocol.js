@@ -1,4 +1,4 @@
-import {isCinematic,isCinematicBlob,isCinematicKey} from './cinematic-model.js';
+import {isCinematic,isCinematicPayload,isCinematicKey} from './cinematic-model.js';
 
 export const CINEMATIC_CHANNEL='cris-cinematic-local-v1';
 export const CINEMATIC_LEASE=75000;
@@ -23,7 +23,7 @@ export function validCinematicMessage(message,scope,now=Date.now()){
     (message.type!=='started'||typeof message.ok==='boolean');
   if(!Number.isSafeInteger(message.sequence)||message.sequence<1)return false;
   if(['stop','heartbeat'].includes(message.type))return message.immediate===undefined||typeof message.immediate==='boolean';
-  return ['start','update'].includes(message.type)&&isCinematic(message.item)&&isCinematicBlob(message.image);
+  return ['start','update'].includes(message.type)&&isCinematic(message.item)&&isCinematicPayload(message.image,message.item);
 }
 
 export function cinematicEnvelope(scope,fields,at=Date.now()){
