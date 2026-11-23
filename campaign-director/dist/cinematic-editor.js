@@ -1,3 +1,5 @@
+import {sceneSpan} from './cinematic-timing.js';
+const DIRECTION_KEYS=['camera','lighting','sceneDuration','backgroundVideo'];
 import {StudioProperties} from './cinematic-studio-properties.js';
 import {StudioHistory} from './cinematic-studio-history.js';
 import {CinematicLayersEditor} from './cinematic-layers-editor.js';
@@ -30,10 +32,10 @@ export function openCinematic({scene,save,present,stop,subscribe}){
   });
   const dirty=()=>{
     const saved=item();
-    if(root.querySelector('[data-camera-invalid=true]'))return true;
+    if(root.querySelector('[data-camera-invalid=true],[data-direction-invalid=true]'))return true;
     if(!saved||backgroundId||$('[name=image]',root).files.length||composer?.busy)return true;
     if(JSON.stringify(composer?.value()??[])!==JSON.stringify(saved.layers??[]))return true;
-    if(JSON.stringify(direction)!==JSON.stringify(Object.fromEntries(['camera','lighting'].filter(k=>saved[k]!==undefined).map(k=>[k,saved[k]]))))return true;
+    if(JSON.stringify(direction)!==JSON.stringify(Object.fromEntries(DIRECTION_KEYS.filter(k=>saved[k]!==undefined).map(k=>[k,saved[k]]))))return true;
     const draft=values(),settings={...saved,...cinematicEnding(saved),...cinematicFades(saved)};
     return ['name','motion','seconds','intensity','ending','hold','fadeIn','fadeOut'].some(key=>draft[key]!==settings[key]);
   };
@@ -48,7 +50,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     const draft=values();
     $('[data-duration]',root).textContent=ending.value==='loop'
       ?'Repete até encerrar. A saída respeita o fade configurado.'
-      :`Duração total: ${cinematicTotal(draft).toLocaleString('pt-BR')} s. A entrada acontece durante o movimento, seguida da permanência e da saída.`;
+      :`Duração total: ${cinematicTotal(draft).toLocaleString('pt-BR')} s. A cena permanece ativa até ${sceneSpan(draft).toLocaleString('pt-BR')} s; depois acontece o fade de saída.`;
     $('[data-undo]',root).disabled=history.index<=0;$('[data-redo]',root).disabled=history.index>=history.entries.length-1;
     const changed=dirty();
     $('[data-present]',root).disabled=changed;
@@ -61,12 +63,12 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     selectionVersion++;
     draftId=crypto.randomUUID();backgroundId=null;direction={};
     const selected=item();
-    for(const key of ['camera','lighting'])if(selected?.[key])direction[key]=structuredClone(selected[key]);
+    for(const key of DIRECTION_KEYS)if(selected?.[key])direction[key]=structuredClone(selected[key]);
     $('[name=title]',root).value=selected?.name??'';
     const config=selected?{...selected,...cinematicEnding(selected),...cinematicFades(selected)}:CINEMATIC_DEFAULTS;
     for(const key of ['motion','seconds','intensity','ending','hold','fadeIn','fadeOut'])$('[name='+key+']',root).value=config[key];
     $('[name=image]',root).value='';
-    composer.lighting=direction.lighting;composer?.reset(selected);
+    composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;composer?.reset(selected);
     properties.render();history.reset(snapshot());syncDraft();
     frame.clear({immediate:true});
     status(selected?'':'Anexe uma imagem para preparar a apresentação.');
@@ -75,9 +77,9 @@ export function openCinematic({scene,save,present,stop,subscribe}){
   let previewRefresh;
   const record=()=>{selectionVersion++;if(!restoring)history.record(snapshot());syncDraft();if(frame?.item){clearTimeout(previewRefresh);previewRefresh=setTimeout(()=>{if(!closed&&frame.item)$('[data-preview]',root).click();},450);}};
   const restore=state=>{
-    if(!state)return;restoring=true;direction={};for(const k of ['camera','lighting'])if(state.draft[k])direction[k]=structuredClone(state.draft[k]);
+    if(!state)return;restoring=true;direction={};for(const k of DIRECTION_KEYS)if(state.draft[k])direction[k]=structuredClone(state.draft[k]);
     backgroundId=state.backgroundId;draftId=state.draft.id;for(const k of ['title','motion','seconds','intensity','ending','hold','fadeIn','fadeOut'])$('[name='+k+']',root).value=state.draft[k==='title'?'name':k];
-    $('[name=image]',root).value='';composer.lighting=direction.lighting;composer.reset(state.draft,{retainFiles:true});properties.render();restoring=false;selectionVersion++;syncDraft();void frame.clear({immediate:true});
+    $('[name=image]',root).value='';composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;composer.reset(state.draft,{retainFiles:true});properties.render();restoring=false;selectionVersion++;syncDraft();void frame.clear({immediate:true});
   };
   const run=async(action)=>{
     const version=selectionVersion;
@@ -110,20 +112,20 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       <p role="status" class="cinematic-status"></p>
       <details class="cinematic-layers-editor" open></details>`,
     async onSubmit(){
-      if(root.querySelector('[data-camera-invalid=true]'))throw Error('Corrija os ajustes inválidos da câmera antes de salvar.');
+      if(root.querySelector('[data-camera-invalid=true],[data-direction-invalid=true]'))throw Error('Corrija os ajustes inválidos da câmera ou da direção antes de salvar.');
       const version=selectionVersion,selected=item(),draft=values(),image=await imageFor();
       if(!selected&&cinematicItems(scene).length>=CINEMATIC_MAX_ITEMS)throw Error('Esta cena já tem 12 apresentações.');
       if(composer.busy)throw Error('Aguarde o carregamento da camada antes de salvar.');
       draft.imageId=await imageKey(image);
       const media=await composer.assets(draft,image);
-      if(draft.layers?.length)await validateCompositionMedia(draft,media,{decode:true});
+      if(draft.layers?.length||draft.backgroundVideo)await validateCompositionMedia(draft,media,{decode:true});
       else{
         const bitmap=await createImageBitmap(image).catch(()=>{throw Error('Não foi possível abrir a imagem. Escolha outro arquivo.');});
         const pixels=bitmap.width*bitmap.height;bitmap.close();
         if(!pixels||pixels>40000000)throw Error('Use uma imagem com até 40 megapixels.');
       }
       if(closed||version!==selectionVersion)return false;
-      const entries=draft.layers?.length?Object.entries(media):[[draft.imageId,image]];
+      const entries=(draft.layers?.length||draft.backgroundVideo)?Object.entries(media):[[draft.imageId,image]];
       await cinematicImages.putAll(entries);
       if(closed||version!==selectionVersion)return false;
       const prior=scene.cinematic;
@@ -143,7 +145,8 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       for(const selector of ['[name=selected]','[name=title]','[name=image]','[name=motion]'])settings.append($(selector,root).closest('label'));
       for(const node of [...root.querySelectorAll('.cinematic-form-grid,[data-duration]')])settings.append(node);
       composer=new CinematicLayersEditor($('.cinematic-layers-editor',root),{background:imageFor,onChange:record,onError:status,onSelect:()=>properties?.render()});
-      properties=new StudioProperties($('[data-studio-properties]',root),{composer,read:()=>structuredClone(direction),change:value=>{direction=value;composer.lighting=direction.lighting;record();void composer.render();}});
+      properties=new StudioProperties($('[data-studio-properties]',root),{composer,read:()=>structuredClone(direction),change:value=>{direction=value;composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;record();void composer.render();}});
+      composer.useBackground=async file=>{const id=await imageKey(file);composer.pool(id,file);backgroundId=id;$('[name=image]',root).value='';record();void composer.render();};
       properties.preview=()=>$('[data-preview]',root).click();properties.presentation=settings;properties.section='presentation';composer.onAnchor=(layer,anchor)=>properties.anchor(layer,anchor);composer.onCameraChange=camera=>{direction.camera=camera;record();properties.render();};
       properties.render();
       frame=new CinematicFrame($('.cinematic-frame',root),{onWarning:status});removeNotice=mountMotionNotice($('[data-motion-notice]',root));
@@ -165,11 +168,12 @@ export function openCinematic({scene,save,present,stop,subscribe}){
         if(!current())return;
         draft.imageId=await imageKey(image);
         const media=await composer.assets(draft,image);if(!current())return;
+        if(composer.solo)draft.layers=draft.layers.map(l=>({...l,visible:l.id===composer.solo&&l.visible}));
         const time=frame.item?frame.time():0,playing=frame.item?frame.playing:true;
         const shown=await frame.show(media,{...draft,name:draft.name||'Prévia'},()=>{
           if(current()&&!presenting)status('Prévia concluída.');
         });
-        if(shown&&current()){$('.cinematic-layers-editor',root).dataset.pane='canvas';if(time)frame.seek(Math.min(time,draft.seconds));if(!playing)frame.pause();if(!presenting)status('Prévia da apresentação.');}
+        if(shown&&current()){$('.cinematic-layers-editor',root).dataset.pane='canvas';if(time)frame.seek(Math.min(time,sceneSpan(draft)));if(!playing)frame.pause();if(!presenting)status('Prévia da apresentação.');}
       });
       $('[data-studio-play]',root).onclick=()=>frame.item?frame.play():$('[data-preview]',root).click();
       $('[data-studio-pause]',root).onclick=()=>frame.pause();$('[data-studio-restart]',root).onclick=()=>frame.item?frame.restart():$('[data-preview]',root).click();
@@ -177,7 +181,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       $('[data-undo]',root).onclick=()=>restore(history.undo());$('[data-redo]',root).onclick=()=>restore(history.redo());
       const keyboard=event=>{if(!(event.ctrlKey||event.metaKey)||event.altKey)return;const key=event.key.toLowerCase();if(key==='z'||key==='y'){event.preventDefault();restore(event.shiftKey||key==='y'?history.redo():history.undo());}};root.addEventListener('keydown',keyboard);
       clockTimer=setInterval(()=>{
-        if(closed)return;const total=frame.item?frame.item.seconds+cinematicEnding(frame.item).hold:values().seconds,time=frame.time();
+        if(closed)return;const total=frame.item?sceneSpan(frame.item):sceneSpan(values()),time=frame.time();
         $('[data-studio-time]',root).textContent=`${time.toFixed(1)} / ${total} s`;$('[data-studio-seek]',root).max=total;$('[data-studio-seek]',root).value=time;
         if(frame.item&&$('[data-studio-loop]',root).checked&&time>=total-.15)frame.restart();
       },100);
