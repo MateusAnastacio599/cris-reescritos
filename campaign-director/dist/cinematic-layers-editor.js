@@ -136,7 +136,7 @@ export class CinematicLayersEditor{
     const asset=[...CINEMATIC_ASSETS,FOG_VIDEO_ASSET].find(a=>a.id===id);if(!asset||this.busy||this.layers.length>=CINEMATIC_MAX_LAYERS)return;
     const revision=this.revision;this.busy=true;this.onChange();
     try{const response=await fetch(asset.url);if(!response.ok)throw Error('Overlay da biblioteca indisponível.');const file=new File([await response.arrayBuffer()],asset.id+'.png',{type:'image/png'});await checkCinematicUpload(file);const imageId=await imageKey(file);if(revision!==this.revision)return;this.pool(imageId,file);
-      const layer={id:crypto.randomUUID(),name:asset.name,imageId,x:.5,y:.5,scale:1,parallax:0,visible:true};
+      const layer={id:crypto.randomUUID(),name:asset.name,imageId,x:.5,y:.5,scale:1,parallax:0,visible:true,...asset.placement};
       if(asset.effect){const fx=newEffect(asset.effect);fx.amount=asset.amount;fx.window=defaultWindow(12);layer.effects=[fx];}if(asset.videoURL){if(this.layers.filter(l=>l.video).length+Number(!!this.backgroundVideo)>=2)throw Error('A composição permite até dois vídeos.');const movie=new Blob([await(await fetch(asset.videoURL)).arrayBuffer()],{type:'video/webm'}),mediaId=await imageKey(movie);if(revision!==this.revision)return;this.pool(mediaId,movie);layer.video={mediaId,enabled:true,loop:true,rate:1,delay:0,end:'freeze'};}this.layers.push(layer);this.selected=layer.id;this.list();this.updateControls();this.onSelect();this.onChange();await this.render();}
     catch(error){this.onError(error.message);}finally{if(revision===this.revision){this.busy=false;this.list();$('[data-cinematic-asset]',this.root).value='';this.onChange();}}
   }
