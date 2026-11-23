@@ -28,7 +28,7 @@ test('optional layers preserve legacy metadata and validate normalized coordinat
     assert.equal(isCinematic({...item,layers:[{...layer,...change}]}),false);
   }
   assert.equal(isCinematic({...item,layers:[layer,layer]}),false);
-  assert.equal(isCinematic({...item,layers:Array.from({length:5},(_,i)=>({...layer,id:'layer-'+i}))}),false);
+  assert.equal(isCinematic({...item,layers:Array.from({length:13},(_,i)=>({...layer,id:'layer-'+i}))}),false);
 });
 
 test('duplicate gets stable independent IDs while sharing bytes and leaving original cues unchanged',()=>{

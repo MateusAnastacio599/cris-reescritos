@@ -1,3 +1,4 @@
+import {windowRange,windowEnvelope} from './cinematic-timing.js';
 // Video decoding is deliberately isolated from camera, protocol and Audio Engine.
 export const VIDEO_LIMITS=Object.freeze({bytes:8*1024*1024,seconds:12,side:1280,pixels:1280*720,fps:30,count:2});
 const containers=new Set([0x18538067,0x1549a966,0x1654ae6b,0xae,0xe0]);
@@ -9,7 +10,7 @@ function vint(bytes,start,id=false){
   const unknown=!id&&value===2**(7*length)-1;
   return {value,length,unknown};
 }
-export async function checkCinematicVideo(blob,{extension=false}={}){
+export async function checkCinematicVideo(blob,{extension=false,allowOpaque=false}={}){
   if(!(blob instanceof Blob)||blob.type!=='video/webm'||!blob.size||blob.size>VIDEO_LIMITS.bytes)throw Error('Use WebM VP9 transparente de até 8 MB, 12 s e 1280 × 720 px.');
   if(extension&&typeof blob.name==='string'&&!/\.webm$/i.test(blob.name))throw Error('O arquivo de vídeo deve ter extensão .webm.');
   const bytes=new Uint8Array(await blob.arrayBuffer()),view=new DataView(bytes.buffer);
@@ -42,9 +43,9 @@ export async function checkCinematicVideo(blob,{extension=false}={}){
   }
   scan(0,bytes.length);
   const video=data.tracks.find(t=>t.type===1),seconds=data.duration*data.timecode/1e9;
-  if(data.doc!=='webm'||data.tracks.length!==1||!video||video.codec!=='V_VP9'||video.alpha!==1)throw Error('Use uma única faixa VP9 com transparência (AlphaMode), sem áudio.');
+  if(data.doc!=='webm'||data.tracks.length!==1||!video||video.codec!=='V_VP9'||(!allowOpaque&&video.alpha!==1))throw Error('Use uma única faixa VP9 com transparência (AlphaMode), sem áudio.');
   if(!Number.isFinite(seconds)||seconds<=0||seconds>VIDEO_LIMITS.seconds||!video.width||!video.height||video.width>VIDEO_LIMITS.side||video.height>VIDEO_LIMITS.side||video.width*video.height>VIDEO_LIMITS.pixels||!video.frame||1e9/video.frame>VIDEO_LIMITS.fps+.01)throw Error('Vídeo fora dos limites: até 12 s, 30 fps e 921.600 pixels, com no máximo 1280 px por lado.');
-  return {width:video.width,height:video.height,pixels:video.width*video.height,seconds,fps:1e9/video.frame};
+  return {width:video.width,height:video.height,pixels:video.width*video.height,seconds,fps:1e9/video.frame,alpha:video.alpha===1};
 }
 function onceMedia(video,event,action,timeout=3500,signal){
   return new Promise((resolve,reject)=>{
@@ -73,13 +74,13 @@ export function videoPosition(video,time,duration){
   return video.loop?elapsed%duration:Math.min(elapsed,Math.max(0,duration-.04));
 }
 export class CinematicVideoLayer{
-  constructor({document,container,fallback,blob,config,metadata,warn=()=>{}}){
-    Object.assign(this,{document,container,fallback,blob,config,metadata,warn});this.revision=0;this.closed=false;
+  constructor({document,container,fallback,blob,config,metadata,span=12,warn=()=>{}}){
+    Object.assign(this,{document,container,fallback,blob,config,metadata,span,warn});this.revision=0;this.closed=false;
   }
   async prepare(){
     const revision=++this.revision;this.controller=new AbortController();
     if(!this.config.enabled)return;
-    if(!await supportsTransparentVideo(this.document)){if(!this.closed)this.warn('WebM transparente indisponível neste navegador: usando PNG estático.');return;}
+    if(this.config.transparent!==false&&!await supportsTransparentVideo(this.document)){if(!this.closed)this.warn('WebM transparente indisponível neste navegador: usando PNG estático.');return;}
     if(this.closed||revision!==this.revision)return;
     const video=this.document.createElement('video');this.video=video;video.muted=true;video.playsInline=true;video.preload='auto';video.className='cinematic-video';video.hidden=true;
     this.url=URL.createObjectURL(this.blob);this.container.append(video);
@@ -90,15 +91,17 @@ export class CinematicVideoLayer{
       this.ready=true;
     }catch{if(!this.closed)this.fail();}
   }
-  fail(){this.ready=false;this.fallback.style.visibility='visible';if(this.video){this.video.hidden=true;this.video.pause();}this.warn('Falha ao reproduzir WebM: usando PNG estático.');}
+  fail(){this.ready=false;this.fallback.style.visibility='visible';this.fallback.style.opacity='1';if(this.video){this.video.hidden=true;this.video.pause();}this.warn('Falha ao reproduzir WebM: usando PNG estático.');}
   sync(time,playing,reduced,force=false){
     const v=this.video,c=this.config;if(!v||!this.ready||this.closed)return;
-    const finished=!c.loop&&(time-c.delay)*c.rate>=v.duration;
-    const use=!reduced&&c.enabled&&time>=c.delay&&!(finished&&c.end!=='freeze');
+    const range=windowRange(c.window,this.span),localTime=time-range.start;
+    const finished=!c.loop&&(localTime-c.delay)*c.rate>=v.duration;
+    const use=!reduced&&c.enabled&&localTime>=c.delay&&(!c.window||time<range.end)&&!(finished&&c.end!=='freeze');
     this.wantPlaying=playing&&use&&!finished;
-    v.hidden=!use;this.fallback.style.visibility=use||(finished&&c.end==='hide'&&!reduced)?'hidden':'visible';
+    const blend=use?windowEnvelope(c.window,time,this.span):0;v.style??={};v.style.opacity=blend;this.fallback.style.opacity=use?1-blend:1;
+    v.hidden=!use;this.fallback.style.visibility=(use&&blend>=1)||(finished&&c.end==='hide'&&!reduced)?'hidden':'visible';
     if(!use){v.pause();return;}
-    const target=videoPosition(c,time,v.duration);
+    const target=videoPosition(c,localTime,v.duration);
     if(force||Math.abs(v.currentTime-target)>.15&&!v.seeking)try{v.currentTime=target;}catch{this.fail();return;}
     v.playbackRate=c.rate;v.loop=c.loop;
     if(playing&&!finished){

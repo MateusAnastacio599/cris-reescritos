@@ -35,7 +35,7 @@ export const cinematicImages={
 };
 
 export async function imageKey(image){
-  if(image?.type==='video/webm')await checkCinematicVideo(image);else await checkCinematicImage(image);
+  if(image?.type==='video/webm')await checkCinematicVideo(image,{allowOpaque:true});else await checkCinematicImage(image);
   const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',await image.arrayBuffer()));
   return (image.type==='video/webm'?'video-':'image-')+[...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('');
 }
@@ -132,17 +132,18 @@ export async function cinematicDimensions(image){
 }
 
 export async function validateCompositionMedia(item,asset,{decode=false}={}){
-  const valid=item.layers?.length?isCinematicPayload(asset,item):asset&&Object.keys(asset).length===1&&isCinematicBlob(asset[item.imageId]);
+  const valid=(item.layers?.length||item.backgroundVideo)?isCinematicPayload(asset,item):asset&&Object.keys(asset).length===1&&isCinematicBlob(asset[item.imageId]);
   if(!valid)throw Error('Composição incompleta ou acima de 24 MB. Confira o fundo e todas as camadas.');
   const dimensions=new Map();
   for(const id of cinematicMediaIds(item)){
     if(await imageKey(asset[id])!==id)throw Error('Os dados de uma imagem da composição não correspondem ao hash salvo.');
-    dimensions.set(id,await (id.startsWith('video-')?checkCinematicVideo(asset[id]):cinematicDimensions(asset[id])));
+    dimensions.set(id,await (id.startsWith('video-')?checkCinematicVideo(asset[id],{allowOpaque:true}):cinematicDimensions(asset[id])));
   }
   let pixels=dimensions.get(item.imageId).pixels;
+  if(item.backgroundVideo){const v=dimensions.get(item.backgroundVideo.mediaId),bg=dimensions.get(item.imageId);pixels+=v.pixels*3;if(item.backgroundVideo.transparent!==false&&!v.alpha)throw Error('Este fundo foi configurado como transparente, mas o WebM não possui alpha.');if(Math.abs(v.width/v.height-bg.width/bg.height)>.01)throw Error('O fundo de fallback deve ter a mesma proporção do vídeo.');}
   for(const layer of item.layers??[]){
     if(layer.video&&asset[layer.imageId].type!=='image/png')throw Error('Uma camada WebM exige fallback PNG.');
-    if(layer.video){const video=dimensions.get(layer.video.mediaId),fallback=dimensions.get(layer.imageId);pixels+=video.pixels*3;
+    if(layer.video){if(layer.video.transparent!==false&&!dimensions.get(layer.video.mediaId).alpha)throw Error('O WebM desta camada não possui alpha.');const video=dimensions.get(layer.video.mediaId),fallback=dimensions.get(layer.imageId);pixels+=video.pixels*3;
       if(Math.abs(video.width/video.height-fallback.width/fallback.height)>.01)throw Error('O PNG de fallback deve ter a mesma proporção do vídeo.');}
     const cost=dimensions.get(layer.imageId).pixels;
     if(cost>8000000)throw Error('Cada camada adicional deve ter até 8 megapixels.');
@@ -160,14 +161,14 @@ export async function validateCompositionMedia(item,asset,{decode=false}={}){
 
 async function validateWorkspaceCompositions(state,entries,decode=false){
   for(const campaign of state.campaigns)for(const page of campaign.pages)for(const scene of page.scenes){
-    for(const item of cinematicItems(scene))if(item.layers?.length){
+    for(const item of cinematicItems(scene))if(item.layers?.length||item.backgroundVideo){
       await validateCompositionMedia(item,Object.fromEntries(cinematicMediaIds(item).map(id=>[id,entries.get(id)])),{decode});
     }
   }
 }
 
 export async function loadCinematicMedia(item,images=cinematicImages,{background,files=new Map()}={}){
-  if(!item.layers?.length){
+  if(!item.layers?.length&&!item.backgroundVideo){
     const image=background??await images.get(item.imageId);
     if(!image)throw Error('Imagem da Cinematic indisponível neste navegador. Anexe novamente ou importe o backup completo.');
     return image;
