@@ -1,3 +1,4 @@
+import {animateCameraPath} from './cinematic-camera-player.js';
 import {cameraTransform,defaultCamera} from './cinematic-direction-model.js';
 
 export function effectFrames(effect){
@@ -21,10 +22,15 @@ export function animateLayerEffects(composition,currentTime){
 }
 export function animateDirectionCamera(composition,item,timing,currentTime){
   const camera=item.camera??defaultCamera();
+  const advanced=camera.path!==undefined||camera.instability!==undefined;
+  const animations=advanced?animateCameraPath(composition,{...item,camera},timing,currentTime):[];
+  if(!advanced){
   const animation=composition.camera.animate([{transform:cameraTransform(camera.from)},{transform:cameraTransform(camera.to)}],{...timing,easing:camera.easing,direction:timing.iterations===Infinity?'alternate':'normal'});
-  animation.currentTime=currentTime;const animations=[animation];
-  if(camera.shake){
-    const jitter=composition.jitter.animate(effectFrames({type:'shake',amount:Math.min(.015,camera.shake),duration:4,frequency:2}),{duration:4000,iterations:Infinity,easing:'ease-in-out'});
+  animation.currentTime=currentTime;animations.push(animation);
+  for(const {plane,entry} of composition.planes)if(entry.id!=='background'&&entry.parallax){const drift=plane.animate([{transform:'translate(0%, 0%)'},{transform:`translate(${(camera.to.x-camera.from.x)*entry.parallax*-3}%, ${(camera.to.y-camera.from.y)*entry.parallax*-3}%)`}],{...timing,easing:camera.easing,direction:timing.iterations===Infinity?'alternate':'normal'});drift.currentTime=currentTime;animations.push(drift);}
+  }
+  if(camera.instability===undefined&&camera.shake){
+    const jitter=composition.jitter.animate(effectFrames({type:'shake',amount:Math.min(.015,camera.shake),duration:4,frequency:2}).map(frame=>({...frame,transform:frame.transform+` scale(${1+2*Math.min(.015,camera.shake)+.002})`})),{duration:4000,iterations:Infinity,easing:'ease-in-out'});
     jitter.currentTime=currentTime;animations.push(jitter);
   }
   return animations;

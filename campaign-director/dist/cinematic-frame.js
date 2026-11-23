@@ -1,3 +1,4 @@
+import {cameraTransform} from './cinematic-direction-model.js';
 import {animateDirectionCamera,animateLayerEffects,animateLighting} from './cinematic-direction-player.js';
 import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js';
 import {checkCinematicImage,cinematicEnding,cinematicFades} from './cinematic-model.js';
@@ -163,6 +164,7 @@ export class CinematicFrame{
     const {item,image}=this;
     this.element.replaceChildren(image);
     this.motionReduced=this.motion.reduced;
+    if(this.composition?.camera)this.composition.camera.style.transform=this.motionReduced&&item.camera?cameraTransform(item.camera.from):'';
     if(!this.motionReduced){
       const timing={duration:item.seconds*1000,fill:'both',iterations:cinematicEnding(item).ending==='loop'?Infinity:1};
       const frames=cinematicFrames(item).map(frame=>({...frame,easing:'ease-in-out'}));
@@ -174,10 +176,7 @@ export class CinematicFrame{
       if(this.composition){
         if(item.camera||item.motion==='custom'){
           this.animations.push(...animateDirectionCamera(this.composition,item,timing,currentTime));
-          // Depth differential is deliberately small and independent of local effects.
-          for(const {plane,entry} of this.composition.planes)if(entry.id!=='background'&&entry.parallax){
-            const drift=plane.animate([{transform:'translate(0%, 0%)'},{transform:`translate(${(item.camera?.to.x-item.camera?.from.x||0)*entry.parallax*-3}%, ${(item.camera?.to.y-item.camera?.from.y||0)*entry.parallax*-3}%)`}],{...timing,easing:item.camera?.easing??'ease-in-out',direction:timing.iterations===Infinity?'alternate':'normal'});drift.currentTime=currentTime;this.animations.push(drift);
-          }
+
         }else this.animations.push(...animateComposition(this.composition,item,frames,timing,currentTime));
         this.animations.push(...animateLayerEffects(this.composition,this.time()*1000),...animateLighting(this.composition.pulses,this.time()*1000));
       }

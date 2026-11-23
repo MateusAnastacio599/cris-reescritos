@@ -87,3 +87,11 @@
   .cinematic-layer-list-panel,.cinematic-layer-tools{max-height:none}.cinematic-studio .cinematic-composer-canvas{min-height:210px}.cinematic-studio-preview{top:84px;bottom:102px;min-height:160px}
 }
 .cinematic-media-notice{position:absolute;left:12px;top:12px;max-width:520px;background:#241b2de6;color:#f0e4fa;border:1px solid #806c90;border-radius:5px;padding:8px 10px;font:13px/1.4 system-ui;z-index:2;pointer-events:none}
+
+.cinematic-camera-point-list{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.cinematic-camera-point-list button[aria-pressed=true]{background:#5a436c;border-color:#ceb2e1}
+.cinematic-camera-path{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible}
+.cinematic-camera-path polyline{fill:none;stroke:#efca86;stroke-width:2;stroke-dasharray:6 5;vector-effect:non-scaling-stroke}
+.cinematic-camera-marker{position:absolute;transform:translate(-50%,-50%);width:28px;height:28px;min-height:28px;padding:0;border-radius:50%;border:1px solid #efca86;background:#2d203c;color:#ffe4b7;z-index:8;touch-action:none}
+.cinematic-camera-marker[aria-pressed=true]{background:#6a4c29;outline:2px solid #efca86;outline-offset:2px}
+.cinematic-camera-handle{z-index:7}
