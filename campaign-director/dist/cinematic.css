@@ -25,3 +25,23 @@
 .cinematic-motion-notice button{padding:7px 10px;border:1px solid #a99158;border-radius:5px;background:#33291b;color:inherit;font:inherit;cursor:pointer}
 .cinematic-motion-notice button:focus-visible{outline:2px solid #efcf85;outline-offset:3px}
 .cinematic-board-layer>.cinematic-motion-notice{position:absolute;bottom:20px;left:20px;right:20px;max-width:640px;margin:auto;z-index:1}
+
+.cinematic-world{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);isolation:isolate}
+.cinematic-plane{position:absolute;inset:0;transform-origin:center}
+.cinematic-plane[hidden]{display:none}
+.cinematic-background{display:block;width:100%;height:100%;object-fit:cover}
+.cinematic-layer-position{position:absolute;transform:translate(-50%,-50%)}
+.cinematic-layer-position>img{display:block;width:100%;height:auto;max-width:none;user-select:none}
+.cinematic-layers-editor{margin:12px 0;border-top:1px solid #463951;padding-top:10px}
+.cinematic-layers-editor>summary{cursor:pointer;font-weight:600;padding:7px 0}
+.cinematic-composer{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,220px);gap:14px;align-items:start}
+.cinematic-composer-canvas{position:relative;overflow:hidden;aspect-ratio:4/3;background:#15121b;touch-action:none;min-width:0;border-radius:5px}
+.cinematic-composer-canvas:focus-visible{outline:2px solid #d2b5ef;outline-offset:3px}
+.cinematic-composer-canvas [data-cinematic-layer]{cursor:grab}
+.cinematic-composer-canvas [data-cinematic-layer].is-selected{outline:1px dashed #e3d1ff;outline-offset:3px}
+.cinematic-layer-tools{min-width:0}
+.cinematic-layer-tools input,.cinematic-layer-tools select{max-width:100%}
+.cinematic-layer-tools select[size]{min-height:95px}
+.cinematic-layer-tools button{padding:6px 9px;border:1px solid #665675;border-radius:5px;color:inherit;background:#282132;cursor:pointer;font:inherit}
+.cinematic-layer-tools [hidden]{display:none}
+@media(max-width:680px){.cinematic-composer{grid-template-columns:minmax(0,1fr)}.cinematic-layer-tools .field{margin-bottom:9px}}

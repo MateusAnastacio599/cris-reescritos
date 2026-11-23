@@ -1,3 +1,4 @@
+import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js';
 import {checkCinematicImage,cinematicEnding,cinematicFades} from './cinematic-model.js';
 import {cinematicMotion,mountMotionNotice} from './cinematic-motion.js';
 const fadeBuffer=30;
@@ -62,6 +63,15 @@ export class CinematicFrame{
   async show(asset,item,onEnd){
     const generation=++this.generation;
     this.cancelTimers();
+    this.loading?.abort();
+    const loading=new AbortController();this.loading=loading;
+    if(item.layers?.length){
+      const composition=await loadComposition(asset,item,this.element.ownerDocument,{signal:loading.signal});
+      if(generation!==this.generation){composition.dispose();return false;}
+      this.loading=null;
+      this.install(composition.world,item,onEnd,generation,composition);
+      return true;
+    }
     await checkCinematicImage(asset);
     if(generation!==this.generation)return false;
     const url=URL.createObjectURL(asset),image=this.element.ownerDocument.createElement('img');
@@ -73,27 +83,38 @@ export class CinematicFrame{
       if(!image.naturalWidth||image.naturalWidth*image.naturalHeight>40000000){
         throw Error('Use uma imagem com até 40 megapixels.');
       }
-      this.stopEffects();
-      this.element.replaceChildren(image);
-      this.item=item;
-      this.image=image;
-      this.fadeOut=cinematicFades(item).fadeOut*1000;
-      if(this.mount&&!this.element.isConnected)this.mount.append(this.element);
-      this.element.classList.remove('cinematic-visible');
-      this.element.style.setProperty('--cinematic-fade','0ms');
-      this.element.hidden=false;
-      this.element.getBoundingClientRect();
-      this.element.style.setProperty('--cinematic-fade',cinematicFades(item).fadeIn*1000+'ms');
-      this.element.classList.add('cinematic-visible');
-      this.startedAt=performance.now();
-      this.startEffects();
-      this.unsubscribeMotion=this.motion.subscribe(()=>this.startEffects());
-      const duration=item.seconds*1000,{ending,hold}=cinematicEnding(item);
-      if(ending==='auto')this.automaticTimer=setTimeout(async()=>{
-        if(generation===this.generation&&await this.clear())onEnd?.();
-      },duration+hold*1000);
+      this.loading=null;
+      this.install(image,item,onEnd,generation);
       return true;
     }finally{URL.revokeObjectURL(url);}
+  }
+  install(image,item,onEnd,generation,composition=null){
+    this.stopEffects();
+    this.disposeComposition();
+    this.element.replaceChildren(image);
+    this.composition=composition;
+    this.item=item;
+    this.image=image;
+    this.fadeOut=cinematicFades(item).fadeOut*1000;
+    if(this.mount&&!this.element.isConnected)this.mount.append(this.element);
+    this.element.classList.remove('cinematic-visible');
+    this.element.style.setProperty('--cinematic-fade','0ms');
+    this.element.hidden=false;
+    this.element.getBoundingClientRect();
+    this.element.style.setProperty('--cinematic-fade',cinematicFades(item).fadeIn*1000+'ms');
+    this.element.classList.add('cinematic-visible');
+    if(composition)this.removeFit=fitComposition(composition,this.element);
+    this.startedAt=performance.now();
+    this.startEffects();
+    this.unsubscribeMotion=this.motion.subscribe(()=>this.startEffects());
+    const duration=item.seconds*1000,{ending,hold}=cinematicEnding(item);
+    if(ending==='auto')this.automaticTimer=setTimeout(async()=>{
+      if(generation===this.generation&&await this.clear())onEnd?.();
+    },duration+hold*1000);
+  }
+  disposeComposition(){
+    this.removeFit?.();this.removeFit=null;
+    this.composition?.dispose();this.composition=null;
   }
   stopEffects(){
     this.unsubscribeMotion?.();
@@ -118,9 +139,11 @@ export class CinematicFrame{
         frames[0].filter='brightness(.75) blur(1.5px)';
         frames.at(-1).filter='brightness(1) blur(0px)';
       }
-      const camera=image.animate(frames,timing);
-      camera.currentTime=timing.iterations===Infinity?performance.now()-this.startedAt:Math.min(performance.now()-this.startedAt,timing.duration);
-      this.animations.push(camera);
+      const currentTime=timing.iterations===Infinity?performance.now()-this.startedAt:Math.min(performance.now()-this.startedAt,timing.duration);
+      if(this.composition)this.animations.push(...animateComposition(this.composition,item,frames,timing,currentTime));
+      else{
+        const camera=image.animate(frames,timing);camera.currentTime=currentTime;this.animations.push(camera);
+      }
       const effect=atmosphere(item.motion,item.intensity);
       if(effect){
         const shade=this.element.ownerDocument.createElement('span');
@@ -128,7 +151,7 @@ export class CinematicFrame{
         shade.setAttribute('aria-hidden','true');
         this.element.append(shade);
         const light=shade.animate(effect.map(frame=>({...frame,easing:'ease-in-out'})),timing);
-        light.currentTime=camera.currentTime;
+        light.currentTime=currentTime;
         this.animations.push(light);
       }
     }
@@ -144,6 +167,7 @@ export class CinematicFrame{
   clear({immediate=false,fadeOut=this.fadeOut??CINEMATIC_FADE_MS}={}){
     const generation=++this.generation;
     this.cancelTimers();
+    this.loading?.abort();this.loading=null;
     this.unsubscribeMotion?.();
     this.unsubscribeMotion=null;
     this.element.style.setProperty('--cinematic-fade',fadeOut+'ms');
@@ -153,6 +177,7 @@ export class CinematicFrame{
         if(generation!==this.generation){resolve(false);return;}
         this.resolveFade=null;
         this.stopEffects();
+        this.disposeComposition();
         this.item=null;
         this.image=null;
         this.element.replaceChildren();

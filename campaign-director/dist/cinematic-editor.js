@@ -1,19 +1,20 @@
-import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,cinematicFades,cinematicTotal,checkCinematicImage,withCinematic} from './cinematic-model.js';
-import {cinematicImages,storeCinematicImage} from './cinematic-media.js';
+import {CinematicLayersEditor} from './cinematic-layers-editor.js';
+import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,cinematicFades,cinematicTotal,checkCinematicImage,checkCinematicUpload,withCinematic,duplicateCinematic} from './cinematic-model.js';
+import {cinematicImages,imageKey,loadCinematicMedia,validateCompositionMedia} from './cinematic-media.js';
 import {mountMotionNotice} from './cinematic-motion.js';
 import {CinematicFrame} from './cinematic-frame.js';
 import {$,esc,field,openForm,option} from './ui.js';
 
 export function openCinematic({scene,save,present,stop,subscribe}){
   const dialog=$('#appDialog'),initial=cinematicItems(scene)[0];
-  let root,frame,unsubscribe,removeNotice,closed=false,selectionVersion=0,presenting=false;
+  let root,frame,composer,unsubscribe,removeNotice,closed=false,selectionVersion=0,presenting=false;
   const item=()=>cinematicItems(scene).find(entry=>entry.id===$('[name=selected]',root).value);
   const status=message=>{if(!closed)$('.cinematic-status',root).textContent=message;};
   const imageFor=async()=>{
     const file=$('[name=image]',root).files[0];
     const image=file??(item()&&await cinematicImages.get(item().imageId));
     if(!image)throw Error('Imagem indisponível neste navegador. Anexe o arquivo novamente.');
-    return checkCinematicImage(image);
+    return file?checkCinematicUpload(file):checkCinematicImage(image);
   };
   const values=()=>({
     id:item()?.id??crypto.randomUUID(),
@@ -21,10 +22,12 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     seconds:Number($('[name=seconds]',root).value),intensity:Number($('[name=intensity]',root).value),
     ending:$('[name=ending]',root).value,hold:Number($('[name=hold]',root).value),
     fadeIn:Number($('[name=fadeIn]',root).value),fadeOut:Number($('[name=fadeOut]',root).value),
+    ...(composer?.layers.length?{layers:composer.value()}:{}),
   });
   const dirty=()=>{
     const saved=item();
-    if(!saved||$('[name=image]',root).files.length)return true;
+    if(!saved||$('[name=image]',root).files.length||composer?.busy)return true;
+    if(JSON.stringify(composer?.value()??[])!==JSON.stringify(saved.layers??[]))return true;
     const draft=values(),settings={...saved,...cinematicEnding(saved),...cinematicFades(saved)};
     return ['name','motion','seconds','intensity','ending','hold','fadeIn','fadeOut'].some(key=>draft[key]!==settings[key]);
   };
@@ -42,6 +45,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       :`Duração total: ${cinematicTotal(draft).toLocaleString('pt-BR')} s. A entrada acontece durante o movimento, seguida da permanência e da saída.`;
     const changed=dirty();
     $('[data-present]',root).disabled=changed;
+    $('[data-duplicate]',root).disabled=changed||cinematicItems(scene).length>=CINEMATIC_MAX_ITEMS;
     $('[data-cinematic-draft]',root).textContent=changed
       ?'Alterações não salvas. Use Prévia para testar ou Salvar para liberar Apresentar.'
       :'Ajustes salvos. Apresentar envia esta versão ao quadro.';
@@ -53,6 +57,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     const config=selected?{...selected,...cinematicEnding(selected),...cinematicFades(selected)}:CINEMATIC_DEFAULTS;
     for(const key of ['motion','seconds','intensity','ending','hold','fadeIn','fadeOut'])$('[name='+key+']',root).value=config[key];
     $('[name=image]',root).value='';
+    composer?.reset(selected);
     syncDraft();
     frame.clear({immediate:true});
     status(selected?'':'Anexe uma imagem para preparar a apresentação.');
@@ -69,6 +74,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       <label class="field"><span>Apresentação</span><select name="selected">${option('','Nova apresentação',!initial)}${cinematicItems(scene).map(entry=>option(entry.id,entry.name,entry===initial)).join('')}</select></label>
       ${field('Nome','title','','required maxlength="100"')}
       ${field('Imagem (PNG, JPEG ou WebP, até 12 MB)','image','',`type="file" accept="${CINEMATIC_TYPES.join(',')}"`)}
+      <details class="cinematic-layers-editor"></details>
       <label class="field"><span>Estilo cinematográfico</span><select name="motion">${Object.entries(CINEMATIC_MOTIONS).map(([id,label])=>option(id,label)).join('')}</select></label>
       <div class="cinematic-form-grid">${field('Duração do movimento (s)','seconds','12','type="number" min="3" max="60" required')}${field('Intensidade (0–30%)','intensity','12','type="number" min="0" max="30" required')}</div>
       <div class="cinematic-form-grid">
@@ -82,17 +88,25 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       <p class="form-hint cinematic-draft" data-cinematic-draft aria-live="polite"></p>
       <div class="cinematic-actions"><button class="btn outline" type="button" data-preview>Prévia</button>
       <button class="btn primary" type="button" data-present>Apresentar</button>
+      <button class="btn outline" type="button" data-duplicate>Duplicar apresentação salva</button>
       <button class="btn outline" type="button" data-stop>Encerrar apresentação</button></div>
       <p role="status" class="cinematic-status"></p>
       <div class="cinematic-preview-area"><div class="cinematic-frame" hidden></div></div>`,
     async onSubmit(){
       const version=selectionVersion,selected=item(),draft=values(),image=await imageFor();
       if(!selected&&cinematicItems(scene).length>=CINEMATIC_MAX_ITEMS)throw Error('Esta cena já tem 12 apresentações.');
-      const bitmap=await createImageBitmap(image).catch(()=>{throw Error('Não foi possível abrir a imagem. Escolha outro arquivo.');});
-      const pixels=bitmap.width*bitmap.height;bitmap.close();
-      if(!pixels||pixels>40000000)throw Error('Use uma imagem com até 40 megapixels.');
+      if(composer.busy)throw Error('Aguarde o carregamento da camada antes de salvar.');
+      draft.imageId=await imageKey(image);
+      const media=await composer.assets(draft,image);
+      if(draft.layers?.length)await validateCompositionMedia(draft,media,{decode:true});
+      else{
+        const bitmap=await createImageBitmap(image).catch(()=>{throw Error('Não foi possível abrir a imagem. Escolha outro arquivo.');});
+        const pixels=bitmap.width*bitmap.height;bitmap.close();
+        if(!pixels||pixels>40000000)throw Error('Use uma imagem com até 40 megapixels.');
+      }
       if(closed||version!==selectionVersion)return false;
-      draft.imageId=await storeCinematicImage(image);
+      const entries=draft.layers?.length?Object.entries(media):[[draft.imageId,image]];
+      await cinematicImages.putAll(entries);
       if(closed||version!==selectionVersion)return false;
       const prior=scene.cinematic;
       scene.cinematic=withCinematic(scene,draft);
@@ -107,11 +121,14 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     },
     onReady(body){
       root=body;removeNotice=mountMotionNotice($('[data-motion-notice]',root));frame=new CinematicFrame($('.cinematic-frame',root));
+      composer=new CinematicLayersEditor($('.cinematic-layers-editor',root),{background:imageFor,
+        onChange:()=>{if(closed)return;selectionVersion++;syncDraft();},onError:status});
       $('[name=selected]',root).onchange=fill;
       const refresh=event=>{
         if(closed||!frame.element.isConnected||event.target.name==='selected')return;
         selectionVersion++;
         syncDraft();
+        if(event.target.name==='image'&&composer.root.open)void composer.render();
       };
       root.addEventListener('input',refresh);
       root.addEventListener('change',refresh);
@@ -120,16 +137,26 @@ export function openCinematic({scene,save,present,stop,subscribe}){
         if(['seconds','intensity','hold','fadeIn','fadeOut'].some(key=>!$('[name='+key+']',root).reportValidity()))return;
         const image=await imageFor();
         if(!current())return;
-        const shown=await frame.show(image,{...draft,name:draft.name||'Prévia'},()=>{
+        draft.imageId=await imageKey(image);
+        const media=await composer.assets(draft,image);if(!current())return;
+        const shown=await frame.show(media,{...draft,name:draft.name||'Prévia'},()=>{
           if(current()&&!presenting)status('Prévia concluída.');
         });
         if(shown&&current()&&!presenting)status('Prévia da apresentação.');
       });
       $('[data-present]',root).onclick=()=>run(async current=>{
         if(dirty())return;
-        const selected=item(),image=await cinematicImages.get(selected.imageId);
+        const selected=item(),image=await loadCinematicMedia(selected);
         if(!image)throw Error('Imagem indisponível neste navegador. Anexe novamente e salve.');
         if(current()&&!dirty())await present(selected,image);
+      });
+      $('[data-duplicate]',root).onclick=()=>run(async()=>{
+        if(dirty())return;
+        const copy=duplicateCinematic(scene,item().id),prior=scene.cinematic;
+        scene.cinematic=withCinematic(scene,copy);
+        if(!save(scene)){scene.cinematic=prior;throw Error('Não foi possível salvar a cópia.');}
+        $('[name=selected]',root).innerHTML=option('','Nova apresentação')+cinematicItems(scene).map(entry=>option(entry.id,entry.name,entry.id===copy.id)).join('');
+        fill();status('Cópia salva. As imagens são compartilhadas com a apresentação original.');
       });
       $('[data-stop]',root).onclick=()=>stop();
       fill();
@@ -139,7 +166,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
         closed=true;selectionVersion++;
         root.removeEventListener('input',refresh);root.removeEventListener('change',refresh);
         dialog.removeEventListener('close',cleanup);
-        unsubscribe();removeNotice();frame.clear({immediate:true});
+        unsubscribe();removeNotice();composer.close();frame.clear({immediate:true});
       };
       dialog.addEventListener('close',cleanup);
     },
