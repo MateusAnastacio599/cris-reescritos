@@ -1,9 +1,10 @@
+import {CinematicCameraEditor} from './cinematic-camera-editor.js';
 import {$,esc,option} from './ui.js';
-import {defaultCamera,ANCHORS,changeLayerAnchor,newEffect,EFFECT_TYPES,EASINGS,lightingProfile,LIGHT_PROFILES} from './cinematic-direction-model.js';
+import {ANCHORS,changeLayerAnchor,newEffect,EFFECT_TYPES,EASINGS,lightingProfile,LIGHT_PROFILES} from './cinematic-direction-model.js';
 const input=(label,path,value,min,max,step=.01)=>`<label class="field"><span>${label}</span><input data-property="${path}" type="number" value="${value}" min="${min}" max="${max}" step="${step}"></label>`;
 const toggle=(label,path,value)=>`<label class="check-field"><input data-property="${path}" type="checkbox" ${value?'checked':''}>${label}</label>`;
 export class StudioProperties{
-  constructor(root,{composer,read,change}){Object.assign(this,{root,composer,read,change});}
+  constructor(root,{composer,read,change}){Object.assign(this,{root,composer,read,change});this.cameraEditor=new CinematicCameraEditor();}
   render(){
     const {root,composer}=this,layer=composer.current(),state=this.read();
     const presentation=this.presentation;
@@ -17,10 +18,7 @@ export class StudioProperties{
     }
     if(section==='presentation'){body.append(this.presentation);return;}
     if(section==='camera'){
-      const c=state.camera??defaultCamera();
-      body.innerHTML=`${toggle('Câmera independente','camera.enabled',!!state.camera)}<p class="form-hint">A câmera independente substitui o movimento do preset, preservando a atmosfera. O ponto indica o centro; zoom 1 mostra o fundo inteiro. Os limites evitam bordas vazias.</p><div class="cinematic-actions"><button type="button" data-camera-view="from">Editar início</button><button type="button" data-camera-view="to">Editar fim</button><button type="button" data-camera-center>Focar camada selecionada</button></div>${['from','to'].map(key=>`<h3>${key==='from'?'Início':'Fim'}</h3><div class="cinematic-form-grid">${input('Centro X (%)','camera.'+key+'.x',c[key].x*100,0,100)}${input('Centro Y (%)','camera.'+key+'.y',c[key].y*100,0,100)}${input('Zoom','camera.'+key+'.zoom',c[key].zoom,1,12)}</div>`).join('')}<label class="field">Suavização<select data-property="camera.easing">${EASINGS.map(e=>option(e,e,c.easing===e)).join('')}</select></label>${input('Instabilidade (0–2%)','camera.shake',c.shake*100,0,2,.1)}`;
-      for(const b of body.querySelectorAll('[data-camera-view]'))b.onclick=()=>{composer.cameraEdit=b.dataset.cameraView;composer.camera=this.read().camera??defaultCamera();composer.drawCamera();};
-      $('[data-camera-center]',body).onclick=()=>{if(!layer)return;state.camera??=defaultCamera();state.camera.to.x=layer.x;state.camera.to.y=layer.y;this.change(state);composer.camera=state.camera;composer.drawCamera();this.render();};
+      this.cameraEditor.mount(body,{state,composer,change:this.change,seconds:Number($('[name=seconds]',this.presentation).value)||12,preview:()=>this.preview?.()});return;
     }
     if(section==='effects'){
       body.innerHTML=layer?`<p class="form-hint">${esc(layer.name)} · Efeitos independentes da câmera.</p><div data-effects>${(layer.effects??[]).map((e,i)=>this.effectHTML(e,i)).join('')}</div><label class="field">+ Efeito<select data-new-effect><option value="">Escolher…</option>${Object.entries(EFFECT_TYPES).map(([id,label])=>option(id,label)).join('')}</select></label><button type="button" data-breath-profile>Perfil: respiração pelos pés</button>`:'Selecione uma camada para configurar efeitos.';
@@ -43,13 +41,7 @@ export class StudioProperties{
       if(path[0]==='effect'){
         let target=layer.effects[Number(path[1])];for(const k of path.slice(2,-1))target=target[k];target[path.at(-1)]=value;this.changedLayer(false);return;
       }
-      if(path[0]==='camera'){
-        if(path[1]==='enabled'){if(value)state.camera=defaultCamera();else delete state.camera;}
-        else{state.camera??=defaultCamera();if(path.length===3)state.camera[path[1]][path[2]]=value/(path[2]==='zoom'?1:100);else state.camera[path[1]]=path[1]==='shake'?value/100:value;}
-        composer.camera=state.camera;composer.drawCamera();
-      }else{
-        state.lighting??=lightingProfile();let target=state;for(const k of path.slice(0,-1))target=target[k];target[path.at(-1)]=value;
-      }
+      state.lighting??=lightingProfile();let target=state;for(const k of path.slice(0,-1))target=target[k];target[path.at(-1)]=value;
       this.change(state);if(path[1]==='enabled')this.render();
     };
   }

@@ -1,3 +1,4 @@
+import {cameraPoints,cameraPoint} from './cinematic-camera-model.js';
 import {CINEMATIC_MAX_LAYERS,checkCinematicUpload} from './cinematic-model.js';
 import {cinematicImages,imageKey,cinematicDimensions,loadCinematicMedia} from './cinematic-media.js';
 import {loadComposition,fitComposition,positionCinematicLayer} from './cinematic-composition.js';
@@ -42,7 +43,7 @@ export class CinematicLayersEditor{
       if(e.button!==0||!this.composition)return;
       const bounds=this.composition.world.getBoundingClientRect();
       if(this.space){e.preventDefault();this.drag={kind:'view',pointer:e.pointerId,x:e.clientX,y:e.clientY,startX:this.view.x,startY:this.view.y,width:bounds.width,height:bounds.height};}
-      else if(this.cameraEdit&&e.target.closest('[data-camera-handle]')){e.preventDefault();this.drag={kind:'camera',pointer:e.pointerId,bounds,x:e.clientX,y:e.clientY,startX:this.camera[this.cameraEdit].x,startY:this.camera[this.cameraEdit].y};}
+      else if(this.cameraEdit&&e.target.closest('[data-camera-handle],[data-camera-select]')){e.preventDefault();const key=e.target.closest('[data-camera-select]')?.dataset.cameraSelect;if(key){this.cameraEdit=key;this.onCameraSelect?.(key);}const pose=cameraPoint(this.camera,this.cameraEdit)?.pose;if(!pose)return;this.drag={kind:'camera',pointer:e.pointerId,bounds,x:e.clientX,y:e.clientY,startX:pose.x,startY:pose.y};}
       else{
         const id=e.target.closest('[data-cinematic-layer]')?.dataset.cinematicLayer;if(!id)return;
         e.preventDefault();this.selected=id;this.list();this.updateControls();this.onSelect();const l=this.current();
@@ -53,7 +54,7 @@ export class CinematicLayersEditor{
     canvas.onpointermove=e=>{
       const d=this.drag;if(!d||d.pointer!==e.pointerId)return;
       if(d.kind==='view'){this.view.x=d.startX+(e.clientX-d.x)/d.width;this.view.y=d.startY+(e.clientY-d.y)/d.height;this.applyView();return;}
-      if(d.kind==='camera'){const pose=this.camera?.[this.cameraEdit];if(pose){pose.x=bounded(d.startX+(e.clientX-d.x)/d.bounds.width,0,1);pose.y=bounded(d.startY+(e.clientY-d.y)/d.bounds.height,0,1);this.drawCamera();}return;}
+      if(d.kind==='camera'){const pose=this.camera&&cameraPoint(this.camera,this.cameraEdit)?.pose;if(pose){pose.x=bounded(d.startX+(e.clientX-d.x)/d.bounds.width,0,1);pose.y=bounded(d.startY+(e.clientY-d.y)/d.bounds.height,0,1);this.drawCamera();}return;}
       const l=this.current();if(d.kind==='scale')l.scale=bounded(d.scale+2*(e.clientX-d.x)/d.width,.001,3);
       else{l.x=bounded(d.startX+(e.clientX-d.x)/d.width,0,1);l.y=bounded(d.startY+(e.clientY-d.y)/d.height,0,1);}
       this.place();this.updateControls();
@@ -63,6 +64,10 @@ export class CinematicLayersEditor{
     canvas.onkeyup=e=>{if(e.code==='Space')this.space=false;};canvas.onblur=()=>{this.space=false;};
     canvas.onkeydown=e=>{
       if(e.code==='Space'){e.preventDefault();this.space=true;return;}
+      if(this.cameraEdit&&this.camera&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+        const pose=cameraPoint(this.camera,this.cameraEdit)?.pose,step=e.shiftKey?.0005:.005;if(!pose)return;e.preventDefault();
+        pose.x=bounded(pose.x+({ArrowLeft:-step,ArrowRight:step}[e.key]??0),0,1);pose.y=bounded(pose.y+({ArrowUp:-step,ArrowDown:step}[e.key]??0),0,1);this.drawCamera();this.onCameraChange?.(this.camera);return;
+      }
       const l=this.current(),step=e.shiftKey?.0005:.005;if(!l||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();
       l.x=bounded(l.x+({ArrowLeft:-step,ArrowRight:step}[e.key]??0),0,1);l.y=bounded(l.y+({ArrowUp:-step,ArrowDown:step}[e.key]??0),0,1);this.place();this.updateControls();this.onChange();
     };
@@ -94,9 +99,19 @@ export class CinematicLayersEditor{
   }
   applyView(){if(!this.composition)return;const v=this.view;this.composition.world.style.transform=`translate(-50%,-50%) scale(${v.zoom}) translate(${v.x*100}%,${v.y*100}%)`;$('[data-view-zoom]',this.root).textContent=Math.round(v.zoom*100)+'%';this.placeHandles();}
   drawCamera(){
-    this.canvas.querySelector('[data-camera-handle]')?.remove();if(!this.cameraEdit||!this.composition||!this.camera)return;
-    const p=safeCameraPose(this.camera[this.cameraEdit]),rect=document.createElement('div');rect.dataset.cameraHandle='';rect.className='cinematic-camera-handle';Object.assign(rect.style,{left:(p.x-.5/p.zoom)*100+'%',top:(p.y-.5/p.zoom)*100+'%',width:100/p.zoom+'%',height:100/p.zoom+'%'});rect.textContent=this.cameraEdit==='from'?'Câmera: início':'Câmera: fim';this.composition.world.append(rect);
+    for(const node of this.canvas.querySelectorAll('.cinematic-camera-path,[data-camera-handle],[data-camera-select]'))node.remove();
+    if(!this.cameraEdit||!this.composition||!this.camera)return;
+    const points=cameraPoints(this.camera),document=this.root.ownerDocument,world=this.composition.world;
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('cinematic-camera-path');svg.setAttribute('viewBox','0 0 1000 1000');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-hidden','true');
+    const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');line.setAttribute('points',points.map(p=>{const safe=safeCameraPose(p.pose);return `${safe.x*1000},${safe.y*1000}`;}).join(' '));svg.append(line);world.append(svg);
+    for(const [i,point] of points.entries()){
+      const pose=safeCameraPose(point.pose),marker=document.createElement('button');marker.type='button';marker.className='cinematic-camera-marker';marker.dataset.cameraSelect=point.id;marker.textContent=String.fromCharCode(65+i);marker.setAttribute('aria-label','Editar enquadramento '+marker.textContent);marker.setAttribute('aria-pressed',String(point.id===this.cameraEdit));marker.style.left=pose.x*100+'%';marker.style.top=pose.y*100+'%';
+      marker.onclick=()=>{this.cameraEdit=point.id;this.onCameraSelect?.(point.id);};world.append(marker);
+    }
+    const selected=cameraPoint(this.camera,this.cameraEdit);if(!selected)return;
+    const p=safeCameraPose(selected.pose),rect=document.createElement('div');rect.dataset.cameraHandle='';rect.className='cinematic-camera-handle';Object.assign(rect.style,{left:(p.x-.5/p.zoom)*100+'%',top:(p.y-.5/p.zoom)*100+'%',width:100/p.zoom+'%',height:100/p.zoom+'%'});rect.textContent='Enquadramento '+String.fromCharCode(65+points.findIndex(point=>point.id===selected.id));world.append(rect);
   }
+
   pool(id,file){const total=[...this.files].reduce((sum,[key,blob])=>sum+(key===id?0:blob.size),0)+file.size;if(total>64*1024*1024)throw Error('O rascunho atingiu 64 MB. Salve e reabra o Studio para liberar os arquivos do histórico.');this.files.set(id,file);}
   async add(){
     const file=$('[data-layer-file]',this.root).files[0];if(!file||this.busy||this.layers.length>=CINEMATIC_MAX_LAYERS)return;const revision=this.revision;this.busy=true;this.list();let added;

@@ -30,6 +30,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
   });
   const dirty=()=>{
     const saved=item();
+    if(root.querySelector('[data-camera-invalid=true]'))return true;
     if(!saved||backgroundId||$('[name=image]',root).files.length||composer?.busy)return true;
     if(JSON.stringify(composer?.value()??[])!==JSON.stringify(saved.layers??[]))return true;
     if(JSON.stringify(direction)!==JSON.stringify(Object.fromEntries(['camera','lighting'].filter(k=>saved[k]!==undefined).map(k=>[k,saved[k]]))))return true;
@@ -109,6 +110,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       <p role="status" class="cinematic-status"></p>
       <details class="cinematic-layers-editor" open></details>`,
     async onSubmit(){
+      if(root.querySelector('[data-camera-invalid=true]'))throw Error('Corrija os ajustes inválidos da câmera antes de salvar.');
       const version=selectionVersion,selected=item(),draft=values(),image=await imageFor();
       if(!selected&&cinematicItems(scene).length>=CINEMATIC_MAX_ITEMS)throw Error('Esta cena já tem 12 apresentações.');
       if(composer.busy)throw Error('Aguarde o carregamento da camada antes de salvar.');
@@ -142,7 +144,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       for(const node of [...root.querySelectorAll('.cinematic-form-grid,[data-duration]')])settings.append(node);
       composer=new CinematicLayersEditor($('.cinematic-layers-editor',root),{background:imageFor,onChange:record,onError:status,onSelect:()=>properties?.render()});
       properties=new StudioProperties($('[data-studio-properties]',root),{composer,read:()=>structuredClone(direction),change:value=>{direction=value;composer.lighting=direction.lighting;record();void composer.render();}});
-      properties.presentation=settings;properties.section='presentation';composer.onAnchor=(layer,anchor)=>properties.anchor(layer,anchor);composer.onCameraChange=camera=>{direction.camera=camera;record();properties.render();};
+      properties.preview=()=>$('[data-preview]',root).click();properties.presentation=settings;properties.section='presentation';composer.onAnchor=(layer,anchor)=>properties.anchor(layer,anchor);composer.onCameraChange=camera=>{direction.camera=camera;record();properties.render();};
       properties.render();
       frame=new CinematicFrame($('.cinematic-frame',root),{onWarning:status});removeNotice=mountMotionNotice($('[data-motion-notice]',root));
       $('[name=selected]',root).onchange=fill;
