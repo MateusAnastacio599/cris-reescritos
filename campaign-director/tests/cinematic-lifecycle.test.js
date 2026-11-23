@@ -167,3 +167,10 @@ test('an immediate stop can supersede a fade already in progress and acknowledge
   assert.equal(replies.filter(reply=>reply.type==='ended').length,1);
   assert.equal(receiver.ending,null);
 });
+
+// Direction windows must not shorten the scene lifecycle to the camera movement.
+test('independent scene duration holds until 14 s even when camera movement lasts 4 s',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const previous=globalThis.matchMedia;globalThis.matchMedia=()=>({matches:true});t.after(()=>{if(previous)globalThis.matchMedia=previous;else delete globalThis.matchMedia;});
+ const {frame,layer}=fakeLayer();let ended=0;await frame.show(image,{...legacy,seconds:4,hold:0,sceneDuration:14,fadeOut:.3},()=>ended++);
+ t.mock.timers.tick(4000);assert.equal(layer.classList.contains('cinematic-visible'),true);t.mock.timers.tick(9999);assert.equal(layer.classList.contains('cinematic-visible'),true);t.mock.timers.tick(1);assert.equal(layer.classList.contains('cinematic-visible'),false);t.mock.timers.tick(330);await Promise.resolve();assert.equal(layer.isConnected,false);assert.equal(ended,1);
+});

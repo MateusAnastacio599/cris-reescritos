@@ -1,3 +1,4 @@
+import {mountDirectorLights} from './cinematic-light-player.js';
 import {CinematicVideoLayer} from './cinematic-video.js';
 import {mountLighting} from './cinematic-direction-player.js';
 import {validateCompositionMedia,matchesCinematicDimensions} from './cinematic-media.js';
@@ -49,10 +50,10 @@ export async function loadComposition(asset,item,document,{signal,video=false,wa
   signal?.addEventListener('abort',dispose,{once:true});
   const planes=[];
   try{
-    const entries=[{id:'background',name:item.name,imageId:item.imageId,visible:true},...(item.layers??[])];
+    const entries=[{id:'background',name:item.name,imageId:item.imageId,visible:true,...(item.backgroundVideo?{video:item.backgroundVideo}:{})},...(item.layers??[])];
     for(const entry of entries){
       signal?.throwIfAborted();
-      const effects=[];
+      const effects=[];let visibility;
       const plane=document.createElement('div');plane.className='cinematic-plane';plane.dataset.plane=entry.id;
       const image=document.createElement('img');nodes.push(image);
       if(!urls.has(entry.imageId))urls.set(entry.imageId,URL.createObjectURL(asset[entry.imageId]));
@@ -64,18 +65,19 @@ export async function loadComposition(asset,item,document,{signal,video=false,wa
       if(entry.id==='background'){image.className='cinematic-background';plane.append(image);}
       else{
         const position=document.createElement('div');position.className='cinematic-layer-position';
-        position.dataset.cinematicLayer=entry.id;positionCinematicLayer(position,entry);
-        let parent=position;
-        for(const effect of entry.effects??[]){const node=document.createElement('div');node.className='cinematic-layer-effect';node.style.transformOrigin=`${(entry.anchor?.x??.5)*100}% ${(entry.anchor?.y??.5)*100}%`;parent.append(node);parent=node;effects.push({node,effect});}
+        position.dataset.cinematicLayer=entry.id;position.dataset.locked=String(!!entry.locked);positionCinematicLayer(position,entry);
+        visibility=document.createElement('div');visibility.className='cinematic-layer-visibility';position.append(visibility);let parent=visibility;
+        for(const effect of entry.effects??[]){const node=document.createElement('div');node.className='cinematic-layer-effect';node.style.transformOrigin=`${(effect.anchor?.x??entry.anchor?.x??.5)*100}% ${(effect.anchor?.y??entry.anchor?.y??.5)*100}%`;parent.append(node);parent=node;effects.push({node,effect});}
         parent.append(image);plane.append(position);
-        if(video&&entry.video){const player=new CinematicVideoLayer({document,container:parent,fallback:image,blob:asset[entry.video.mediaId],config:entry.video,metadata:dimensions.get(entry.video.mediaId),warn});videos.push(player);void player.prepare().catch(()=>{if(!player.closed)player.fail();});signal?.throwIfAborted();}
+        if(video&&entry.video){const player=new CinematicVideoLayer({document,container:parent,fallback:image,blob:asset[entry.video.mediaId],config:entry.video,span:item.sceneDuration??(item.seconds+(item.hold??2)),metadata:dimensions.get(entry.video.mediaId),warn});videos.push(player);void player.prepare().catch(()=>{if(!player.closed)player.fail();});signal?.throwIfAborted();}
       }
-      camera.append(plane);planes.push({plane,entry,effects});
+      if(video&&entry.id==='background'&&entry.video){const player=new CinematicVideoLayer({document,container:plane,fallback:image,blob:asset[entry.video.mediaId],config:entry.video,span:item.sceneDuration??(item.seconds+(item.hold??2)),metadata:dimensions.get(entry.video.mediaId),warn});videos.push(player);void player.prepare().catch(()=>{if(!player.closed)player.fail();});}
+      camera.append(plane);planes.push({plane,entry,effects,visibility});
     }
     const background=nodes[0];
     const composition={world,camera,jitter,planes,videos,aspect:background.naturalWidth/background.naturalHeight,dispose};
     composition.pulses=mountLighting(composition,item.lighting,document);
-    return composition;
+    mountDirectorLights(composition,item.lighting,document);return composition;
   }catch(error){dispose();throw error;}
 }
 

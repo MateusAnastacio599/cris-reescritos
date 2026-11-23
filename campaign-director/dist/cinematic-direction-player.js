@@ -1,3 +1,4 @@
+import {NEW_FX} from './cinematic-fx.js';
 import {animateCameraPath} from './cinematic-camera-player.js';
 import {cameraTransform,defaultCamera} from './cinematic-direction-model.js';
 
@@ -14,7 +15,7 @@ export function effectFrames(effect){
 export function animateLayerEffects(composition,currentTime){
   const animations=[];
   for(const {entry,effects} of composition.planes)for(const {node,effect} of effects??[]){
-    if(!entry.visible||!effect.enabled)continue;
+    if(!entry.visible||!effect.enabled||effect.window||Object.hasOwn(NEW_FX,effect.type))continue;
     const animation=node.animate(effectFrames(effect),{duration:effect.duration*1000,delay:effect.start*1000,fill:'both',iterations:effect.repeat?Infinity:1,direction:effect.repeat&&['move','opacity'].includes(effect.type)?'alternate':'normal',easing:effect.easing});
     animation.currentTime=currentTime;animations.push(animation);
   }
@@ -22,7 +23,7 @@ export function animateLayerEffects(composition,currentTime){
 }
 export function animateDirectionCamera(composition,item,timing,currentTime){
   const camera=item.camera??defaultCamera();
-  const advanced=camera.path!==undefined||camera.instability!==undefined;
+  const advanced=camera.path!==undefined||camera.instability!==undefined||camera.window!==undefined;
   const animations=advanced?animateCameraPath(composition,{...item,camera},timing,currentTime):[];
   if(!advanced){
   const animation=composition.camera.animate([{transform:cameraTransform(camera.from)},{transform:cameraTransform(camera.to)}],{...timing,easing:camera.easing,direction:timing.iterations===Infinity?'alternate':'normal'});
@@ -50,7 +51,7 @@ export function mountLighting(composition,lighting,document){
   return pulses;
 }
 export function animateLighting(pulses,currentTime){
-  return pulses.filter(({spot})=>spot.pulse).map(({node,spot})=>{
+  return pulses.filter(({spot})=>spot.pulse&&!spot.window&&!spot.flicker&&!spot.kind).map(({node,spot})=>{
     const animation=node.animate([{opacity:spot.intensity},{opacity:Math.max(0,spot.intensity-spot.pulse)},{opacity:spot.intensity}],{duration:spot.seconds*1000,iterations:Infinity,easing:'ease-in-out'});
     animation.currentTime=currentTime;return animation;
   });

@@ -1,3 +1,6 @@
+import {sceneSpan} from './cinematic-timing.js';
+import {animateTimedFX} from './cinematic-fx.js';
+import {animateDirectorLights} from './cinematic-light-player.js';
 import {cameraTransform} from './cinematic-direction-model.js';
 import {animateDirectionCamera,animateLayerEffects,animateLighting} from './cinematic-direction-player.js';
 import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js';
@@ -68,7 +71,7 @@ export class CinematicFrame{
     this.warnings.clear();
     this.loading?.abort();
     const loading=new AbortController();this.loading=loading;
-    if(item.layers?.length||item.camera||item.lighting||item.motion==='custom'){
+    if(item.layers?.length||item.backgroundVideo||item.camera||item.lighting||item.motion==='custom'){
       const resources=asset instanceof Blob?{[item.imageId]:asset}:asset;
       const composition=await loadComposition(resources,item,this.element.ownerDocument,{signal:loading.signal,video:true,warn:message=>{if(generation!==this.generation)return;this.warnings.add(message);this.onWarning(message);if(this.item)this.showWarnings();}});
       if(generation!==this.generation){composition.dispose();return false;}
@@ -118,13 +121,13 @@ export class CinematicFrame{
   scheduleEnd(generation=this.generation){
     clearTimeout(this.automaticTimer);
     if(!this.item||!this.playing||cinematicEnding(this.item).ending!=='auto')return;
-    const remaining=Math.max(0,this.item.seconds+cinematicEnding(this.item).hold-this.time());
+    const remaining=Math.max(0,sceneSpan(this.item)-this.time());
     this.automaticTimer=setTimeout(async()=>{
       const callback=this.onEnd;
       if(generation===this.generation&&await this.clear())callback?.();
     },remaining*1000);
   }
-  syncVideos(force=false){for(const video of this.composition?.videos??[])video.sync(this.time(),this.playing,this.motionReduced,force);}
+  syncVideos(force=false){const time=this.time();for(const video of this.composition?.videos??[])video.sync(video.config.window&&this.item?.ending==='loop'?time%sceneSpan(this.item):time,this.playing,this.motionReduced,force);}
   pause(){
     if(!this.item||!this.playing)return;
     this.position=this.time();this.playing=false;clearTimeout(this.automaticTimer);
@@ -137,7 +140,7 @@ export class CinematicFrame{
   }
   seek(seconds){
     if(!this.item)return;
-    this.position=Math.min(this.item.seconds+cinematicEnding(this.item).hold,Math.max(0,seconds));this.startedAt=performance.now();
+    this.position=Math.min(sceneSpan(this.item),Math.max(0,seconds));this.startedAt=performance.now();
     for(const animation of this.animations)animation.currentTime=this.position*1000;
     this.scheduleEnd();this.syncVideos(true);
   }
@@ -175,9 +178,9 @@ export class CinematicFrame{
       const currentTime=timing.iterations===Infinity?this.time()*1000:Math.min(this.time()*1000,timing.duration);
       if(this.composition){
         if(item.camera||item.motion==='custom'){
-          this.animations.push(...animateDirectionCamera(this.composition,item,timing,currentTime));
+          this.animations.push(...animateDirectionCamera(this.composition,item,timing,this.time()*1000));
 
-        }else this.animations.push(...animateComposition(this.composition,item,frames,timing,currentTime));
+        }else this.animations.push(...animateComposition(this.composition,item,frames,timing,this.time()*1000));
         this.animations.push(...animateLayerEffects(this.composition,this.time()*1000),...animateLighting(this.composition.pulses,this.time()*1000));
       }
       else{
@@ -194,6 +197,7 @@ export class CinematicFrame{
         this.animations.push(light);
       }
     }
+    if(this.composition)this.animations.push(...animateTimedFX(this.composition,item,this.time()*1000,{reduced:this.motionReduced}),...animateDirectorLights(this.composition,item,this.time()*1000,this.motionReduced));
     if(!this.playing)for(const animation of this.animations)animation.pause();
     this.syncVideos();
     if(this.mount&&this.motion.media?.matches){

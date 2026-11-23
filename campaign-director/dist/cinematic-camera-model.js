@@ -1,3 +1,4 @@
+import {validWindow} from './cinematic-timing.js';
 // Optional camera extensions; endpoints and legacy shake retain their original contract.
 export const CAMERA_EASINGS=Object.freeze(['linear','ease','ease-in','ease-out','ease-in-out']);
 export const CAMERA_MAX_POINTS=6;
@@ -6,12 +7,13 @@ const finite=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
 const record=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(k=>keys.includes(k));
 export const cameraPoseValid=p=>record(p,['x','y','zoom'])&&finite(p.x,0,1)&&finite(p.y,0,1)&&finite(p.zoom,1,12);
 export function validInstability(s){
-  return !!record(s,['enabled','amount','horizontal','vertical','rotation','frequency','smoothness','irregularity','initial','final','start','end','fadeIn','fadeOut','seed'])&&
+  return !!record(s,['enabled','amount','horizontal','vertical','rotation','frequency','smoothness','irregularity','initial','final','start','end','fadeIn','fadeOut','seed','window'])&&(s.window===undefined||validWindow(s.window))&&
     typeof s.enabled==='boolean'&&['amount','smoothness','irregularity','initial','final','fadeIn','fadeOut'].every(k=>finite(s[k],0,1))&&
     finite(s.horizontal,0,.015)&&finite(s.vertical,0,.015)&&finite(s.rotation,0,1.2)&&finite(s.frequency,.1,4)&&
     finite(s.start,0,.99)&&finite(s.end,.01,1)&&s.end-s.start>=CAMERA_GAP-1e-9&&s.fadeIn+s.fadeOut<=1+1e-9&&Number.isInteger(s.seed)&&finite(s.seed,0,65535);
 }
 export function validCameraExtensions(camera){
+  if(camera.window!==undefined&&!validWindow(camera.window))return false;
   if(camera.instability!==undefined&&!validInstability(camera.instability))return false;
   if(camera.path===undefined)return true;
   const path=camera.path;

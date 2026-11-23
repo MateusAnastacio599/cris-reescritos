@@ -1,3 +1,4 @@
+import {sceneSpan,windowRange,timedFrames,temporalAnimation} from './cinematic-timing.js';
 import {cameraPoints} from './cinematic-camera-model.js';
 import {cameraTransform} from './cinematic-direction-model.js';
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -35,14 +36,25 @@ export function cameraPathFrames(camera,transform=point=>cameraTransform(point.p
   }
   return frames;
 }
+export function remapCameraFrames(frames,window,span){
+  if(!window)return frames;
+  const {start,end}=windowRange(window,span);if(end<=start)return [{...frames[0],offset:0},{...frames[0],offset:1}];
+  const mapped=frames.map(f=>({...f,offset:(start+(end-start)*f.offset)/span}));
+  if(start>0)mapped.unshift({...mapped[0],offset:0,easing:'linear'});
+  if(end<span)mapped.push({...mapped.at(-1),offset:1,easing:'linear'});return mapped;
+}
 export function animateCameraPath(composition,item,timing,currentTime){
   const camera=item.camera,animations=[];
   const start=(node,frames,options)=>{const animation=node.animate(frames,options);animation.currentTime=currentTime;animations.push(animation);};
-  const options={...timing,easing:'linear',direction:timing.iterations===Infinity?'alternate':'normal'};
-  start(composition.camera,cameraPathFrames(camera),options);
+  const span=sceneSpan(item),options={...timing,duration:camera.window?span*1000:timing.duration,easing:'linear',direction:timing.iterations===Infinity?'alternate':'normal'};
+  start(composition.camera,remapCameraFrames(cameraPathFrames(camera),camera.window,span),options);
   for(const {plane,entry} of composition.planes)if(entry.id!=='background'&&entry.parallax){
-    start(plane,cameraPathFrames(camera,p=>`translate(${(p.pose.x-camera.from.x)*entry.parallax*-3}%, ${(p.pose.y-camera.from.y)*entry.parallax*-3}%)`),options);
+    start(plane,remapCameraFrames(cameraPathFrames(camera,p=>`translate(${(p.pose.x-camera.from.x)*entry.parallax*-3}%, ${(p.pose.y-camera.from.y)*entry.parallax*-3}%)`),camera.window,span),options);
   }
-  if(camera.instability?.enabled)start(composition.jitter,advancedInstabilityFrames(camera.instability,item.seconds,composition.aspect),options);
+  if(camera.instability?.enabled){
+    const s=camera.instability;
+    if(s.window){const {start:begin,end}=windowRange(s.window,span),scale=instabilityOverscan(s,composition.aspect);const frames=timedFrames(span,t=>{const p=t>=begin&&t<=end?instabilityAt({...s,fadeIn:s.window.fadeIn/(end-begin),fadeOut:s.window.fadeOut/(end-begin)},t-begin,end-begin):{x:0,y:0,rotation:0};return {transform:`translate(${p.x*100}%, ${p.y*100}%) rotate(${p.rotation}deg) scale(${scale})`};});animations.push(temporalAnimation(composition.jitter,frames,span,currentTime,item.ending==='loop'));}
+    else start(composition.jitter,advancedInstabilityFrames(s,item.seconds,composition.aspect),{...options,duration:timing.duration});
+  }
   return animations;
 }
