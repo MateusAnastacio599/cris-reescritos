@@ -29,7 +29,7 @@ $('#run').onclick=async()=>{
     }
     const iris=selectLayer('iris');edit('[data-layer-anchor]','feet');section('effects');$('[data-breath-profile]',dd()).click();
     section('transform');await inputFile('[data-video-file]','cinematic-studio/iris.webm','video/webm');await wait(()=>!$('[data-video-settings]',dd()).hidden);log('Camadas',{iris,escala:Number($('[data-layer-scale]',dd()).value),webm:'VP9 + PNG',atores:'sem efeitos próprios'});
-    section('camera');$('[data-property="camera.enabled"]',dd()).click();edit('[data-property="camera.to.zoom"]','2.2');edit('[data-property="camera.to.x"]','50');edit('[data-property="camera.to.y"]','60');
+    section('camera');$('[data-camera-field=enabled]',dd()).click();$('[data-camera-point=to]',dd()).click();edit('[data-camera-field="pose.zoom"]','2.2');edit('[data-camera-field="pose.x"]','50');edit('[data-camera-field="pose.y"]','60');
     section('lighting');edit('[data-light-profile]','theater');section('presentation');const id=await save();
     assert(!$('[data-present]',dd()).disabled,'Versão salva deve permitir Apresentar');
     $('[data-preview]',dd()).click();const preview=await wait(()=>$('.cinematic-studio-preview .cinematic-world',dd()));
