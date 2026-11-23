@@ -32,8 +32,8 @@ test('motion opt-in is local, reversible, and follows changes to the system pref
   remove();
 });
 
-test('ten presets, safe fades and total duration preserve old data defaults',()=>{
-  assert.equal(Object.keys(CINEMATIC_MOTIONS).length,10);
+test('ten original presets and controllable camera, safe fades and total duration preserve old data defaults',()=>{
+  assert.equal(Object.keys(CINEMATIC_MOTIONS).length,11);
   assert.deepEqual(cinematicFades({}),{fadeIn:.3,fadeOut:.3});
   assert.equal(cinematicTotal(item),4.5);
   for(const motion of Object.keys(CINEMATIC_MOTIONS))assert.ok(isCinematic({...item,motion}));

@@ -38,7 +38,7 @@ function fakeLayer(){
   const calls=[],classes=new Set();
   const document={createElement:tag=>({tag,naturalWidth:100,naturalHeight:100,
     ownerDocument:document,replaceChildren(){},append(){},setAttribute(){},decode:async()=>{},animate(frames,timing){
-      const animation={frames,timing,cancelled:false,cancel(){this.cancelled=true;}};
+      const animation={frames,timing,cancelled:false,cancel(){this.cancelled=true;},pause(){this.paused=true;},play(){this.paused=false;}};
       calls.push(animation);return animation;
     }})};
   const layer={ownerDocument:document,style:{setProperty(){}},hidden:true,isConnected:false,children:[],
