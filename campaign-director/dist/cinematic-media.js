@@ -1,4 +1,5 @@
-import {CINEMATIC_MAX_BYTES,CINEMATIC_TYPES,checkCinematicImage,cinematicReferences,cinematicImageIds,cinematicItems,isCinematicPayload,isCinematicBlob,CINEMATIC_COMPOSITION_PIXELS} from './cinematic-model.js';
+import {checkCinematicVideo} from './cinematic-video.js';
+import {CINEMATIC_MAX_BYTES,CINEMATIC_TYPES,checkCinematicImage,cinematicReferences,cinematicItems,cinematicMediaIds,isCinematicPayload,isCinematicBlob,CINEMATIC_COMPOSITION_PIXELS} from './cinematic-model.js';
 
 let pending;
 function database(){
@@ -34,9 +35,9 @@ export const cinematicImages={
 };
 
 export async function imageKey(image){
-  await checkCinematicImage(image);
+  if(image?.type==='video/webm')await checkCinematicVideo(image);else await checkCinematicImage(image);
   const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',await image.arrayBuffer()));
-  return 'image-'+[...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+  return (image.type==='video/webm'?'video-':'image-')+[...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('');
 }
 
 export async function storeCinematicImage(image,images=cinematicImages){
@@ -71,7 +72,7 @@ export async function readCinematicBackup(state,media,images){
       if(existing&&await imageKey(existing)===id){entries.push([id,existing]);continue;}
       throw Error(`O backup não contém a imagem de “${name}”. Use um backup completo com as imagens.`);
     }
-    if(!CINEMATIC_TYPES.includes(data.type)||typeof data.base64!=='string'||data.base64.length>Math.ceil(CINEMATIC_MAX_BYTES/3)*4){
+    if(![...CINEMATIC_TYPES,'video/webm'].includes(data.type)||typeof data.base64!=='string'||data.base64.length>Math.ceil(CINEMATIC_MAX_BYTES/3)*4){
       throw Error(`Imagem inválida no backup de “${name}”.`);
     }
     const image=new Blob([Uint8Array.from(atob(data.base64),char=>char.charCodeAt(0))],{type:data.type});
@@ -134,19 +135,22 @@ export async function validateCompositionMedia(item,asset,{decode=false}={}){
   const valid=item.layers?.length?isCinematicPayload(asset,item):asset&&Object.keys(asset).length===1&&isCinematicBlob(asset[item.imageId]);
   if(!valid)throw Error('Composição incompleta ou acima de 24 MB. Confira o fundo e todas as camadas.');
   const dimensions=new Map();
-  for(const id of cinematicImageIds(item)){
+  for(const id of cinematicMediaIds(item)){
     if(await imageKey(asset[id])!==id)throw Error('Os dados de uma imagem da composição não correspondem ao hash salvo.');
-    dimensions.set(id,await cinematicDimensions(asset[id]));
+    dimensions.set(id,await (id.startsWith('video-')?checkCinematicVideo(asset[id]):cinematicDimensions(asset[id])));
   }
   let pixels=dimensions.get(item.imageId).pixels;
   for(const layer of item.layers??[]){
-    if(!['image/png','image/webp'].includes(asset[layer.imageId].type))throw Error('Use PNG ou WebP nas camadas adicionais.');
+    if(layer.video&&asset[layer.imageId].type!=='image/png')throw Error('Uma camada WebM exige fallback PNG.');
+    if(layer.video){const video=dimensions.get(layer.video.mediaId),fallback=dimensions.get(layer.imageId);pixels+=video.pixels*3;
+      if(Math.abs(video.width/video.height-fallback.width/fallback.height)>.01)throw Error('O PNG de fallback deve ter a mesma proporção do vídeo.');}
     const cost=dimensions.get(layer.imageId).pixels;
     if(cost>8000000)throw Error('Cada camada adicional deve ter até 8 megapixels.');
     pixels+=cost;
   }
   if(pixels>CINEMATIC_COMPOSITION_PIXELS)throw Error('A composição deve ter até 24 megapixels somando o fundo e as camadas.');
   if(decode&&typeof globalThis.createImageBitmap==='function')for(const [id,size] of dimensions){
+    if(id.startsWith('video-'))continue;
     const bitmap=await createImageBitmap(asset[id]).catch(()=>{throw Error('Uma imagem da composição está corrompida. Reanexe o arquivo original.');});
     const matches=matchesCinematicDimensions(asset[id],size,bitmap.width,bitmap.height);bitmap.close();
     if(!matches)throw Error('Dimensões inconsistentes na imagem da composição.');
@@ -157,7 +161,7 @@ export async function validateCompositionMedia(item,asset,{decode=false}={}){
 async function validateWorkspaceCompositions(state,entries,decode=false){
   for(const campaign of state.campaigns)for(const page of campaign.pages)for(const scene of page.scenes){
     for(const item of cinematicItems(scene))if(item.layers?.length){
-      await validateCompositionMedia(item,Object.fromEntries(cinematicImageIds(item).map(id=>[id,entries.get(id)])),{decode});
+      await validateCompositionMedia(item,Object.fromEntries(cinematicMediaIds(item).map(id=>[id,entries.get(id)])),{decode});
     }
   }
 }
@@ -169,7 +173,7 @@ export async function loadCinematicMedia(item,images=cinematicImages,{background
     return image;
   }
   const entries=[];
-  for(const id of cinematicImageIds(item)){
+  for(const id of cinematicMediaIds(item)){
     const image=id===item.imageId&&background?background:files.get(id)??await images.get(id);
     if(!image)throw Error(`Arquivo ausente na composição “${item.name}”. Reanexe o fundo ou a camada e salve antes de apresentar.`);
     entries.push([id,image]);

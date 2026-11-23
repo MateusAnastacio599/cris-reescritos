@@ -1,3 +1,4 @@
+import {animateDirectionCamera,animateLayerEffects,animateLighting} from './cinematic-direction-player.js';
 import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js';
 import {checkCinematicImage,cinematicEnding,cinematicFades} from './cinematic-model.js';
 import {cinematicMotion,mountMotionNotice} from './cinematic-motion.js';
@@ -13,8 +14,8 @@ export function cinematicFrames({motion,intensity},reducedMotion=false){
   if(motion==='zoomIn'||motion==='reveal'||motion==='apparition')return [still,zoom];
   if(motion==='zoomOut')return [zoom,still];
   if(motion==='living'){
-    const start=move(-.10,.05,.33);
-    return [start,move(.13,-.08,.84),start];
+    const start=move(0,0,.33);
+    return [start,move(0,0,.84),start];
   }
   if(motion==='breath'){
     const rest=move(0,.06,.24);
@@ -45,11 +46,11 @@ function atmosphere(motion,intensity){
 }
 
 export class CinematicFrame{
-  constructor(element,{mount=null,motion=cinematicMotion(),onMotion=()=>{}}={}){
+  constructor(element,{mount=null,motion=cinematicMotion(),onMotion=()=>{},onWarning=()=>{}}={}){
     this.element=element;
     this.mount=mount;
     this.motion=motion;
-    this.onMotion=onMotion;
+    this.onMotion=onMotion;this.onWarning=onWarning;this.warnings=new Set();
     this.generation=0;
     this.animations=[];
     this.element.style.setProperty('--cinematic-fade',CINEMATIC_FADE_MS+'ms');
@@ -63,10 +64,12 @@ export class CinematicFrame{
   async show(asset,item,onEnd){
     const generation=++this.generation;
     this.cancelTimers();
+    this.warnings.clear();
     this.loading?.abort();
     const loading=new AbortController();this.loading=loading;
-    if(item.layers?.length){
-      const composition=await loadComposition(asset,item,this.element.ownerDocument,{signal:loading.signal});
+    if(item.layers?.length||item.camera||item.lighting||item.motion==='custom'){
+      const resources=asset instanceof Blob?{[item.imageId]:asset}:asset;
+      const composition=await loadComposition(resources,item,this.element.ownerDocument,{signal:loading.signal,video:true,warn:message=>{if(generation!==this.generation)return;this.warnings.add(message);this.onWarning(message);if(this.item)this.showWarnings();}});
       if(generation!==this.generation){composition.dispose();return false;}
       this.loading=null;
       this.install(composition.world,item,onEnd,generation,composition);
@@ -104,15 +107,43 @@ export class CinematicFrame{
     this.element.style.setProperty('--cinematic-fade',cinematicFades(item).fadeIn*1000+'ms');
     this.element.classList.add('cinematic-visible');
     if(composition)this.removeFit=fitComposition(composition,this.element);
-    this.startedAt=performance.now();
+    this.position=0;this.playing=true;this.onEnd=onEnd;this.startedAt=performance.now();
     this.startEffects();
     this.unsubscribeMotion=this.motion.subscribe(()=>this.startEffects());
-    const duration=item.seconds*1000,{ending,hold}=cinematicEnding(item);
-    if(ending==='auto')this.automaticTimer=setTimeout(async()=>{
-      if(generation===this.generation&&await this.clear())onEnd?.();
-    },duration+hold*1000);
+    this.scheduleEnd(generation);
+    if(composition?.videos.length)this.videoTimer=setInterval(()=>this.syncVideos(),80);
   }
+  time(){return this.item?Math.max(0,(this.position??0)+(this.playing?(performance.now()-this.startedAt)/1000:0)):0;}
+  scheduleEnd(generation=this.generation){
+    clearTimeout(this.automaticTimer);
+    if(!this.item||!this.playing||cinematicEnding(this.item).ending!=='auto')return;
+    const remaining=Math.max(0,this.item.seconds+cinematicEnding(this.item).hold-this.time());
+    this.automaticTimer=setTimeout(async()=>{
+      const callback=this.onEnd;
+      if(generation===this.generation&&await this.clear())callback?.();
+    },remaining*1000);
+  }
+  syncVideos(force=false){for(const video of this.composition?.videos??[])video.sync(this.time(),this.playing,this.motionReduced,force);}
+  pause(){
+    if(!this.item||!this.playing)return;
+    this.position=this.time();this.playing=false;clearTimeout(this.automaticTimer);
+    for(const animation of this.animations){animation.pause();animation.currentTime=this.position*1000;}this.syncVideos(true);
+  }
+  play(){
+    if(!this.item||this.playing)return;
+    this.startedAt=performance.now();this.playing=true;
+    for(const animation of this.animations)animation.play();this.scheduleEnd();this.syncVideos();
+  }
+  seek(seconds){
+    if(!this.item)return;
+    this.position=Math.min(this.item.seconds+cinematicEnding(this.item).hold,Math.max(0,seconds));this.startedAt=performance.now();
+    for(const animation of this.animations)animation.currentTime=this.position*1000;
+    this.scheduleEnd();this.syncVideos(true);
+  }
+  restart(){this.seek(0);this.play();}
+
   disposeComposition(){
+    clearInterval(this.videoTimer);this.videoTimer=null;
     this.removeFit?.();this.removeFit=null;
     this.composition?.dispose();this.composition=null;
   }
@@ -139,8 +170,17 @@ export class CinematicFrame{
         frames[0].filter='brightness(.75) blur(1.5px)';
         frames.at(-1).filter='brightness(1) blur(0px)';
       }
-      const currentTime=timing.iterations===Infinity?performance.now()-this.startedAt:Math.min(performance.now()-this.startedAt,timing.duration);
-      if(this.composition)this.animations.push(...animateComposition(this.composition,item,frames,timing,currentTime));
+      const currentTime=timing.iterations===Infinity?this.time()*1000:Math.min(this.time()*1000,timing.duration);
+      if(this.composition){
+        if(item.camera||item.motion==='custom'){
+          this.animations.push(...animateDirectionCamera(this.composition,item,timing,currentTime));
+          // Depth differential is deliberately small and independent of local effects.
+          for(const {plane,entry} of this.composition.planes)if(entry.id!=='background'&&entry.parallax){
+            const drift=plane.animate([{transform:'translate(0%, 0%)'},{transform:`translate(${(item.camera?.to.x-item.camera?.from.x||0)*entry.parallax*-3}%, ${(item.camera?.to.y-item.camera?.from.y||0)*entry.parallax*-3}%)`}],{...timing,easing:item.camera?.easing??'ease-in-out',direction:timing.iterations===Infinity?'alternate':'normal'});drift.currentTime=currentTime;this.animations.push(drift);
+          }
+        }else this.animations.push(...animateComposition(this.composition,item,frames,timing,currentTime));
+        this.animations.push(...animateLayerEffects(this.composition,this.time()*1000),...animateLighting(this.composition.pulses,this.time()*1000));
+      }
       else{
         const camera=image.animate(frames,timing);camera.currentTime=currentTime;this.animations.push(camera);
       }
@@ -155,6 +195,8 @@ export class CinematicFrame{
         this.animations.push(light);
       }
     }
+    if(!this.playing)for(const animation of this.animations)animation.pause();
+    this.syncVideos();
     if(this.mount&&this.motion.media?.matches){
       const notice=this.element.ownerDocument.createElement('aside');
       notice.className='cinematic-motion-notice';
@@ -162,7 +204,13 @@ export class CinematicFrame{
       this.element.append(notice);
       this.removeNotice=mountMotionNotice(notice,this.motion);
     }
+    this.showWarnings();
     this.onMotion(this.motionReduced);
+  }
+  showWarnings(){
+    this.warningNode?.remove();this.warningNode=null;
+    if(!this.warnings.size||!this.item)return;
+    const node=this.element.ownerDocument.createElement('aside');node.className='cinematic-media-notice';node.setAttribute('role','status');node.textContent=[...this.warnings].join(' ');this.element.append(node);this.warningNode=node;
   }
   clear({immediate=false,fadeOut=this.fadeOut??CINEMATIC_FADE_MS}={}){
     const generation=++this.generation;
@@ -170,6 +218,7 @@ export class CinematicFrame{
     this.loading?.abort();this.loading=null;
     this.unsubscribeMotion?.();
     this.unsubscribeMotion=null;
+    this.pause();
     this.element.style.setProperty('--cinematic-fade',fadeOut+'ms');
     this.element.classList.remove('cinematic-visible');
     return new Promise(resolve=>{
@@ -178,7 +227,7 @@ export class CinematicFrame{
         this.resolveFade=null;
         this.stopEffects();
         this.disposeComposition();
-        this.item=null;
+        this.item=null;this.playing=false;clearInterval(this.videoTimer);
         this.image=null;
         this.element.replaceChildren();
         this.element.hidden=true;

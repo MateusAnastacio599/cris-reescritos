@@ -1,3 +1,5 @@
+import {CinematicVideoLayer} from './cinematic-video.js';
+import {mountLighting} from './cinematic-direction-player.js';
 import {validateCompositionMedia,matchesCinematicDimensions} from './cinematic-media.js';
 
 export function compositionSize(width,height,aspect){
@@ -24,15 +26,22 @@ export function positionCinematicLayer(element,layer){
   element.style.left=layer.x*100+'%';
   element.style.top=layer.y*100+'%';
   element.style.width=layer.scale*100+'%';
+  const anchor=layer.anchor??{x:.5,y:.5};
+  element.style.transform=`translate(${-anchor.x*100}%, ${-anchor.y*100}%) rotate(${layer.rotation??0}deg)`;
+  element.style.transformOrigin=`${anchor.x*100}% ${anchor.y*100}%`;
+  element.style.opacity=layer.opacity??1;
 }
 
-export async function loadComposition(asset,item,document,{signal}={}){
+export async function loadComposition(asset,item,document,{signal,video=false,warn=()=>{}}={}){
   const dimensions=await validateCompositionMedia(item,asset);
   signal?.throwIfAborted();
   const world=document.createElement('div');world.className='cinematic-world';
-  const nodes=[],urls=new Map();
+  const nodes=[],urls=new Map(),videos=[];
+  const camera=document.createElement('div');camera.className='cinematic-camera';
+  const jitter=document.createElement('div');jitter.className='cinematic-camera-jitter';jitter.append(camera);world.append(jitter);
   const dispose=()=>{
     signal?.removeEventListener('abort',dispose);
+    for(const player of videos)player.dispose();
     for(const image of nodes)image.removeAttribute('src');
     for(const url of urls.values())URL.revokeObjectURL(url);
     urls.clear();
@@ -40,9 +49,10 @@ export async function loadComposition(asset,item,document,{signal}={}){
   signal?.addEventListener('abort',dispose,{once:true});
   const planes=[];
   try{
-    const entries=[{id:'background',name:item.name,imageId:item.imageId,visible:true},...item.layers];
+    const entries=[{id:'background',name:item.name,imageId:item.imageId,visible:true},...(item.layers??[])];
     for(const entry of entries){
       signal?.throwIfAborted();
+      const effects=[];
       const plane=document.createElement('div');plane.className='cinematic-plane';plane.dataset.plane=entry.id;
       const image=document.createElement('img');nodes.push(image);
       if(!urls.has(entry.imageId))urls.set(entry.imageId,URL.createObjectURL(asset[entry.imageId]));
@@ -54,12 +64,18 @@ export async function loadComposition(asset,item,document,{signal}={}){
       if(entry.id==='background'){image.className='cinematic-background';plane.append(image);}
       else{
         const position=document.createElement('div');position.className='cinematic-layer-position';
-        position.dataset.cinematicLayer=entry.id;positionCinematicLayer(position,entry);position.append(image);plane.append(position);
+        position.dataset.cinematicLayer=entry.id;positionCinematicLayer(position,entry);
+        let parent=position;
+        for(const effect of entry.effects??[]){const node=document.createElement('div');node.className='cinematic-layer-effect';node.style.transformOrigin=`${(entry.anchor?.x??.5)*100}% ${(entry.anchor?.y??.5)*100}%`;parent.append(node);parent=node;effects.push({node,effect});}
+        parent.append(image);plane.append(position);
+        if(video&&entry.video){const player=new CinematicVideoLayer({document,container:parent,fallback:image,blob:asset[entry.video.mediaId],config:entry.video,metadata:dimensions.get(entry.video.mediaId),warn});videos.push(player);void player.prepare().catch(()=>{if(!player.closed)player.fail();});signal?.throwIfAborted();}
       }
-      world.append(plane);planes.push({plane,entry});
+      camera.append(plane);planes.push({plane,entry,effects});
     }
     const background=nodes[0];
-    return {world,planes,aspect:background.naturalWidth/background.naturalHeight,dispose};
+    const composition={world,camera,jitter,planes,videos,aspect:background.naturalWidth/background.naturalHeight,dispose};
+    composition.pulses=mountLighting(composition,item.lighting,document);
+    return composition;
   }catch(error){dispose();throw error;}
 }
 

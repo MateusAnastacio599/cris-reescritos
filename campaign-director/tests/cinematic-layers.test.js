@@ -24,7 +24,7 @@ test('optional layers preserve legacy metadata and validate normalized coordinat
   assert.equal(isCinematic(item),true);
   const legacy={...item};delete legacy.layers;const before=structuredClone(legacy);
   assert.equal(isCinematic(legacy),true);assert.deepEqual(legacy,before);
-  for(const change of [{x:-.1},{y:1.1},{scale:0},{scale:3},{parallax:Infinity},{visible:'yes'},{id:'background'},{imageId:'https://example.test/a.png'}]){
+  for(const change of [{x:-.1},{y:1.1},{scale:0},{scale:3.01},{parallax:Infinity},{visible:'yes'},{id:'background'},{imageId:'https://example.test/a.png'}]){
     assert.equal(isCinematic({...item,layers:[{...layer,...change}]}),false);
   }
   assert.equal(isCinematic({...item,layers:[layer,layer]}),false);
