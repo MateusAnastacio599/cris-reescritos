@@ -1,3 +1,4 @@
+import {ownsStudio,releaseStudio,numericInvalid,captureContext,restoreContext,arrangeStudio,renderTemporalDock,confirmStudio} from './cinematic-studio-ui.js';
 import {sceneSpan} from './cinematic-timing.js';
 const DIRECTION_KEYS=['camera','lighting','sceneDuration','backgroundVideo'];
 import {StudioProperties} from './cinematic-studio-properties.js';
@@ -10,15 +11,16 @@ import {CinematicFrame} from './cinematic-frame.js';
 import {$,esc,field,openForm,option} from './ui.js';
 
 export function openCinematic({scene,save,present,stop,subscribe}){
-  const dialog=$('#appDialog'),initial=cinematicItems(scene)[0];
+  const dialog=$('#appDialog'),initial=cinematicItems(scene)[0],instance=crypto.randomUUID();
+  const owns=()=>ownsStudio(root,instance);
   const history=new StudioHistory();
   let direction={},draftId,backgroundId=null,restoring=false,properties,clockTimer;
-  let root,frame,composer,unsubscribe,removeNotice,closed=false,selectionVersion=0,presenting=false;
+  let root,frame,composer,unsubscribe,removeNotice,closed=false,selectionVersion=0,presenting=false,lastSelected=initial?.id??'';
   const item=()=>cinematicItems(scene).find(entry=>entry.id===$('[name=selected]',root).value);
-  const status=message=>{if(!closed)$('.cinematic-status',root).textContent=message;};
+  const status=message=>{if(!closed&&owns())$('.cinematic-status',root).textContent=message;};
   const imageFor=async()=>{
     const file=$('[name=image]',root).files[0];
-    const image=(backgroundId&&composer.files.get(backgroundId))??file??(item()&&await cinematicImages.get(item().imageId));
+    const image=(backgroundId&&(composer.files.get(backgroundId)??await cinematicImages.get(backgroundId)))??file??(item()&&await cinematicImages.get(item().imageId));
     if(!image)throw Error('Imagem indisponível neste navegador. Anexe o arquivo novamente.');
     return file?checkCinematicUpload(file):checkCinematicImage(image);
   };
@@ -32,14 +34,14 @@ export function openCinematic({scene,save,present,stop,subscribe}){
   });
   const dirty=()=>{
     const saved=item();
-    if(root.querySelector('[data-camera-invalid=true],[data-direction-invalid=true]'))return true;
-    if(!saved||backgroundId||$('[name=image]',root).files.length||composer?.busy)return true;
+    if(numericInvalid(root)||root.querySelector('[data-camera-invalid=true],[data-direction-invalid=true],[data-properties-invalid=true]'))return true;
+    if(!saved||backgroundId&&backgroundId!==saved.imageId||$('[name=image]',root).files.length||composer?.busy)return true;
     if(JSON.stringify(composer?.value()??[])!==JSON.stringify(saved.layers??[]))return true;
     if(JSON.stringify(direction)!==JSON.stringify(Object.fromEntries(DIRECTION_KEYS.filter(k=>saved[k]!==undefined).map(k=>[k,saved[k]]))))return true;
     const draft=values(),settings={...saved,...cinematicEnding(saved),...cinematicFades(saved)};
     return ['name','motion','seconds','intensity','ending','hold','fadeIn','fadeOut'].some(key=>draft[key]!==settings[key]);
   };
-  const syncDraft=()=>{
+  const syncDraft=()=>{if(closed||!owns())return;
     const motion=$('[name=motion]',root).value,ending=$('[name=ending]',root);
     const loop=canLoopCinematic(motion);
     ending.querySelector('[value=loop]').disabled=!loop;
@@ -53,13 +55,17 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       :`Duração total: ${cinematicTotal(draft).toLocaleString('pt-BR')} s. A cena permanece ativa até ${sceneSpan(draft).toLocaleString('pt-BR')} s; depois acontece o fade de saída.`;
     $('[data-undo]',root).disabled=history.index<=0;$('[data-redo]',root).disabled=history.index>=history.entries.length-1;
     const changed=dirty();
-    $('[data-present]',root).disabled=changed;
+    const invalid=numericInvalid(root)||!!root.querySelector('[data-camera-invalid=true],[data-direction-invalid=true],[data-properties-invalid=true]');
+    $('[data-present]',root).disabled=changed||composer?.busy;$('#modalSubmit',dialog).disabled=invalid||!!composer?.busy||saving;
+    root.dataset.playback=frame?.item?(frame.playing?'playing':'paused'):'editing';
     $('[data-duplicate]',root).disabled=changed||cinematicItems(scene).length>=CINEMATIC_MAX_ITEMS;
-    $('[data-cinematic-draft]',root).textContent=changed
+    $('[data-cinematic-draft]',root).textContent=invalid?'Confira os parâmetros indicados antes de salvar ou apresentar.':composer?.busy?'Carregando mídia…':changed
       ?'Alterações não salvas. Use Prévia para testar ou Salvar para liberar Apresentar.'
       :'Ajustes salvos. Apresentar envia esta versão ao quadro.';
   };
-  const fill=()=>{
+  let saving=false;
+  const fill=({preserveHistory=false}={})=>{
+    const context=captureContext(properties.root);
     selectionVersion++;
     draftId=crypto.randomUUID();backgroundId=null;direction={};
     const selected=item();
@@ -68,23 +74,24 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     const config=selected?{...selected,...cinematicEnding(selected),...cinematicFades(selected)}:CINEMATIC_DEFAULTS;
     for(const key of ['motion','seconds','intensity','ending','hold','fadeIn','fadeOut'])$('[name='+key+']',root).value=config[key];
     $('[name=image]',root).value='';
-    composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;composer?.reset(selected);
-    properties.render();history.reset(snapshot());syncDraft();
-    frame.clear({immediate:true});
+    composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;composer?.reset(selected,{retainFiles:preserveHistory});lastSelected=selected?.id??'';
+    if(!preserveHistory){properties.contexts.clear();properties.renderedKey=null;}properties.render();if(!preserveHistory)history.reset(snapshot());syncDraft();
+    if(!preserveHistory)frame.clear({immediate:true});else restoreContext(properties.root,context);refreshTracks();
     status(selected?'':'Anexe uma imagem para preparar a apresentação.');
   };
-  const snapshot=()=>({draft:values(),backgroundId});
+  const snapshot=()=>({draft:values(),backgroundId:backgroundId??item()?.imageId??null});
+  const refreshTracks=()=>{if(!root.querySelector('[data-studio-tracks]'))return;const draft=values();$('[data-track-duration]',root).textContent=sceneSpan(draft)+' s';renderTemporalDock($('[data-studio-tracks]',root),draft,{seek:async time=>{if(!frame.item)await $('[data-preview]',root).onclick();frame.pause();frame.seek(time);},inspect:label=>{properties.section='direction';properties.render();for(const details of root.querySelectorAll('.cinematic-window-list>details'))if(details.querySelector('summary').textContent.startsWith(label)){details.open=true;details.scrollIntoView({block:'nearest'});break;}}});};
   let previewRefresh;
-  const record=()=>{selectionVersion++;if(!restoring)history.record(snapshot());syncDraft();if(frame?.item){clearTimeout(previewRefresh);previewRefresh=setTimeout(()=>{if(!closed&&frame.item)$('[data-preview]',root).click();},450);}};
+  const record=()=>{if(closed||!owns())return;selectionVersion++;if(!restoring)history.record(snapshot());syncDraft();refreshTracks();if(frame?.item&&!numericInvalid(root)){clearTimeout(previewRefresh);previewRefresh=setTimeout(async()=>{if(!closed&&owns()&&frame.item)await $('[data-preview]',root).onclick({refresh:true});},450);}};
   const restore=state=>{
-    if(!state)return;restoring=true;direction={};for(const k of DIRECTION_KEYS)if(state.draft[k])direction[k]=structuredClone(state.draft[k]);
+    if(!state)return;const context=captureContext(properties.root);restoring=true;direction={};for(const k of DIRECTION_KEYS)if(state.draft[k])direction[k]=structuredClone(state.draft[k]);
     backgroundId=state.backgroundId;draftId=state.draft.id;for(const k of ['title','motion','seconds','intensity','ending','hold','fadeIn','fadeOut'])$('[name='+k+']',root).value=state.draft[k==='title'?'name':k];
-    $('[name=image]',root).value='';composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;composer.reset(state.draft,{retainFiles:true});properties.render();restoring=false;selectionVersion++;syncDraft();void frame.clear({immediate:true});
+    $('[name=image]',root).value='';composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;composer.reset(state.draft,{retainFiles:true});properties.render();restoring=false;selectionVersion++;syncDraft();refreshTracks();restoreContext(properties.root,context);void frame.clear({immediate:true});
   };
   const run=async(action)=>{
     const version=selectionVersion;
-    try{await action(()=>!closed&&version===selectionVersion);}
-    catch(error){if(!closed&&version===selectionVersion)status(error.message);}
+    try{await action(()=>!closed&&owns()&&version===selectionVersion);}
+    catch(error){if(!closed&&owns()&&version===selectionVersion)status(error.message);}
   };
   openForm({
     title:'Studio de Direção · Cinemática',
@@ -110,9 +117,10 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       <button class="btn outline" type="button" data-duplicate>Duplicar apresentação salva</button>
       <button class="btn outline" type="button" data-stop>Encerrar apresentação</button></div>
       <p role="status" class="cinematic-status"></p>
-      <details class="cinematic-layers-editor" open></details>`,
+      <section class="cinematic-layers-editor"></section>`,
     async onSubmit(){
-      if(root.querySelector('[data-camera-invalid=true],[data-direction-invalid=true]'))throw Error('Corrija os ajustes inválidos da câmera ou da direção antes de salvar.');
+      if(numericInvalid(root)||root.querySelector('[data-camera-invalid=true],[data-direction-invalid=true],[data-properties-invalid=true]'))throw Error('Corrija os ajustes inválidos da câmera ou da direção antes de salvar.');
+      saving=true;syncDraft();try{
       const version=selectionVersion,selected=item(),draft=values(),image=await imageFor();
       if(!selected&&cinematicItems(scene).length>=CINEMATIC_MAX_ITEMS)throw Error('Esta cena já tem 12 apresentações.');
       if(composer.busy)throw Error('Aguarde o carregamento da camada antes de salvar.');
@@ -124,10 +132,10 @@ export function openCinematic({scene,save,present,stop,subscribe}){
         const pixels=bitmap.width*bitmap.height;bitmap.close();
         if(!pixels||pixels>40000000)throw Error('Use uma imagem com até 40 megapixels.');
       }
-      if(closed||version!==selectionVersion)return false;
+      if(closed||!owns()||version!==selectionVersion)return false;
       const entries=(draft.layers?.length||draft.backgroundVideo)?Object.entries(media):[[draft.imageId,image]];
       await cinematicImages.putAll(entries);
-      if(closed||version!==selectionVersion)return false;
+      if(closed||!owns()||version!==selectionVersion)return false;
       const prior=scene.cinematic;
       scene.cinematic=withCinematic(scene,draft);
       if(!save(scene)){
@@ -135,34 +143,43 @@ export function openCinematic({scene,save,present,stop,subscribe}){
         throw Error('A apresentação não pôde ser salva nesta cena.');
       }
       $('[name=selected]',root).innerHTML=option('','Nova apresentação')+cinematicItems(scene).map(entry=>option(entry.id,entry.name,entry.id===draft.id)).join('');
-      fill();
+      fill({preserveHistory:true});
       status('Apresentação salva nesta cena.');
       return false;
+      }finally{saving=false;syncDraft();}
     },
     onReady(body){
-      root=body;root.classList.add('cinematic-studio');dialog.classList.add('cinematic-studio-dialog');
+      root=body;root.dataset.studioInstance=instance;root.classList.add('cinematic-studio');dialog.classList.add('cinematic-studio-dialog');
       const settings=document.createElement('div');settings.className='cinematic-studio-settings';
       for(const selector of ['[name=selected]','[name=title]','[name=image]','[name=motion]'])settings.append($(selector,root).closest('label'));
       for(const node of [...root.querySelectorAll('.cinematic-form-grid,[data-duration]')])settings.append(node);
-      composer=new CinematicLayersEditor($('.cinematic-layers-editor',root),{background:imageFor,onChange:record,onError:status,onSelect:()=>properties?.render()});
-      properties=new StudioProperties($('[data-studio-properties]',root),{composer,read:()=>structuredClone(direction),change:value=>{direction=value;composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;record();void composer.render();}});
+      composer=new CinematicLayersEditor($('.cinematic-layers-editor',root),{background:imageFor,onChange:record,onError:status,onSelect:()=>{if(properties){if(!['effects','transform'].includes(properties.section))properties.section='transform';properties.render();}}});
+      properties=new StudioProperties($('[data-studio-properties]',root),{composer,read:()=>structuredClone(direction),change:value=>{const lightingChanged=JSON.stringify(direction.lighting)!==JSON.stringify(value.lighting);direction=value;composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;composer.camera=direction.camera;record();if(lightingChanged)void composer.render();}});
       composer.useBackground=async file=>{const id=await imageKey(file);composer.pool(id,file);backgroundId=id;$('[name=image]',root).value='';record();void composer.render();};
       properties.preview=()=>$('[data-preview]',root).click();properties.presentation=settings;properties.section='presentation';composer.onAnchor=(layer,anchor)=>properties.anchor(layer,anchor);composer.onCameraChange=camera=>{direction.camera=camera;record();properties.render();};
       properties.render();
-      frame=new CinematicFrame($('.cinematic-frame',root),{onWarning:status});removeNotice=mountMotionNotice($('[data-motion-notice]',root));
-      $('[name=selected]',root).onchange=fill;
+      arrangeStudio(root,dialog);
+      frame=new CinematicFrame($('.cinematic-frame',root),{onWarning:status,fit:'contain'});removeNotice=mountMotionNotice($('[data-motion-notice]',root));
+      const requestClose=()=>{if(dirty())confirmStudio(root,'Fechar sem salvar as alterações desta apresentação?',()=>dialog.close());else dialog.close();};
+      $('#closeDialog',dialog).onclick=requestClose;dialog.addEventListener('cancel',cancelClose);function cancelClose(e){e.preventDefault();requestClose();}
+      $('[name=selected]',root).onchange=e=>{const next=e.target.value;e.target.value=lastSelected;if(dirty())confirmStudio(root,'Trocar de apresentação e descartar as alterações não salvas?',()=>{e.target.value=next;fill();});else{e.target.value=next;fill();}};
+      composer.beforeSelect=()=>{if(numericInvalid(properties.root)||properties.root.querySelector('[data-camera-invalid=true],[data-direction-invalid=true],[data-properties-invalid=true]')){status('Corrija o parâmetro indicado antes de mudar de contexto.');properties.root.querySelector('input:invalid')?.focus();return false;}return true;};
+      composer.onSolo=()=>{if(frame.item)$('[data-preview]',root).onclick({refresh:true});};
       const refresh=async event=>{
         if(closed||event.target.name==='selected'||!event.target.name)return;
         if(event.target.name==='image'){
           if(event.type!=='change')return;const file=event.target.files[0];if(!file)return;const version=++selectionVersion;
-          try{await checkCinematicUpload(file);const id=await imageKey(file);if(closed||version!==selectionVersion)return;composer.pool(id,file);backgroundId=id;record();void composer.render();}catch(error){status(error.message);}return;
+          try{await checkCinematicUpload(file);const id=await imageKey(file);if(closed||!owns()||version!==selectionVersion)return;composer.pool(id,file);backgroundId=id;record();void composer.render();}catch(error){status(error.message);}return;
         }
         record();
       };
       root.addEventListener('input',refresh);
       root.addEventListener('change',refresh);
-      $('[data-preview]',root).onclick=()=>run(async current=>{
+      $('[data-preview]',root).onclick=event=>run(async current=>{
+        const automatic=!!event?.refresh;
         const draft=values();
+        if(numericInvalid(root)||root.querySelector('[data-camera-invalid=true],[data-direction-invalid=true],[data-properties-invalid=true]')){status('Corrija os parâmetros indicados antes de iniciar a prévia.');return;}
+        status('Carregando prévia…');
         if(['seconds','intensity','hold','fadeIn','fadeOut'].some(key=>!$('[name='+key+']',root).reportValidity()))return;
         const image=await imageFor();
         if(!current())return;
@@ -173,16 +190,16 @@ export function openCinematic({scene,save,present,stop,subscribe}){
         const shown=await frame.show(media,{...draft,name:draft.name||'Prévia'},()=>{
           if(current()&&!presenting)status('Prévia concluída.');
         });
-        if(shown&&current()){$('.cinematic-layers-editor',root).dataset.pane='canvas';if(time)frame.seek(Math.min(time,sceneSpan(draft)));if(!playing)frame.pause();if(!presenting)status('Prévia da apresentação.');}
+        if(shown&&current()){if(!automatic)$('.cinematic-layers-editor',root).dataset.pane='canvas';if(time)frame.seek(Math.min(time,sceneSpan(draft)));if(!playing)frame.pause();if(!presenting)status('Prévia da apresentação.');}
       });
       $('[data-studio-play]',root).onclick=()=>frame.item?frame.play():$('[data-preview]',root).click();
       $('[data-studio-pause]',root).onclick=()=>frame.pause();$('[data-studio-restart]',root).onclick=()=>frame.item?frame.restart():$('[data-preview]',root).click();
       $('[data-studio-seek]',root).oninput=event=>frame.seek(Number(event.target.value));$('[data-studio-edit]',root).onclick=()=>void frame.clear({immediate:true});
       $('[data-undo]',root).onclick=()=>restore(history.undo());$('[data-redo]',root).onclick=()=>restore(history.redo());
-      const keyboard=event=>{if(!(event.ctrlKey||event.metaKey)||event.altKey)return;const key=event.key.toLowerCase();if(key==='z'||key==='y'){event.preventDefault();restore(event.shiftKey||key==='y'?history.redo():history.undo());}};root.addEventListener('keydown',keyboard);
+      const keyboard=event=>{if(!(event.ctrlKey||event.metaKey)||event.altKey)return;const key=event.key.toLowerCase();if(key==='s'){event.preventDefault();event.stopPropagation();if(!$('#modalSubmit',dialog).disabled)$('#modalForm',dialog).requestSubmit();return;}if(key==='z'||key==='y'){event.preventDefault();restore(event.shiftKey||key==='y'?history.redo():history.undo());}};root.addEventListener('keydown',keyboard);
       clockTimer=setInterval(()=>{
-        if(closed)return;const total=frame.item?sceneSpan(frame.item):sceneSpan(values()),time=frame.time();
-        $('[data-studio-time]',root).textContent=`${time.toFixed(1)} / ${total} s`;$('[data-studio-seek]',root).max=total;$('[data-studio-seek]',root).value=time;
+        if(closed||!owns())return;$('[data-studio-pause]',root).disabled=!frame.item||!frame.playing;$('[data-studio-restart]',root).disabled=!frame.item;$('[data-studio-edit]',root).disabled=!frame.item;$('[data-studio-play]',root).setAttribute('aria-pressed',String(!!frame.item&&frame.playing));const total=frame.item?sceneSpan(frame.item):sceneSpan(values()),time=frame.time();
+        $('[data-studio-time]',root).textContent=`${time.toFixed(1)} / ${total} s · ${frame.item?(frame.playing?'Reproduzindo':'Pausada'):'Composição'}`;root.dataset.playback=frame.item?(frame.playing?'playing':'paused'):'editing';$('.studio-direction-dock',root).style.setProperty('--playhead',Math.min(100,time/total*100)+'%');$('[data-studio-seek]',root).max=total;$('[data-studio-seek]',root).value=time;
         if(frame.item&&$('[data-studio-loop]',root).checked&&time>=total-.15)frame.restart();
       },100);
       $('[data-present]',root).onclick=()=>run(async current=>{
@@ -201,10 +218,10 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       });
       $('[data-stop]',root).onclick=()=>stop();
       fill();
-      unsubscribe=subscribe(({message,active})=>{presenting=active;if(message)status(message);$('[data-stop]',root).disabled=!active;});
+      unsubscribe=subscribe(({message,active})=>{if(!owns())return;presenting=active;if(message)status(message);$('[data-stop]',root).disabled=!active;$('[data-stop]',root).hidden=!active;});
       const cleanup=()=>{
         if(dialog.open&&frame.element.isConnected)return;
-        closed=true;selectionVersion++;clearInterval(clockTimer);clearTimeout(previewRefresh);root.removeEventListener('keydown',keyboard);root.classList.remove('cinematic-studio');dialog.classList.remove('cinematic-studio-dialog');
+        closed=true;selectionVersion++;dialog.removeEventListener('cancel',cancelClose);clearInterval(clockTimer);clearTimeout(previewRefresh);root.removeEventListener('keydown',keyboard);releaseStudio(root,dialog,instance);
         root.removeEventListener('input',refresh);root.removeEventListener('change',refresh);
         dialog.removeEventListener('close',cleanup);
         unsubscribe();removeNotice();composer.close();frame.clear({immediate:true});

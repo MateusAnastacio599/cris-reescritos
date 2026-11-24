@@ -50,8 +50,8 @@ function atmosphere(motion,intensity){
 }
 
 export class CinematicFrame{
-  constructor(element,{mount=null,motion=cinematicMotion(),onMotion=()=>{},onWarning=()=>{}}={}){
-    this.element=element;
+  constructor(element,{mount=null,motion=cinematicMotion(),onMotion=()=>{},onWarning=()=>{},fit='cover'}={}){
+    this.element=element;this.fit=fit;
     this.mount=mount;
     this.motion=motion;
     this.onMotion=onMotion;this.onWarning=onWarning;this.warnings=new Set();
@@ -110,7 +110,7 @@ export class CinematicFrame{
     this.element.getBoundingClientRect();
     this.element.style.setProperty('--cinematic-fade',cinematicFades(item).fadeIn*1000+'ms');
     this.element.classList.add('cinematic-visible');
-    if(composition)this.removeFit=fitComposition(composition,this.element);
+    if(composition)this.removeFit=fitComposition(composition,this.element,{contain:this.fit==='contain'});
     this.position=0;this.playing=true;this.onEnd=onEnd;this.startedAt=performance.now();
     this.startEffects();
     this.unsubscribeMotion=this.motion.subscribe(()=>this.startEffects());

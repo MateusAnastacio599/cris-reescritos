@@ -62,7 +62,7 @@ export class CinematicCameraEditor{
         commit(next,{render});
       }catch(error){this.error(error.message);}
       };
-      node.onchange=()=>apply();if(node.type==='number')node.oninput=()=>apply(false);
+      node.onchange=()=>apply(node.type!=='number');if(node.type==='number')node.oninput=()=>apply(false);
     }
     composer.onCameraSelect=id=>{this.selected=id;this.mount(root,{state,composer,change,seconds,preview});};
   }

@@ -81,9 +81,9 @@ export async function loadComposition(asset,item,document,{signal,video=false,wa
   }catch(error){dispose();throw error;}
 }
 
-export function fitComposition(composition,viewport){
+export function fitComposition(composition,viewport,{contain=false}={}){
   const fit=()=>{
-    const bounds=viewport.getBoundingClientRect(),size=compositionSize(bounds.width,bounds.height,composition.aspect);
+    const bounds=viewport.getBoundingClientRect(),size=contain?{width:Math.min(bounds.width,bounds.height*composition.aspect),height:Math.min(bounds.height,bounds.width/composition.aspect)}:compositionSize(bounds.width,bounds.height,composition.aspect);
     composition.world.style.width=size.width+'px';composition.world.style.height=size.height+'px';
   };
   fit();
