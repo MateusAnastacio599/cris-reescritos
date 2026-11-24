@@ -8,8 +8,8 @@ import {ANCHORS,changeLayerAnchor,newEffect,EFFECT_TYPES,EASINGS,lightingProfile
 const input=(label,path,value,min,max,step=.01)=>`<label class="field"><span>${label}</span><input data-property="${path}" type="number" value="${value}" min="${min}" max="${max}" step="${step}"></label>`;
 const toggle=(label,path,value)=>`<label class="check-field"><input data-property="${path}" type="checkbox" ${value?'checked':''}>${label}</label>`;
 export class StudioProperties{
-  constructor(root,{composer,read,change}){Object.assign(this,{root,composer,read,change});this.cameraEditor=new CinematicCameraEditor();}
-  render(){const context=captureContext(this.root);try{return this.renderBody();}finally{restoreContext(this.root,context);}}
+  constructor(root,{composer,read,change}){Object.assign(this,{root,composer,read,change});this.cameraEditor=new CinematicCameraEditor();this.contexts=new Map();}
+  render(){const context=captureContext(this.root),previous=this.renderedKey,key=(this.section??'transform')+(['transform','effects'].includes(this.section??'transform')?':'+(this.composer.current()?.id??'none'):'');if(previous)this.contexts.set(previous,context);const same=previous===key,next=same?context:this.contexts.get(key)??{scroll:0,pane:0,open:[]};this.renderedKey=key;try{return this.renderBody();}finally{restoreContext(this.root,next,{focus:same});if(!same)this.root.querySelector('[data-section="'+(this.section??'transform')+'"]')?.focus({preventScroll:true});}}
   renderBody(){
     const {root,composer}=this,layer=composer.current(),state=this.read();
     const presentation=this.presentation;

@@ -75,7 +75,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
     for(const key of ['motion','seconds','intensity','ending','hold','fadeIn','fadeOut'])$('[name='+key+']',root).value=config[key];
     $('[name=image]',root).value='';
     composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;composer?.reset(selected,{retainFiles:preserveHistory});lastSelected=selected?.id??'';
-    properties.render();if(!preserveHistory)history.reset(snapshot());syncDraft();
+    if(!preserveHistory){properties.contexts.clear();properties.renderedKey=null;}properties.render();if(!preserveHistory)history.reset(snapshot());syncDraft();
     if(!preserveHistory)frame.clear({immediate:true});else restoreContext(properties.root,context);refreshTracks();
     status(selected?'':'Anexe uma imagem para preparar a apresentação.');
   };
