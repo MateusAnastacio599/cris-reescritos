@@ -1,3 +1,4 @@
+@import url('./cinematic-studio.css');
 .cinematic-frame{position:relative;overflow:hidden;isolation:isolate;background:#100e14;color:#e8dfef;opacity:0;transition:opacity var(--cinematic-fade,300ms) ease-out!important}
 .cinematic-frame.cinematic-visible{opacity:1}
 .cinematic-frame[hidden]{display:none}
@@ -54,38 +55,6 @@
 .cinematic-light-ambient,.cinematic-light-darkness,.cinematic-light-vignette{position:absolute;inset:0;pointer-events:none}
 .cinematic-light-ambient{mix-blend-mode:soft-light}.cinematic-light-spot{position:absolute;transform:translate(-50%,-50%);mix-blend-mode:screen;pointer-events:none}
 
-/* Studio uses the existing dialog and the same presentation renderer. */
-#appDialog.cinematic-studio-dialog{width:min(1600px,98vw);max-width:98vw;max-height:98dvh;padding:0}
-.cinematic-studio-dialog #modalForm{max-height:98dvh;display:flex;flex-direction:column}
-.cinematic-studio-dialog .dialog-head,.cinematic-studio-dialog .dialog-footer{flex:none;padding:10px 16px}
-.cinematic-studio-dialog .dialog-body{padding:10px 14px;overflow:auto;min-height:0}
-.cinematic-studio [hidden]{display:none!important}
-.cinematic-studio p{margin:5px 0}.cinematic-studio h3{font:600 13px/1.4 system-ui;margin:10px 0}
-.cinematic-studio .cinematic-layers-editor{border:0;margin:0;padding:0}.cinematic-studio .cinematic-layers-editor>summary{display:none}
-.cinematic-studio .cinematic-composer{grid-template-columns:minmax(140px,180px) minmax(0,1fr) minmax(230px,280px);align-items:stretch;gap:12px}
-.cinematic-layer-list-panel,.cinematic-layer-tools{overflow:auto;max-height:66dvh;padding:0 6px;min-width:0}
-.cinematic-layer-list-panel select{width:100%;min-height:170px}.cinematic-layer-list-panel input[type=file]{width:100%;font-size:11px}
-.cinematic-canvas-panel{position:relative;min-width:0;align-self:center}
-.cinematic-view-tools,.cinematic-transport,.cinematic-property-tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:5px 0}
-.cinematic-studio button{font:12px/1.4 system-ui;cursor:pointer}.cinematic-view-tools button,.cinematic-transport button,.cinematic-property-tabs button{padding:6px 8px;border:1px solid #655772;background:#292231;color:#eee3f5;border-radius:5px}
-.cinematic-property-tabs button[aria-pressed=true]{background:#574069}.cinematic-property-tabs{position:sticky;top:0;z-index:2;background:#18141f;padding:5px 0}
-.cinematic-studio .field{margin:8px 0}.cinematic-studio .field input,.cinematic-studio .field select{min-width:0;width:100%;box-sizing:border-box}
-.cinematic-studio .cinematic-composer-canvas{max-height:57dvh;outline:1px solid #44364d;border-radius:4px}
-.cinematic-studio-preview{position:absolute;left:0;right:0;top:63px;bottom:82px;min-height:180px;z-index:4;border-radius:4px}
-.cinematic-transport{font-size:11px;min-height:55px}.cinematic-transport input[type=range]{flex:1;min-width:90px;max-width:240px}
-.cinematic-layer-handle{position:absolute;transform:translate(-50%,-50%);width:24px;height:24px;border:1px solid #f2d09a;border-radius:50%;padding:0;background:#19131a77;cursor:move;color:#f2d09a;z-index:5;touch-action:none}
-.cinematic-layer-handle>span{position:absolute;left:20px;top:15px;background:#21172b;border:1px solid #c3abd6;width:20px;height:20px;line-height:18px;cursor:ew-resize;touch-action:none}
-.cinematic-camera-handle{position:absolute;box-sizing:border-box;border:2px dashed #e9c27c;color:#f8d997;font:11px system-ui;cursor:move;z-index:6;touch-action:none;background:#f8d9970a}
-.cinematic-studio-mobile{display:none}
-@media(max-width:1000px){.cinematic-studio .cinematic-composer{grid-template-columns:130px minmax(0,1fr) 230px}}
-@media(max-width:740px){
-  #appDialog.cinematic-studio-dialog{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border:0;margin:0;border-radius:0}
-  .cinematic-studio-dialog #modalForm{height:100dvh;max-height:100dvh}.cinematic-studio-dialog .dialog-body{padding:8px}
-  .cinematic-studio .cinematic-composer{grid-template-columns:minmax(0,1fr)}.cinematic-studio-mobile{display:flex;gap:8px;margin:8px 0}
-  .cinematic-studio-mobile button{flex:1;padding:8px;background:#292231;border:1px solid #665675;color:#eee}
-  .cinematic-studio [data-pane=canvas] .cinematic-layer-list-panel,.cinematic-studio [data-pane=canvas] .cinematic-layer-tools,.cinematic-studio [data-pane=layers] .cinematic-canvas-panel,.cinematic-studio [data-pane=layers] .cinematic-layer-tools,.cinematic-studio [data-pane=properties] .cinematic-canvas-panel,.cinematic-studio [data-pane=properties] .cinematic-layer-list-panel{display:none}
-  .cinematic-layer-list-panel,.cinematic-layer-tools{max-height:none}.cinematic-studio .cinematic-composer-canvas{min-height:210px}.cinematic-studio-preview{top:84px;bottom:102px;min-height:160px}
-}
 .cinematic-media-notice{position:absolute;left:12px;top:12px;max-width:520px;background:#241b2de6;color:#f0e4fa;border:1px solid #806c90;border-radius:5px;padding:8px 10px;font:13px/1.4 system-ui;z-index:2;pointer-events:none}
 
 .cinematic-camera-point-list{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
@@ -101,14 +70,3 @@
 .cinematic-plane>.cinematic-video[hidden]{display:none}
 .cinematic-light-event{z-index:3}
 .cinematic-light-beam{aspect-ratio:.65!important}
-.cinematic-window-bar{position:relative;height:8px;background:#302638;margin:7px 0;overflow:hidden;border-radius:4px}
-.cinematic-window-bar span{position:absolute;top:0;height:100%;background:#b896d4}
-.cinematic-window-list>details{border-bottom:1px solid #44364d;padding:7px 0}
-.cinematic-layout-controls{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px}
-.cinematic-layout-controls button{padding:6px 9px;background:#292231;color:#eee3f5;border:1px solid #665675;border-radius:5px}
-.cinematic-studio .cinematic-composer[data-left-hidden=true]{grid-template-columns:minmax(0,1fr) minmax(230px,280px)}
-.cinematic-studio .cinematic-composer[data-right-hidden=true]{grid-template-columns:minmax(140px,180px) minmax(0,1fr)}
-.cinematic-studio .cinematic-composer[data-left-hidden=true][data-right-hidden=true]{grid-template-columns:minmax(0,1fr)}
-.cinematic-composer[data-left-hidden=true] .cinematic-layer-list-panel,.cinematic-composer[data-right-hidden=true] .cinematic-layer-tools{display:none}
-.cinematic-studio [data-expanded=true] .cinematic-composer-canvas{max-height:72dvh}
-@media(max-width:740px){.cinematic-layout-controls{display:none}.cinematic-studio .cinematic-composer[data-left-hidden],.cinematic-studio .cinematic-composer[data-right-hidden]{grid-template-columns:minmax(0,1fr)}.cinematic-studio [data-pane=layers] .cinematic-composer[data-left-hidden] .cinematic-layer-list-panel,.cinematic-studio [data-pane=properties] .cinematic-composer[data-right-hidden] .cinematic-layer-tools{display:block}}
