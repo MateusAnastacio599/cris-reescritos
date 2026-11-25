@@ -12,5 +12,5 @@ setInterval(()=>{
  const d=window.CRIS_LIVE_DIAGNOSTICS?.(),s=window.LIVE_QA?.snapshot();
  const items=s?.state.items||[];
  status.textContent=d?(d.ready?'Pronto':'Aguardando snapshot')+' · '+d.connections+' conexões':'Use Jogar junto → Compartilhar esta mesa';
- report.textContent=JSON.stringify({room:$('#shLink')?.value||new URLSearchParams(location.search).get('sala'),contextId,peerOpen:d?.peerOpen,pending:d?.pending,ice:d?.ice,participants:d?.participants,items:items.map(i=>({id:i.id,type:i.type,imgId:i.imgId,x:Math.round(i.x),y:Math.round(i.y)})),pins:s?.state.pins?.length,strings:s?.state.strings?.length,media:items.filter(i=>i.imgId&&s.imgs[i.imgId]).length,stats:d?.stats,events:d?.events.slice(-8)},null,2);
+ report.textContent=JSON.stringify({room:$('#shLink')?.value||new URLSearchParams(location.search).get('sala'),contextId,transport:d?.transport,peerOpen:d?.peerOpen,pending:d?.pending,ice:d?.ice,participants:d?.participants,items:items.map(i=>({id:i.id,type:i.type,imgId:i.imgId,x:Math.round(i.x),y:Math.round(i.y)})),pins:s?.state.pins?.length,strings:s?.state.strings?.length,media:items.filter(i=>i.imgId&&s.imgs[i.imgId]).length,stats:d?.stats,events:d?.events.slice(-8)},null,2);
 },500);

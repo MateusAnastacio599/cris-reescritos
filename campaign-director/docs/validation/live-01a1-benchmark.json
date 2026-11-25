@@ -1,0 +1,145 @@
+{
+  "kind": "SIMULATED transport, real SHA-256 and Node memory; NOT WebRTC; heap is process peak, not browser or isolated per-client.",
+  "results": [
+    {
+      "label": "baseline wire 2",
+      "chars": 1200000,
+      "clients": 3,
+      "simulatedRTTMs": 8,
+      "totalMs": 1039,
+      "peakNodeHeapMiB": 24,
+      "results": [
+        {
+          "cursorWaitMs": 968,
+          "imageAppliedMs": 958,
+          "stats": {
+            "packets": 2,
+            "bytes": 1200108,
+            "assets": 1,
+            "reused": 0
+          }
+        },
+        {
+          "cursorWaitMs": 951,
+          "imageAppliedMs": 970,
+          "stats": {
+            "packets": 2,
+            "bytes": 1200108,
+            "assets": 1,
+            "reused": 0
+          }
+        },
+        {
+          "cursorWaitMs": 951,
+          "imageAppliedMs": 982,
+          "stats": {
+            "packets": 2,
+            "bytes": 1200108,
+            "assets": 1,
+            "reused": 0
+          }
+        }
+      ]
+    },
+    {
+      "label": "negotiated wire 3",
+      "chars": 1200000,
+      "clients": 3,
+      "simulatedRTTMs": 8,
+      "totalMs": 961,
+      "peakNodeHeapMiB": 24,
+      "results": [
+        {
+          "cursorWaitMs": 38,
+          "imageAppliedMs": 903,
+          "stats": {
+            "packets": 1,
+            "bytes": 1200083,
+            "assets": 1,
+            "reused": 0,
+            "retries": 0,
+            "ackMs": 21.40266500000007,
+            "maxAckMs": 21.40266500000007,
+            "hashMs": 44.310441999999966,
+            "maxQueue": 1,
+            "maxBufferedChars": 1200083,
+            "lastTransferMs": 910.9722200000001,
+            "transientSent": 1,
+            "transientReceived": 0,
+            "transientDropped": 0
+          }
+        },
+        {
+          "cursorWaitMs": 38,
+          "imageAppliedMs": 908,
+          "stats": {
+            "packets": 1,
+            "bytes": 1200083,
+            "assets": 1,
+            "reused": 0,
+            "retries": 0,
+            "ackMs": 25.59384399999999,
+            "maxAckMs": 25.59384399999999,
+            "hashMs": 29.626718999999866,
+            "maxQueue": 1,
+            "maxBufferedChars": 1200083,
+            "lastTransferMs": 910.2504540000002,
+            "transientSent": 1,
+            "transientReceived": 0,
+            "transientDropped": 0
+          }
+        },
+        {
+          "cursorWaitMs": 38,
+          "imageAppliedMs": 915,
+          "stats": {
+            "packets": 1,
+            "bytes": 1200083,
+            "assets": 1,
+            "reused": 0,
+            "retries": 0,
+            "ackMs": 22.583100000000286,
+            "maxAckMs": 22.583100000000286,
+            "hashMs": 31.846019999999953,
+            "maxQueue": 1,
+            "maxBufferedChars": 1200083,
+            "lastTransferMs": 902.7686699999999,
+            "transientSent": 1,
+            "transientReceived": 0,
+            "transientDropped": 0
+          }
+        }
+      ]
+    },
+    {
+      "label": "negotiated wire 3",
+      "chars": 25165760,
+      "clients": 1,
+      "simulatedRTTMs": 8,
+      "totalMs": 18709,
+      "peakNodeHeapMiB": 157,
+      "results": [
+        {
+          "cursorWaitMs": 173,
+          "imageAppliedMs": 18584,
+          "stats": {
+            "packets": 1,
+            "bytes": 25165843,
+            "assets": 1,
+            "reused": 0,
+            "retries": 0,
+            "ackMs": 217.376185000001,
+            "maxAckMs": 217.376185000001,
+            "hashMs": 155.68765500000018,
+            "maxQueue": 1,
+            "maxBufferedChars": 25165843,
+            "lastTransferMs": 18433.864952,
+            "transientSent": 1,
+            "transientReceived": 0,
+            "transientDropped": 0
+          }
+        }
+      ]
+    }
+  ]
+}

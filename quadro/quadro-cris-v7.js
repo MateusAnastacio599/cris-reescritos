@@ -5235,14 +5235,20 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     Hm2("Enigmas", ["transp", "bloco", "balanca", "peso", "lacre"]), Hm2("Laborat\xF3rio", ["leitor", "mesaluz", "revelador", "pendulo"]);
   }
   const Fs = new URL("./",location.href).href, zs = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js", Is = new URLSearchParams(location.search), Us = (window.CRISBridge.archiveId ? (window.CRIS_IDENTITY.isMaster ? "" : "ARCHIVE") : (Is.get("sala") || (window.CRIS_IDENTITY.isMaster ? "" : "CASO26107"))).toUpperCase().replace(/[^A-Z0-9]/g, ""), Ks = !!Us, Bs = Ks, Os = { me: Ks ? "p" + window.CRIS_IDENTITY.userId : "host", name: window.CRIS_IDENTITY.name || "Mestre", links: /* @__PURE__ */ new Set(), sent: /* @__PURE__ */ new Map(), sentPose: /* @__PURE__ */ new Map(), sentPins: "", sentGlob: "", peer: null, code: null, st: "", ready: !Ks, fx: {}, cur: {}, echo: false, q: Promise.resolve(), soonT: 0, myFx: "", myCur: null, lastCur: "", rtune: false }, js = /* @__PURE__ */ new Set(["_scr", "_scan", "_sum"]), Ds = ["x", "y", "rot", "scale", "z"], Ns = ["surface", "light", "lampOff", "amb"];
-  let crisLive;
+  let crisLive,crisApply;
   const crisLiveAPI=window.CRIS_BOARD_LIVE;
   function crisSend(connection,message){
     if(!crisLive||!crisLive.links.has(connection))return;
     return crisLive.send(connection,message).catch(()=>{if(Ks)Ar("Falha ao sincronizar. Reconectando…");else vr("Um jogador perdeu a sincronização; aguardando reconexão.");});
   }
   function crisNewLive(role){
-    crisLive?.stop();
+    crisLive?.stop();crisApply?.close();
+    const apply=new crisLiveAPI.LiveApplyQueue((message,connection)=>{
+      if(crisLive!==live||!live.links.has(connection))return;
+      if(role==='host')message=crisLiveAPI.playerPacket(message,u,connection._legacy?connection._actor||connection.peer:'p'+connection._identity);
+      if(message)return mr(message,connection);
+    });
+    crisApply=apply;
     const live=new crisLiveAPI.LivePeerSession({role,campaign:window.CRISBridge.campaignId,userId:window.CRIS_IDENTITY.userId,Peer:window.Peer,options:Ys,
       legacy:role==='client'?Us==='CASO26107':Os.code==='CASO26107',
       changed:()=>{if(crisLive===live){Os.links=live.links;Os.peer=live.peer;vr();}},
@@ -5257,20 +5263,16 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
         for(const item of visible.items)for(const key of ['imgId','audioId'])if(item[key]&&p[item[key]])imgs[item[key]]=p[item[key]];
         crisSend(connection,{t:'full',v:typeof hl!=='undefined'?hl:'',s:JSON.stringify(visible,(key,value)=>key==='cam'||key[0]==='_'&&!js.has(key)?undefined:value),imgs});
       },
-      onData:(message,connection)=>{
-        const generation=live.generation;
+      onData:(message,connection,options)=>{
         if(crisLive!==live||!live.links.has(connection))return;
         if(role==='host'&&connection._legacy&&message.t==='hello'&&/^[a-zA-Z0-9_-]{1,160}$/.test(message.from||''))connection._actor=message.from;
-        if(role==='host')message=crisLiveAPI.playerPacket(message,u,connection._legacy?connection._actor||connection.peer:'p'+connection._identity);
-        if(!message)return;
-        Os.q=Os.q.catch(()=>{}).then(()=>{if(crisLive!==live||live.generation!==generation||!live.links.has(connection))return;return mr(message,connection);});
-        return Os.q;
+        return apply.push(message,connection,options);
       }
     });
-    crisLive=live;window.CRIS_LIVE_DIAGNOSTICS=()=>({role,ready:Os.ready,participants:live.participants(),events:live.events.slice(),connections:live.links.size,peerOpen:!!live.peer?.open,pending:live.pending?.size||0,ice:[...new Set([...live.links,...(live.pending||[])])].map(c=>({connection:c.peerConnection?.connectionState,ice:c.peerConnection?.iceConnectionState})),stats:[...live.links].map(c=>c._wire?.stats||{legacy:true})});
+    crisLive=live;window.CRIS_LIVE_DIAGNOSTICS=()=>({role,ready:Os.ready,participants:live.participants(),events:live.events.slice(),transport:live.diagnostics(),connections:live.links.size,peerOpen:!!live.peer?.open,pending:live.pending?.size||0,ice:[...new Set([...live.links,...(live.pending||[])])].map(c=>({connection:c.peerConnection?.connectionState,ice:c.peerConnection?.iceConnectionState})),stats:[...live.links].map(c=>c._wire?.stats||{legacy:true})});
     return live;
   }
-  addEventListener('pagehide',()=>crisLive?.stop());
+  addEventListener('pagehide',()=>{crisLive?.stop();crisApply?.close();});
   addEventListener('online',()=>{if(crisLive?.role==='client')crisLive.dial();});
   function Hs(e2) {
     return JSON.stringify(e2, function(t2, o2) {
@@ -5528,7 +5530,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     null != e2 && (Os.st = e2);
     const o2 = !(!Os.peer || !Os.peer.open);
     t("#shSt").textContent = Os.st || "", t("#shSt").className = "shst" + (o2 ? " on" : ""), t("#shLink").value = Os.code ? hr() : "";
-    const a2 = crisLive?.participants().map(p=>p.name) || [];
+    const a2 = crisLive?.participants().filter(p=>p.online||p.legacy).map(p=>p.name) || [];
     t("#shN").textContent = a2.length ? "Na mesa: " + a2.join(", ") : "Ningu\xE9m conectado ainda", t("#shareBtn").classList.toggle("live", o2);
     const n2 = t("#shareBtn .l");
     n2 && (n2.textContent = o2 ? "Ao vivo" + (a2.length ? " \xB7 " + a2.length : "") : "");
@@ -5562,7 +5564,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
   }
   if (!Ks&&!window.CRISBridge.archiveId) setTimeout(()=>{
     wr();const button=document.createElement('button');button.type='button';button.className='b';button.textContent='Link antigo';button.title='Compatibilidade explícita com CASO26107';button.onclick=()=>yr(false,true);t('#sharePanel .btns').append(button);
-    const diagnostics=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Diagnóstico da conexão';diagnostics.append(summary);const pre=document.createElement('pre');pre.style.cssText='max-height:180px;overflow:auto;white-space:pre-wrap';diagnostics.append(pre);diagnostics.ontoggle=()=>{if(diagnostics.open){const value=window.CRIS_LIVE_DIAGNOSTICS?.();pre.textContent=value?JSON.stringify({connections:value.connections,participants:value.participants.map(p=>({connections:p.connections,legacy:p.legacy})),events:value.events,stats:value.stats},null,2):'Compartilhamento ainda não iniciado.';}};t('#sharePanel').append(diagnostics);
+    const diagnostics=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Diagnóstico da conexão';diagnostics.append(summary);const pre=document.createElement('pre');pre.style.cssText='max-height:180px;overflow:auto;white-space:pre-wrap';diagnostics.append(pre);diagnostics.ontoggle=()=>{if(diagnostics.open){const value=window.CRIS_LIVE_DIAGNOSTICS?.();pre.textContent=value?JSON.stringify({connections:value.connections,participants:value.participants.map(p=>({connections:p.connections,legacy:p.legacy})),transport:value.transport,events:value.events,stats:value.stats},null,2):'Compartilhamento ainda não iniciado.';}};t('#sharePanel').append(diagnostics);
   },0);
   if (Ks) {
     E = function() {
@@ -12654,7 +12656,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
       Os.maxP = +localStorage.getItem("qi-maxp") || 0;
     } catch (vx2) {
     }
-    const gx2 = () => [...Os.links].filter((e2) => e2.open && !e2._obs && !e2._kick);
+    const gx2 = () => [...Os.links].filter((e2) => crisLiveAPI.liveLinkOnline(e2) && !e2._obs && !e2._kick);
     setInterval(() => {
       if (!Os.maxP) return;
       const e2 = gx2();
@@ -12768,7 +12770,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
           const c2 = t("#shCam");
           c2 && (c2.textContent = "\u{1F441} Chamar todos pra minha vis\xE3o", c2.classList.add("shcam-mob"));
         }
-        const a2 = t("#shN"), n2 = [...Os.links].filter((e3) => e3.open && !e3._obs && !e3._kick), i2 = [...Os.links].some((e3) => e3.open && e3._obs);
+        const a2 = t("#shN"), n2 = [...Os.links].filter((e3) => crisLiveAPI.liveLinkOnline(e3) && !e3._obs && !e3._kick), i2 = [...Os.links].some((e3) => e3.open && e3._obs);
         a2 && (a2.innerHTML = (n2.length ? "<div class='shl-t'>Na mesa</div>" + n2.map((e3, t2) => `<div class="shl-r"><i style="background:${pr(e3._from || e3.peer || "")}"></i><span>${gt(e3._name || "\u2026")}</span><button class="b shl-k" data-k="${t2}" title="Tirar da mesa">tirar</button></div>`).join("") : "Ningu\xE9m conectado ainda") + (i2 ? "<div class='shl-o'>\u{1F4FA} OBS conectado</div>" : "")), a2 && a2.querySelectorAll("[data-k]").forEach((e3) => e3.onclick = () => qiKick(+e3.dataset.k));
         const s2 = t("#shCodeB");
         s2 && (s2.textContent = Os.code ? Ax2(Os.code) : "\u2026");

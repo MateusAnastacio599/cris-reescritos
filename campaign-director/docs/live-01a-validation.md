@@ -1,5 +1,7 @@
 # LIVE-01A — implementação para revisão
 
+Continuação em 25/11/2026: [investigação LIVE-01A.1](live-01a1-investigation.md) e [homologação Windows/Android](live-01a1-manual.md). O histórico abaixo descreve a etapa anterior; o bloqueio real e o gate da LIVE-01B permanecem abertos.
+
 **NÃO homologada para sessão real. LIVE-01B suspensa. Sem merge ou publicação.**
 
 Base `main`: 9bfacc78afc374732ceb8a5b9fea57f16a8b751c, incluindo CINEMATIC-01.6 / PR #23. Causa exata da sessão original com Matias e a suposta relação com upload não foram reproduzidas; faltam registros daquela sessão.
