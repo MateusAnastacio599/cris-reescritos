@@ -5234,7 +5234,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     };
     Hm2("Enigmas", ["transp", "bloco", "balanca", "peso", "lacre"]), Hm2("Laborat\xF3rio", ["leitor", "mesaluz", "revelador", "pendulo"]);
   }
-  const Fs = new URL("./",location.href).href, zs = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js", Is = new URLSearchParams(location.search), Us = (window.CRISBridge.archiveId ? (window.CRIS_IDENTITY.isMaster ? "" : "ARCHIVE") : (Is.get("sala") || (window.CRIS_IDENTITY.isMaster ? "" : "CASO26107"))).toUpperCase().replace(/[^A-Z0-9]/g, ""), Ks = !!Us, Bs = Ks, Os = { me: Ks ? "p" + window.CRIS_IDENTITY.userId : "host", name: window.CRIS_IDENTITY.name || "Mestre", links: /* @__PURE__ */ new Set(), sent: /* @__PURE__ */ new Map(), sentPose: /* @__PURE__ */ new Map(), sentPins: "", sentGlob: "", peer: null, code: null, st: "", ready: !Ks, fx: {}, cur: {}, echo: false, q: Promise.resolve(), soonT: 0, myFx: "", myCur: null, lastCur: "", rtune: false }, js = /* @__PURE__ */ new Set(["_scr", "_scan", "_sum"]), Ds = ["x", "y", "rot", "scale", "z"], Ns = ["surface", "light", "lampOff", "amb"];
+  const Fs = new URL("./",location.href).href, zs = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js", Is = new URLSearchParams(location.search), Us = (window.CRISBridge.archiveId ? (window.CRIS_IDENTITY.isMaster ? "" : "ARCHIVE") : (window.CRIS_BOARD_ENTRY?.current?.room || "")).toUpperCase().replace(/[^A-Z0-9]/g, ""), Ks = !!Us || !window.CRIS_IDENTITY.isMaster, Bs = Ks, Os = { me: Ks ? "p" + window.CRIS_IDENTITY.userId : "host", name: window.CRIS_IDENTITY.name || "Mestre", links: /* @__PURE__ */ new Set(), sent: /* @__PURE__ */ new Map(), sentPose: /* @__PURE__ */ new Map(), sentPins: "", sentGlob: "", peer: null, code: null, st: "", ready: !Ks, fx: {}, cur: {}, echo: false, q: Promise.resolve(), soonT: 0, myFx: "", myCur: null, lastCur: "", rtune: false }, js = /* @__PURE__ */ new Set(["_scr", "_scan", "_sum"]), Ds = ["x", "y", "rot", "scale", "z"], Ns = ["surface", "light", "lampOff", "amb"];
   let crisLive,crisApply;
   const crisLiveAPI=window.CRIS_BOARD_LIVE;
   function crisSend(connection,message){
@@ -5251,12 +5251,14 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     crisApply=apply;
     const live=new crisLiveAPI.LivePeerSession({role,campaign:window.CRISBridge.campaignId,userId:window.CRIS_IDENTITY.userId,Peer:window.Peer,options:Ys,
       legacy:role==='client'?Us==='CASO26107':Os.code==='CASO26107',
+      onControl:(message,c)=>window.CRIS_REMOTE_CINEMATICS?.packet(message,c)||false,
+      onDrop:c=>window.CRIS_REMOTE_CINEMATICS?.disconnect(c),
       changed:()=>{if(crisLive===live){Os.links=live.links;Os.peer=live.peer;vr();}},
       status:message=>{if(crisLive===live){Ks?Ar(message):vr(message);const retry=t('#vwRetry');if(retry)retry.hidden=!!live.code;}},
       onLost:()=>{if(crisLive!==live)return;Os.ready=false;Ar("Conexão interrompida. Reconectando à mesma sala…");ac(true);const retry=t("#vwRetry");if(retry)retry.hidden=false;},
       onReady:connection=>{
         if(crisLive!==live)return;
-        connection._imgs=new Set();Os.links=live.links;Os.peer=live.peer;
+        connection._imgs=new Set();Os.links=live.links;Os.peer=live.peer;window.CRIS_REMOTE_CINEMATICS?.bind(connection,live);
         if(role==='client'){Ar("Carregando a mesa…");crisSend(connection,{t:'hello',from:Os.me,name:Os.name});return;}
         if(live.links.size===1)er();
         const visible=crisLiveAPI.publicBoard(u),imgs={};
@@ -5517,7 +5519,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     };
   }
   function hr() {
-    const link=new URL(location.href);link.searchParams.set("sala",Os.code);link.searchParams.delete("board");return link.href;
+    const link=new URL(location.href);link.searchParams.set("sala",Os.code);link.searchParams.set("campanha",window.CRISBridge.campaignId);link.searchParams.delete("board");return link.href;
   }
   function gr() {
     const e2 = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -5542,10 +5544,10 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     if(legacy){if(!confirm('Reabrir o link antigo CASO26107? Ele não identifica uma campanha e pode estar ocupado. Compartilhe o link novo sempre que possível.'))return;Os.code='CASO26107';}
     else Os.code=crisLiveAPI.storedRoom(localStorage,window.CRISBridge.campaignId,!!fresh);
     vr('Abrindo a sala…');const request=++crisOpening;
-    try{await Qs();if(request!==crisOpening)return;const live=crisNewLive('host');Os.peer=live.start(Os.code);Os.links=live.links;}
+    try{await Qs();await window.CRIS_CINEMATIC_READY;if(request!==crisOpening)return;await window.CRIS_REMOTE_CINEMATICS?.prepareHost(Os.code);if(request!==crisOpening)return;const live=crisNewLive('host');Os.peer=live.start(Os.code);Os.links=live.links;}
     catch{vr('Não foi possível abrir a sala. Confira a internet e tente novamente.');}
   }
-  function br(){crisOpening++;crisLive?.stop();Os.peer=null;Os.links.clear();vr('Compartilhamento parado.');}
+  function br(){crisOpening++;window.CRIS_REMOTE_CINEMATICS?.stop(true);crisLive?.stop();Os.peer=null;Os.links.clear();vr('Compartilhamento parado.');}
   const xr = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7M5.6 5.6a9 9 0 000 12.8M18.4 5.6a9 9 0 010 12.8"/></svg>';
   function wr() {
     const e2 = t("#hideBtn");
@@ -5605,46 +5607,28 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
   }
   async function kr() {
     if(window.CRISBridge.archiveId)return;
-    document.body.classList.add("player");
-    let e2 = "";
-    try {
-      e2 = localStorage.getItem("qi-nome") || "";
-    } catch (e3) {
-    }
-    const o2 = document.createElement("div");
-    o2.id = "vwJoin", o2.innerHTML = `<div class="card"><div class="t">Quadro Investigativo</div><div class="s">Sala ${Us}</div><input id="vwName" maxlength="18" aria-label="Seu nome ou personagem" placeholder="Seu nome ou personagem" value="${gt(e2 || Os.name)}"><button id="vwGo">Entrar na mesa</button><div class="st" id="vwSt" role="status">Conectando\u2026</div><button id="vwRetry" type="button" hidden>Reconectar</button></div>`, document.body.appendChild(o2);
-    const a2 = document.createElement("div");
-    a2.id = "vwBar", a2.innerHTML = '<span class="dot"></span><span id="vwTxt">Conectando\u2026</span>', document.body.appendChild(a2);
-    const n2 = () => {
-      Os.name = (t("#vwName").value || "").trim().slice(0, 18) || "Jogador";
-      try {
-        localStorage.setItem("qi-nome", Os.name);
-      } catch (e3) {
-      }
-      Bt();const reconnect=t('#vwRetry');if(reconnect)t('#vwBar').append(reconnect);o2.remove();
-      for (const e3 of Os.links) if (e3.open) try {
-        crisSend(e3,{ t: "hello", from: Os.me, name: Os.name });
-      } catch (e4) {
-      }
-      Os.ready && Ar("AO VIVO \xB7 " + Os.name, true);
+    document.body.classList.add('player');
+    const entry=window.CRIS_BOARD_ENTRY,current=entry?.current;
+    const join=document.createElement('div');join.id='vwJoin';
+    join.innerHTML='<div class="card"><div class="t">Entrar na mesa</div><div class="s" id="vwRoomLabel"></div><label>Link ou código da mesa<input id="vwRoom" aria-label="Link ou código da mesa" maxlength="2048" autocomplete="off"></label><input id="vwName" maxlength="18" aria-label="Seu nome ou personagem"><button id="vwGo">Entrar nesta mesa</button><button id="vwOfficial" type="button">Mesa do caso atual · CASO26107</button><div id="vwSt" class="st" role="status">Informe a mesa enviada pelo mestre.</div></div>';
+    document.body.append(join);t('#vwRoom').value=current?.room||'';t('#vwName').value=Os.name;try{t('#vwName').value=localStorage.getItem('qi-nome')||Os.name;}catch{}
+    if(entry?.error)Ar(entry.error);
+    t('#vwRoomLabel').textContent=current?(current.title||'Campanha atual')+' · Sala '+current.room:'Escolha uma mesa para continuar';
+    const bar=document.createElement('div');bar.id='vwBar';bar.innerHTML='<span class="dot"></span><span id="vwRoomActive"></span><span id="vwTxt">Desconectado</span><button type="button" id="vwRetry" hidden>Reconectar</button><button type="button" id="vwChange">Trocar mesa</button>';document.body.append(bar);t('#vwRoomActive').textContent=current?(current.title||'Campanha')+' · '+current.room:'';
+    const connect=async()=>{t('#vwRetry').hidden=true;Ar('Conectando à sala '+Us+'…');try{await Qs();await window.CRIS_CINEMATIC_READY;Mr();}catch{Ar('Não foi possível conectar. Tente novamente.');t('#vwRetry').hidden=false;}};
+    t('#vwRetry').onclick=connect;t('#vwChange').onclick=()=>{if(join.isConnected){t('#vwRoom').focus();t('#vwRoom').select();}else entry.change();};
+    t('#vwOfficial').onclick=()=>{t('#vwRoom').value='CASO26107';t('#vwRoom').focus();};
+    t('#vwGo').onclick=async()=>{
+      const button=t('#vwGo');button.disabled=true;
+      try{const chosen=await entry.accept(t('#vwRoom').value);Os.name=t('#vwName').value.trim().slice(0,18)||'Jogador';try{localStorage.setItem('qi-nome',Os.name);}catch{}
+       if(chosen.room!==Us||chosen.campaignId!==window.CRISBridge.campaignId){entry.navigate(chosen);return;}
+       Bt();join.remove();await connect();
+      }catch(error){Ar(error.message);button.disabled=false;}
     };
-    t("#vwGo").onclick = n2, t("#vwName").onkeydown = (e3) => {
-      "Enter" === e3.key && n2();
-    }, ["#lightColor", "#lightInt", "#surfSel", "#lampBtn"].forEach((e3) => {
-      const o3 = t(e3);
-      o3 && (o3.style.display = "none");
-    }), document.querySelectorAll("#top [data-d]").forEach((e3) => e3.style.display = "none");
-    const retry=t("#vwRetry");
-    const connect=async()=>{
-      retry.hidden=true;Ar("Conectando à mesa…");
-      try{await Qs();Mr();}
-      catch{Ar("Não foi possível conectar à mesa. Confira a internet e tente novamente.");retry.hidden=false;}
-    };
-    retry.onclick=connect;
-    await connect();
-    setTimeout(() => {
-      Os.ready || Ar("Ainda n\xE3o conectou. Se demorar: troque de rede (Wi-Fi \u21C4 4G), desligue VPN ou bloqueador de an\xFAncios, ou abra no Chrome.");
-    }, 15e3);
+    t('#vwRoom').onkeydown=e=>{if(e.key==='Enter')t('#vwGo').click();};
+    try{const next=JSON.parse(sessionStorage.getItem('cris:live:joinNext:'+window.CRIS_IDENTITY.userId)||'null');sessionStorage.removeItem('cris:live:joinNext:'+window.CRIS_IDENTITY.userId);if(next?.room===Us&&next?.campaignId===window.CRISBridge.campaignId)t('#vwGo').click();}catch{}
+    for(const selector of ['#lightColor','#lightInt','#surfSel','#lampBtn'])if(t(selector))t(selector).style.display='none';
+    document.querySelectorAll('#top [data-d]').forEach(el=>el.style.display='none');
   }
   function Mr(){
     if(!crisLive){const live=crisNewLive('client');Os.peer=live.start(Us);Os.links=live.links;}

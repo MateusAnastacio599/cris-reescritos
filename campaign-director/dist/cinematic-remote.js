@@ -1,0 +1,174 @@
+import {isCinematic,cinematicMediaIds,CINEMATIC_COMPOSITION_BYTES,cinematicTotal} from './cinematic-model.js';
+import {sceneSpan} from './cinematic-timing.js';
+import {imageKey,validateCompositionMedia} from './cinematic-media.js';
+const key=v=>typeof v==='string'&&/^[\w-]{1,128}$/.test(v);
+const statuses=new Set(['conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado']);
+const mime=new Set(['image/png','image/jpeg','image/webp','video/webm']);
+const bytes64=bytes=>btoa(String.fromCharCode(...bytes));
+const from64=text=>Uint8Array.from(atob(text),c=>c.charCodeAt(0));
+export const publicCinematic=item=>({...structuredClone(item),...(item.layers?{layers:item.layers.filter(l=>l.visible).map(l=>structuredClone(l))}:{})});
+export const hostChallenge=(nonce,campaign,room,session)=>JSON.stringify({nonce,campaign,room,session});
+export async function createHostProof(register,room){
+ const pair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},false,['sign','verify']);
+ const publicKey=await crypto.subtle.exportKey('jwk',pair.publicKey);await register(room,publicKey);
+ return async text=>bytes64(new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},pair.privateKey,new TextEncoder().encode(text))));
+}
+export async function verifyHostProof(publicKey,text,signature){
+ if(!publicKey||publicKey.kty!=='EC'||publicKey.crv!=='P-256'||publicKey.d||typeof signature!=='string'||signature.length>256)return false;
+ try{const imported=await crypto.subtle.importKey('jwk',publicKey,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);return await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},imported,from64(signature),new TextEncoder().encode(text));}catch{return false;}
+}
+export function validateManifest(message){
+ if(!key(message.sid)||!Number.isSafeInteger(message.revision)||message.revision<1||!isCinematic(message.item)||!Array.isArray(message.assets)||!Number.isFinite(message.startedAt))return false;
+ const ids=cinematicMediaIds(message.item);
+ return ids.length===message.assets.length&&new Set(message.assets.map(a=>a.id)).size===ids.length&&message.assets.every(a=>ids.includes(a.id)&&mime.has(a.type)&&Number.isInteger(a.size)&&a.size>0&&a.size<=(a.type==='video/webm'?8:12)*1024*1024)&&message.assets.reduce((sum,a)=>sum+a.size,0)<=CINEMATIC_COMPOSITION_BYTES&&!(message.item.layers||[]).some(l=>!l.visible);
+}
+export class RemoteCinematics{
+ constructor({Wire,frame,bridge,changed=()=>{},now=Date.now}){
+  Object.assign(this,{Wire,frame,bridge,changed,now});this.peers=new Map();this.cache=new Map();this.revision=0;this.watermark=0;this.generation=0;
+  this.lease=setInterval(()=>{if(this.pending&&this.now()-this.pending.lastSeen>45000)void this.endClient('expired',true);},5000);
+ }
+ notify(){this.changed([...this.peers.values()].map(p=>({name:String(p.connection._name||'Jogador').slice(0,80),status:p.status,error:p.error||''})));}
+ state(peer,status,error=''){if(peer.status===status&&peer.error===error)return;peer.status=status;peer.error=error;this.notify();}
+ async prepareHost(room){
+  this.stop(true);this.sign=null;const generation=this.hostGeneration=(this.hostGeneration||0)+1;
+  try{const sign=await createHostProof((r,jwk)=>this.bridge.registerLiveHost(r,jwk),room);if(this.hostGeneration!==generation)return;this.sign=sign;this.hostError='';}
+  catch{if(this.hostGeneration!==generation)return;this.sign=null;this.hostError='Não foi possível validar o anfitrião na campanha. Reabra o compartilhamento com acesso de mestre.';}
+ }
+ control(peer,kind,fields={}){
+  if(peer.closed||!peer.connection.open||!peer.connection._session)return;
+  try{peer.connection.send({...fields,cinematic:1,kind,campaign:peer.live.campaign,room:peer.live.code,session:peer.connection._session});}catch{this.state(peer,'falhou','A conexão foi interrompida.');}
+ }
+ bind(connection,live){
+  const peer={connection,live,status:'conectado',verified:false,closed:false};this.peers.set(connection,peer);this.notify();
+  if(connection._legacy){this.state(peer,'falhou','Este cliente precisa atualizar o CRIS para receber Cinematics.');return;}
+  if(live.role==='client'){this.watermark=0;peer.nonce=crypto.randomUUID();this.control(peer,'challenge',{nonce:peer.nonce});peer.proofTimer=setTimeout(()=>{if(!peer.verified)this.state(peer,'falhou','O anfitrião não confirmou sua identidade para Cinematics.');},15000);}
+ }
+ packet(packet,connection){
+  const peer=this.peers.get(connection);if(!peer)return false;
+  if(packet?.lane==='cinematic'){
+   if(peer.verified&&peer.wire)peer.wire.handle(packet);return true;
+  }
+  if(packet?.cinematic!==1)return false;
+  if(peer.closed||packet.session!==connection._session||packet.campaign!==peer.live.campaign||packet.room!==peer.live.code||JSON.stringify(packet).length>32768)return true;
+  void this.handle(peer,packet).catch(()=>this.state(peer,'falhou','Não foi possível carregar a apresentação.'));return true;
+ }
+ async handle(peer,m){
+  const host=peer.live.role==='host';
+  if(host){
+   if(m.kind==='challenge'&&key(m.nonce)){
+    if(!this.sign){this.control(peer,'unavailable');this.state(peer,'falhou',this.hostError||'Reabra o compartilhamento.');return;}
+    const signature=await this.sign(hostChallenge(m.nonce,m.campaign,m.room,m.session));
+    this.control(peer,'proof',{nonce:m.nonce,signature,hostNow:this.now()});return;
+   }
+   if(m.kind==='verified'){peer.verified=true;if(this.active)void this.offer(peer,this.active);return;}
+   if(m.kind==='need'&&peer.run?.sid===m.sid&&Array.isArray(m.ids)&&m.ids.length<=27&&new Set(m.ids).size===m.ids.length&&m.ids.every(id=>peer.run.assets.some(a=>a.id===id))){
+    if(peer.sending)return;peer.sending=true;this.state(peer,'recebendo');void this.transfer(peer,peer.run,m.ids);return;
+   }
+   if(m.kind==='state'&&(peer.run?.sid===m.sid||!peer.run&&peer.ending===m.sid)&&statuses.has(m.status)){
+    if(m.status==='encerrado')peer.ending=null;if(m.status==='falhou'){peer.run=null;peer.wire?.close();}this.state(peer,m.status,m.status==='falhou'?'O jogador não conseguiu carregar a apresentação.':'');if(['apresentando','falhou','encerrando','encerrado'].includes(m.status))clearTimeout(peer.timeout);return;
+   }
+   // Incoming client start/stop/media commands never reach the player or other peers.
+   return;
+  }
+  if(m.kind==='unavailable'){this.state(peer,'falhou','O mestre precisa reabrir o compartilhamento para habilitar Cinematics.');return;}
+  if(m.kind==='proof'&&m.nonce===peer.nonce&&!peer.verified){
+   const publicKey=await this.bridge.liveHostKey(peer.live.code);
+   const valid=await verifyHostProof(publicKey,hostChallenge(peer.nonce,m.campaign,m.room,m.session),m.signature);
+   if(peer.closed)return;
+   if(!valid){this.state(peer,'falhou','A identidade do anfitrião não foi confirmada.');return;}
+   peer.verified=true;peer.clockOffset=Number.isFinite(m.hostNow)?this.now()-m.hostNow:0;clearTimeout(peer.proofTimer);this.control(peer,'verified');this.state(peer,'conectado');return;
+  }
+  if(!peer.verified)return;
+  if(m.kind==='prepare'){
+   if(!validateManifest(m)||m.revision<=this.watermark)return;
+   this.watermark=m.revision;const generation=++this.generation;
+   await this.frame.clear({immediate:true});if(peer.closed||generation!==this.generation)return;
+   this.pending={...m,peer,lastSeen:this.now(),generation};clearTimeout(this.cacheTimer);
+   this.makeWire(peer,m.sid);this.evict(m.assets);
+   for(const a of m.assets){const cached=this.cache.get(a.id);if(cached&&(cached.type!==a.type||cached.size!==a.size))this.cache.delete(a.id);}
+   const ids=m.assets.filter(a=>!this.cache.has(a.id)).map(a=>a.id);
+   this.state(peer,'recebendo');this.control(peer,'need',{sid:m.sid,ids});return;
+  }
+  if(m.kind==='stop'&&Number.isSafeInteger(m.revision)&&m.revision>=this.watermark){
+   this.watermark=m.revision;await this.endClient('manual',m.immediate===true);return;
+  }
+  if(!this.pending||this.pending.sid!==m.sid)return;
+  if(m.kind==='heartbeat'){this.pending.lastSeen=this.now();return;}
+  if(m.kind==='play')await this.playClient(this.pending);
+ }
+ evict(assets){const allowed=new Set(assets.map(a=>a.id));for(const id of this.cache.keys())if(!allowed.has(id))this.cache.delete(id);}
+ makeWire(peer,sid){
+  peer.wire?.close();peer.sending=false;
+  const connection={get open(){return peer.connection.open&&!peer.closed;},send:packet=>peer.connection.send({...packet,lane:'cinematic'})};
+  peer.wire=new this.Wire({connection,scope:peer.live.campaign+':'+peer.live.code+':cinematic',session:peer.connection._session+':'+sid,
+   receive:message=>this.receiveAsset(peer,message),fail:()=>{if(!peer.closed){this.state(peer,'falhou','Falha de integridade ou tempo esgotado na mídia.');if(peer.live.role==='client')void this.endClient('failed',true);}}});
+ }
+ async present(item,asset){
+  this.stop(true);const revision=++this.revision,operation={revision};this.operation=operation;
+  try{
+   if(!isCinematic(item))throw Error('Apresentação inválida');
+   const projected=publicCinematic(item),source=asset instanceof Blob?{[item.imageId]:asset}:asset;
+   const media=Object.fromEntries(cinematicMediaIds(projected).map(id=>[id,source[id]]));
+   await validateCompositionMedia(projected,media);if(this.operation!==operation)return;
+   const run=this.active={sid:crypto.randomUUID(),revision,item:projected,media,assets:Object.entries(media).map(([id,b])=>({id,type:b.type,size:b.size})),startedAt:this.now()};
+   this.operation=null;for(const peer of this.peers.values())if(peer.live.role==='host'){
+    if(peer.verified)void this.offer(peer,run);else this.state(peer,'falhou','O jogador ainda não validou o anfitrião.');
+   }
+   this.heartbeat=setInterval(()=>{for(const peer of this.peers.values())if(peer.run===run)this.control(peer,'heartbeat',{sid:run.sid});},4000);
+  }catch{if(this.operation===operation){this.operation=null;for(const peer of this.peers.values())this.state(peer,'falhou','A composição não pôde ser preparada para transmissão.');}}
+ }
+ async offer(peer,run){
+  if(peer.closed||this.active!==run)return;peer.run=run;peer.ending=null;this.makeWire(peer,run.sid);
+  this.control(peer,'prepare',{sid:run.sid,revision:run.revision,item:run.item,assets:run.assets,startedAt:run.startedAt});
+  clearTimeout(peer.timeout);peer.timeout=setTimeout(()=>{if(peer.run===run){peer.run=null;peer.wire?.close();this.control(peer,'stop',{sid:run.sid,revision:run.revision,immediate:true});this.state(peer,'falhou','O jogador não confirmou a apresentação no prazo.');}},180000);
+ }
+ async transfer(peer,run,ids){
+  try{
+   for(const id of ids){
+    if(peer.closed||peer.run!==run||this.active!==run)return;
+    const blob=run.media[id],bytes=new Uint8Array(await blob.arrayBuffer()),parts=[];
+    for(let i=0;i<bytes.length;i+=24576){if(peer.run!==run||this.active!==run)return;parts.push(bytes64(bytes.subarray(i,i+24576)));if(i% (24576*32)===0)await new Promise(resolve=>setTimeout(resolve,0));}
+    if(peer.run!==run||this.active!==run)return;
+    await peer.wire.send({t:'cinematic-asset',sid:run.sid,id,type:blob.type,base64:parts.join('')});
+   }
+   if(peer.run===run&&this.active===run){this.state(peer,'carregando');this.control(peer,'play',{sid:run.sid});}
+  }catch{if(peer.run===run&&this.active===run){peer.run=null;peer.wire?.close();this.control(peer,'stop',{sid:run.sid,revision:run.revision,immediate:true});this.state(peer,'falhou','A transferência da mídia falhou.');}}
+  finally{if(peer.run===run)peer.sending=false;}
+ }
+ async receiveAsset(peer,message){
+  const pending=this.pending,entry=pending?.assets.find(a=>a.id===message.id);
+  if(peer.live.role!=='client'||!peer.verified||pending?.peer!==peer||pending.sid!==message.sid||message.t!=='cinematic-asset'||!entry||entry.type!==message.type||typeof message.base64!=='string'||message.base64.length!==4*Math.ceil(entry.size/3)||!/^[A-Za-z0-9+/]*={0,2}$/.test(message.base64))throw Error('Mídia não solicitada ou inválida');
+  const blob=new Blob([from64(message.base64)],{type:entry.type});
+  if(blob.size!==entry.size||await imageKey(blob)!==entry.id)throw Error('Integridade da mídia inválida');
+  if(this.pending!==pending)return;
+  this.cache.set(entry.id,blob);if([...this.cache.values()].reduce((sum,b)=>sum+b.size,0)>CINEMATIC_COMPOSITION_BYTES)throw Error('Limite de mídia excedido');
+ }
+ async playClient(pending){
+  if(this.pending!==pending||pending.playing)return;pending.playing=true;
+  const {peer,item}=pending;this.state(peer,'carregando');this.control(peer,'state',{sid:pending.sid,status:'carregando'});
+  try{
+   const media=Object.fromEntries(pending.assets.map(a=>[a.id,this.cache.get(a.id)]));await validateCompositionMedia(item,media);if(this.pending!==pending)return;
+   const elapsed=Math.max(0,(this.now()-(peer.clockOffset||0)-pending.startedAt)/1000);
+   if(item.ending!=='loop'&&elapsed>=cinematicTotal(item)){await this.endClient('automatic',true);return;}
+   const shown=await this.frame.show(item.layers?.length||item.backgroundVideo?media:media[item.imageId],item,()=>{if(this.pending===pending)void this.endClient('automatic',true);});
+   if(this.pending!==pending||!shown)return;
+   this.frame.seek(item.ending==='loop'?elapsed%sceneSpan(item):elapsed);this.state(peer,'apresentando');this.control(peer,'state',{sid:pending.sid,status:'apresentando'});
+  }catch{if(this.pending===pending){await this.endClient('failed',true);}}
+ }
+ async endClient(reason,immediate=false){
+  const pending=this.pending;this.pending=null;this.generation=(this.generation||0)+1;const generation=this.generation;
+  if(pending){pending.peer.wire?.close();this.state(pending.peer,reason==='failed'?'falhou':'encerrando',reason==='failed'?'Não foi possível carregar a mídia.':'');}
+  await this.frame.clear({immediate});if(this.generation!==generation)return;
+  if(pending){const status=reason==='failed'?'falhou':'encerrado';this.state(pending.peer,status,reason==='failed'?'Não foi possível carregar a mídia.':'');this.control(pending.peer,'state',{sid:pending.sid,status});}
+  clearTimeout(this.cacheTimer);if(!this.closed)this.cacheTimer=setTimeout(()=>this.cache.clear(),30000);
+ }
+ stop(immediate=false){
+  this.operation=null;this.active=null;clearInterval(this.heartbeat);const revision=++this.revision;
+  for(const peer of this.peers.values())if(peer.live.role==='host'){
+   const run=peer.run;if(!run)continue;peer.run=null;peer.ending=run.sid;peer.wire?.close();clearTimeout(peer.timeout);
+   this.control(peer,'stop',{sid:run.sid,revision,immediate});this.state(peer,'encerrando');peer.timeout=setTimeout(()=>{if(!peer.run&&peer.ending===run.sid)this.state(peer,'falhou','O jogador não confirmou o encerramento.');},8000);
+  }
+ }
+ disconnect(connection){const peer=this.peers.get(connection);if(!peer)return;peer.closed=true;peer.wire?.close();clearTimeout(peer.timeout);clearTimeout(peer.proofTimer);this.peers.delete(connection);if(this.pending?.peer===peer)void this.endClient('disconnected',true);this.notify();}
+ close(){this.closed=true;this.stop(true);for(const connection of this.peers.keys())this.disconnect(connection);clearInterval(this.lease);clearTimeout(this.cacheTimer);this.cache.clear();}
+}

@@ -1,3 +1,5 @@
+import {CinematicLink} from './campaign-director/dist/cinematic-link.js';
+import {imageKey} from './campaign-director/dist/cinematic-media.js';
 const $=s=>document.querySelector(s),status=$('#qaStatus'),report=$('#qaReport');
 let serial=0;
 const contextKey='live-fixture-context-id';if(!localStorage.getItem(contextKey))localStorage.setItem(contextKey,crypto.randomUUID());
@@ -14,3 +16,9 @@ setInterval(()=>{
  status.textContent=d?(d.ready?'Pronto':'Aguardando snapshot')+' · '+d.connections+' conexões':'Use Jogar junto → Compartilhar esta mesa';
  report.textContent=JSON.stringify({room:$('#shLink')?.value||new URLSearchParams(location.search).get('sala'),contextId,transport:d?.transport,peerOpen:d?.peerOpen,pending:d?.pending,ice:d?.ice,participants:d?.participants,items:items.map(i=>({id:i.id,type:i.type,imgId:i.imgId,x:Math.round(i.x),y:Math.round(i.y)})),pins:s?.state.pins?.length,strings:s?.state.strings?.length,media:items.filter(i=>i.imgId&&s.imgs[i.imgId]).length,stats:d?.stats,events:d?.events.slice(-8)},null,2);
 },500);
+
+const qaLink=new CinematicLink();
+$('#qaCinematic').onclick=async()=>{const image=new Blob([await(await fetch('../qa-media/palco.png')).arrayBuffer()],{type:'image/png'});await qaLink.present({userId:window.CRIS_IDENTITY.userId,boardCampaignId:window.CRISBridge.campaignId},{campaignId:'qa',pageId:'theater',sceneId:'test'},{id:'qa-local',name:'Teatro local',imageId:await imageKey(image),motion:'living',seconds:12,intensity:12,ending:'loop',fadeIn:.2,fadeOut:.3},image);};
+$('#qaCinematicStop').onclick=()=>qaLink.stop();
+qaLink.subscribe(value=>{document.body.dataset.qaCinematic=value.message;});
+window.addEventListener('pagehide',()=>qaLink.close());

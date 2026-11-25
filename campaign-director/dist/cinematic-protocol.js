@@ -15,8 +15,9 @@ export function validCinematicMessage(message,scope,now=Date.now()){
     !Number.isFinite(message.at)||Math.abs(now-message.at)>requestLifetime)return false;
   if(message.type==='discover')return true;
   if(!isCinematicKey(message.boardId))return false;
-  if(message.type==='ready')return true;
+  if(message.type==='ready')return message.priority===undefined||Number.isInteger(message.priority)&&message.priority>=0&&message.priority<=3;
   if(!isCinematicKey(message.sessionId)||!validScene(message.scene))return false;
+  if(message.type==='remote-status')return Array.isArray(message.participants)&&message.participants.length<=64&&message.participants.every(p=>typeof p.name==='string'&&p.name.length<=80&&['conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado'].includes(p.status));
   if(message.type==='ended')return ['automatic','manual','expired'].includes(message.reason);
   if(message.type==='motion')return typeof message.motionReduced==='boolean';
   if(['started','closed','alive'].includes(message.type))return (message.motionReduced===undefined||typeof message.motionReduced==='boolean')&&
@@ -34,8 +35,8 @@ export const sameCinematicSession=(a,b)=>!!a&&!!b&&a.senderId===b.senderId&&
   a.boardId===b.boardId&&a.sessionId===b.sessionId&&sameCinematicScene(a.scene,b.scene);
 
 export class CinematicReceiver{
-  constructor({scope,boardId,frame,send,ready=()=>true,now=Date.now}){
-    Object.assign(this,{scope,boardId,frame,send,ready,now});
+  constructor({scope,boardId,frame,send,ready=()=>true,now=Date.now,onPresentation=()=>{},priority=()=>0}){
+    Object.assign(this,{scope,boardId,frame,send,ready,now,onPresentation,priority});
     this.watermarks=new Map();
   }
   reply(message,fields){
@@ -45,7 +46,7 @@ export class CinematicReceiver{
   async handle(message){
     const now=this.now();
     if(!validCinematicMessage(message,this.scope,now))return;
-    if(message.type==='discover'){if(this.ready())this.reply(message,{type:'ready'});return;}
+    if(message.type==='discover'){if(this.ready())this.reply(message,{type:'ready',priority:this.priority()});return;}
     if(message.boardId!==this.boardId||!['start','update','stop','heartbeat'].includes(message.type))return;
     for(const [id,entry] of this.watermarks){
       if(now-entry.at>CINEMATIC_LEASE+requestLifetime)this.watermarks.delete(id);
@@ -79,11 +80,11 @@ export class CinematicReceiver{
     try{
       const shown=await this.frame.show(message.image,message.item,()=>{
         if(this.active!==active)return;
-        this.active=null;
+        this.active=null;this.onPresentation({type:'stop',immediate:false});
         this.reply(active,{type:'ended',reason:'automatic'});
       });
       if(this.active===active&&shown){
-        active.started=true;
+        active.started=true;this.onPresentation({type:'start',item:message.item,asset:message.image});
         this.reply(active,{type:'started',ok:true,motionReduced:!!this.frame.motionReduced});
       }
     }catch{
@@ -94,7 +95,7 @@ export class CinematicReceiver{
     }
   }
   async finish(active,reason,immediate=false){
-    this.active=null;
+    this.active=null;this.onPresentation({type:'stop',immediate});
     this.ending=active;
     const removed=await this.frame.clear({immediate});
     if(this.ending!==active)return;
@@ -108,6 +109,7 @@ export class CinematicReceiver{
     if(this.active&&this.now()>=this.active.expires)void this.finish(this.active,'expired');
   }
   clear(immediate=false){
+    this.onPresentation({type:'stop',immediate});
     this.active=null;
     this.ending=null;
     this.frame.clear({immediate});
