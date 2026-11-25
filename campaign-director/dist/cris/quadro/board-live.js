@@ -187,9 +187,9 @@ export class LiveApplyQueue{
 export const liveLinkOnline=c=>!!c.open&&!!(c._legacy||c._syncReady)&&!['disconnected','failed','closed'].includes(c.peerConnection?.iceConnectionState)&&(!c.dataChannel||c.dataChannel.readyState==='open');
 
 export class LivePeerSession{
- constructor({role,campaign,userId,tabId=crypto.randomUUID(),Peer,options=()=>({}),onReady=()=>{},onData=()=>{},onLost=()=>{},status=()=>{},changed=()=>{},now=Date.now,legacy=false}){
+ constructor({role,campaign,userId,tabId=crypto.randomUUID(),Peer,options=()=>({}),onReady=()=>{},onData=()=>{},onLost=()=>{},status=()=>{},changed=()=>{},now=Date.now,legacy=false,onControl=()=>false,onDrop=()=>{}}){
   if(!clean(campaign)||!clean(userId))throw Error('Campanha ou identidade indisponível');
-  Object.assign(this,{role,campaign,userId,tabId,Peer,options,onReady,onData,onLost,status,changed,now,legacy});
+  Object.assign(this,{role,campaign,userId,tabId,Peer,options,onReady,onData,onLost,status,changed,now,legacy,onControl,onDrop});
   this.links=new Set();this.generation=0;this.known=new Map();this.events=[];this.retries=0;this.traces=[];
  }
  log(event,details){this.events.push({at:new Date(this.now()).toISOString(),event,...(details?{stage:liveConnectionStage({...details,peerOpen:!!this.peer?.open,peerError:this.peerError}),elapsedMs:details.elapsedMs,connection:details.connection,ice:details.ice,gathering:details.gathering,signaling:details.signaling,channelState:details.channelState,configuration:details.configuration,remoteCandidates:details.remoteCandidates,localSdpCandidates:details.localSdpCandidates,remoteSdpCandidates:details.remoteSdpCandidates,statsLocalCandidates:details.statsLocalCandidates,statsRemoteCandidates:details.statsRemoteCandidates,candidateEvents:details.candidateEvents,emptyCandidateEvents:details.emptyCandidateEvents,errorType:details.errorType,localDescription:details.localDescription,remoteDescription:details.remoteDescription,candidates:details.candidates,iceErrorCodes:details.iceErrorCodes}: {})});if(this.events.length>120)this.events.shift();}
@@ -239,6 +239,7 @@ export class LivePeerSession{
   });
   c.on('data',message=>{
    if(!valid())return;
+   if(this.links.has(c)&&this.onControl(message,c))return;
    if(message?.live==='busy'&&this.role==='client'&&this.dialing===c&&message.campaign===this.campaign&&message.room===this.code&&message.tabId===this.tabId){this.stop();this.status('Esta conta já está na mesa em outra aba. Feche a outra aba e use Reconectar para continuar aqui.');return;}
    if(message?.live==='welcome'&&this.role==='client'&&this.dialing===c){
     if(message.campaign!==this.campaign||message.room!==this.code||!clean(message.session)){this.drop(c,'scope-rejected');return;}
@@ -261,7 +262,7 @@ export class LivePeerSession{
  send(c,message){if(!this.links.has(c)||!c.open)return Promise.resolve(false);if(c._wire)return c._wire.send(message).then(result=>{if(message.t==='full'&&this.role==='host'&&!c._closed){c._syncReady=true;this.changed();}return result;});try{if(JSON.stringify(message).length>LIVE_LIMITS.packet)throw Error('Snapshot muito grande para cliente antigo');c.send(message);return Promise.resolve(true);}catch(error){this.drop(c,'send-failed');return Promise.reject(error);}}
  drop(c,reason){
   if(c._closed)return;const owned=this.links.has(c)||this.pending?.has(c)||this.dialing===c;c._closed=true;clearTimeout(c._openTimer);if(c._trace){const trace=c._trace.read();this.traces.push({...trace,reason,stage:liveConnectionStage({...trace,peerOpen:!!this.peer?.open,peerError:this.peerError,protocolFailed:reason==='sync-failed'})});if(this.traces.length>8)this.traces.shift();c._trace.close();}c._wire?.close();this.links.delete(c);this.pending?.delete(c);if(this.dialing===c)this.dialing=null;try{c.close();}catch{}
-  if(!owned)return;this.log(reason);this.changed();if(this.role==='client'){this.onLost(reason);this.retry();}
+  if(!owned)return;this.onDrop(c,reason);this.log(reason);this.changed();if(this.role==='client'){this.onLost(reason);this.retry();}
  }
  diagnostics(){return {peerOpen:!!this.peer?.open,peerError:this.peerError||null,identity:'declared-unverified',connections:[...new Set([...this.links,...(this.pending||[])])].map(c=>{const v=c._trace?.read()||{};return {...v,stage:liveConnectionStage({...v,peerOpen:!!this.peer?.open,peerError:this.peerError})};}),recent:this.traces.slice(),events:this.events.slice()};}
  tick(){for(const c of [...this.links]){if(this.now()-c._lastSeen>LIVE_LIMITS.lease){this.drop(c,'lease-expired');continue;}if(c._session)try{c.send({live:'ping',session:c._session});}catch{this.drop(c,'heartbeat-failed');}}}

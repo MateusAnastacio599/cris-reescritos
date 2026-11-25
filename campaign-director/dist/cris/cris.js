@@ -37,21 +37,22 @@ document.addEventListener('DOMContentLoaded', () => {
       boardPrimaryAction.textContent = 'INICIAR / GERENCIAR MESA';
       if (boardSecondaryAction) {
         boardSecondaryAction.hidden = false;
-        boardSecondaryAction.href = 'quadro/?sala=CASO26107';
+        let room='CASO26107';try{room=localStorage.getItem('cris:live:room:'+CRISBridge.campaignId)||room;}catch{}
+        boardSecondaryAction.href='quadro/?sala='+encodeURIComponent(room)+'&campanha='+encodeURIComponent(CRISBridge.campaignId);
         boardSecondaryAction.textContent = 'VISUALIZAR COMO JOGADOR';
       }
       if (boardAccessTitle) boardAccessTitle.textContent = 'CONTROLE DA MESA';
       if (boardAccessCopy) boardAccessCopy.textContent = 'Seu acesso de Mestre abre o painel de controle da mesa oficial. A transmissão só começa quando você autorizar.';
-      if (boardAccessNote) boardAccessNote.textContent = 'Quando a mesa estiver ao vivo, os agentes entram pelo mesmo botão do C.R.I.S. sem precisar receber um link.';
+      if (boardAccessNote) boardAccessNote.textContent = 'Compartilhe o link ou código com os agentes. Depois do primeiro acesso, o app lembra a mesa.';
       if (boardStatusLabel) boardStatusLabel.textContent = 'ACESSO DE MESTRE';
     } else {
-      boardPrimaryAction.href = 'quadro/?sala=CASO26107';
+      boardPrimaryAction.href = 'quadro/';
       boardPrimaryAction.textContent = 'ENTRAR NA MESA';
       if (boardSecondaryAction) boardSecondaryAction.hidden = true;
       if (boardAccessTitle) boardAccessTitle.textContent = 'ACESSO INTEGRADO';
-      if (boardAccessCopy) boardAccessCopy.textContent = 'A mesa principal usa sempre o mesmo identificador do caso e reconhece automaticamente a credencial do agente autenticado.';
-      if (boardAccessNote) boardAccessNote.textContent = 'Se o Mestre ainda não tiver iniciado a transmissão, o quadro aguarda e tenta reconectar automaticamente.';
-      if (boardStatusLabel) boardStatusLabel.textContent = 'MESA OFICIAL DO CASO';
+      if (boardAccessCopy) boardAccessCopy.textContent = 'Entre com o link ou código enviado pelo mestre. A última mesa fica guardada nesta conta e aparelho.';
+      if (boardAccessNote) boardAccessNote.textContent = 'Você pode trocar de mesa dentro do quadro, sem editar o endereço do app.';
+      if (boardStatusLabel) boardStatusLabel.textContent = 'ESCOLHA SUA MESA';
     }
   }
 

@@ -26,7 +26,7 @@ export class CinematicLink{
     this.channel.onmessage=event=>{
       const reply=event.data,request=this.requests.get(reply?.requestId);
       if(reply?.senderId!==this.senderId)return;
-      if(request&&validCinematicMessage(reply,request.scope)&&request.matches(reply))request.finish(null,reply);
+      if(request&&validCinematicMessage(reply,request.scope)){if(request.consider)request.consider(reply);else if(request.matches(reply))request.finish(null,reply);}
       const active=this.active;
       if(!active||!validCinematicMessage(reply,active.scope)||!sameCinematicSession(active,reply))return;
       if(reply.type==='closed')this.reset('A janela do quadro foi fechada ou recarregada.');
@@ -35,27 +35,28 @@ export class CinematicLink{
         manual:'Apresentação encerrada.',
         expired:'Apresentação encerrada por perda de comunicação.',
       }[reply.reason]);
+      if(reply.type==='remote-status'){active.remote=reply.participants;this.notify(this.activeMessage());}
       if(reply.type==='motion'){active.motionReduced=reply.motionReduced;this.notify(this.activeMessage());}
       if(reply.type==='alive')active.lastSeen=Date.now();
     };
   }
-  request(scope,fields,matches,timeout,errorMessage){
+  request(scope,fields,matches,timeout,errorMessage,{collect=false}={}){
     return new Promise((resolve,reject)=>{
-      const requestId=crypto.randomUUID();
+      const requestId=crypto.randomUUID();let choiceTimer;const choices=[];
       const finish=(error,result)=>{
-        clearTimeout(timer);
+        clearTimeout(timer);clearTimeout(choiceTimer);
         this.requests.delete(requestId);
         if(error)reject(error);else resolve(result);
       };
       const timer=setTimeout(()=>finish(Error(errorMessage)),timeout);
-      this.requests.set(requestId,{scope,finish,matches});
+      this.requests.set(requestId,{scope,finish,matches,consider:collect?reply=>{if(!matches(reply)||choices.length>=64)return;choices.push(reply);choiceTimer??=setTimeout(()=>finish(null,choices.sort((a,b)=>(b.priority||0)-(a.priority||0))[0]),120);}:null});
       try{this.channel.postMessage(cinematicEnvelope(scope,{...fields,senderId:this.senderId,requestId}));}
       catch(error){finish(error);}
     });
   }
   activeMessage(){
     return `Apresentação “${this.active.name}” ativa no quadro deste navegador.`+(this.active.motionReduced
-      ?' Movimentos reduzidos no quadro. Use Permitir movimentos nesta ferramenta na janela do quadro para ativá-los.':'');
+      ?' Movimentos reduzidos no quadro. Use Permitir movimentos nesta ferramenta na janela do quadro para ativá-los.':'')+(this.active.remote?.length?' Remotos: '+this.active.remote.map(p=>p.name+' · '+p.status).join('; '):'');
   }
   send(active,type,fields={}){
     const {scope,senderId,boardId,sessionId,scene}=active;
@@ -76,7 +77,7 @@ export class CinematicLink{
     try{
       const prior=this.active;
       const boardId=prior?.boardId??(await this.request(scope,{type:'discover'},reply=>reply.type==='ready',1800,
-        'Quadro indisponível. Abra o quadro ao vivo da campanha e deixe a mesa pronta nesta conta e navegador.')).boardId;
+        'Quadro indisponível. Abra o quadro ao vivo da campanha e deixe a mesa pronta nesta conta e navegador.',{collect:true})).boardId;
       if(this.operation!==operation)return;
       const active=this.active={scope,senderId:this.senderId,boardId,sessionId:crypto.randomUUID(),scene,name:item.name,fadeOut:item.fadeOut??.3,lastSeen:Date.now()};
       const reply=await this.request(scope,{type:'start',boardId,sessionId:active.sessionId,scene,item,image,sequence:++this.sequence},
