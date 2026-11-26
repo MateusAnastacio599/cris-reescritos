@@ -12,7 +12,7 @@ async function fixture({delay=0,drop=()=>false}={}){
  let publicKey;const packets=[],frames=[],states=[];
  const frame={async show(asset,value,end){frames.push({asset,item:value,end});return true;},async clear(){return true;},seek(time){this.time=time;}};
  const bridge={registerLiveHost:async(room,key)=>publicKey=key,liveHostKey:async()=>publicKey};
- const host=new RemoteCinematics({Wire:LiveWire,frame:{},bridge,changed:s=>states.push(s)}),client=new RemoteCinematics({Wire:LiveWire,frame,bridge});
+ const host=new RemoteCinematics({Wire:LiveWire,frame:{},bridge,lead:150,changed:s=>states.push(s)}),client=new RemoteCinematics({Wire:LiveWire,frame,bridge});
  await host.prepareHost('ROOMONE');
  const a={open:true,_session:'network-session',_name:'Jogador',send:m=>{packets.push(m);if(!drop(m,'host'))setTimeout(()=>client.packet(structuredClone(m),b),delay);}},b={open:true,_session:'network-session',send:m=>{packets.push(m);if(!drop(m,'client'))setTimeout(()=>host.packet(structuredClone(m),a),delay);}};
  host.bind(a,{role:'host',campaign:'case',code:'ROOMONE'});client.bind(b,{role:'client',campaign:'case',code:'ROOMONE'});
@@ -123,4 +123,35 @@ test('stop received during fullscreen cleanup invalidates the waiting prepare co
   const prepare=f.client.handle(peer,{...old,kind:'prepare',sid:'replacement-waiting',revision:old.revision+1});
   const stop=f.client.handle(peer,{kind:'stop',revision:old.revision+2,immediate:true});release();await Promise.all([prepare,stop]);assert.equal(f.client.pending,null);assert.equal(f.frames.length,1);
  }finally{release?.();f.client.presentation=null;f.close();}
+});
+async function additional(f,{decode=0,delay=0,skew=0,id='second'}={}){
+ const starts=[],frame={prepare:async()=>{await pause(decode);return true;},startPrepared:async()=>{starts.push(Date.now());return true;},seek(t){this.position=t;},clear:async()=>true};
+ const client=new RemoteCinematics({Wire:LiveWire,bridge:f.client.bridge,frame,now:()=>Date.now()+skew});
+ const a={open:true,_identity:id,_session:id,send:m=>setTimeout(()=>client.packet(structuredClone(m),b),delay)},b={open:true,_session:id,send:m=>setTimeout(()=>f.host.packet(structuredClone(m),a),delay)};
+ f.host.bind(a,{role:'host',campaign:'case',code:'ROOMONE'});client.bind(b,{role:'client',campaign:'case',code:'ROOMONE'});await until(()=>f.host.peers.get(a).verified);return {client,a,b,frame,starts,close(){client.close();f.host.disconnect(a);}};
+}
+test('all participants and local player wait for the slowest ready; common start compensates clock skew',async()=>{
+ const f=await fixture(),g=await additional(f,{decode:80,delay:8,skew:300});let masterStart=0;try{
+  const run=await f.host.present(item,png,{prepareLocal:async()=>{await pause(20);return true;},startLocal:async()=>{masterStart=Date.now();return true;}});await pause(50);assert.equal(masterStart,0);assert.equal(f.frames.length,0);await run.begun;await until(()=>g.starts.length===1&&f.frames.length===1);assert.ok(Math.abs(g.starts[0]-masterStart)<70);assert.ok(g.frame.position<.1);assert.equal(run.phase,'apresentando');
+ }finally{g.close();f.close();}
+});
+test('a timed-out participant cannot block indefinitely; explicit proceed admits the ready and catches up the late',async()=>{
+ const f=await fixture(),g=await additional(f,{decode:200});f.host.prepareTimeout=30;try{
+  const run=await f.host.present(item,png);await until(()=>run.canProceed);assert.equal(run.startAt,undefined);assert.equal(f.host.proceed(),true);await run.begun;await until(()=>g.starts.length===1);assert.ok(g.frame.position>=0);assert.equal(f.host.proceed(),false);
+ }finally{g.close();f.close();}
+});
+test('a late joiner uses the active timeline and does not restart existing players',async()=>{
+ const f=await fixture();let g;try{const run=await f.host.present(item,png);await run.begun;await until(()=>f.frames.length===1);await pause(100);g=await additional(f,{decode:20,skew:-450});await until(()=>g.starts.length===1);assert.ok(g.frame.position>=.1);assert.equal(f.frames.length,1);assert.equal(f.host.active,run);}finally{g?.close();f.close();}
+});
+test('cancel before the scheduled common start prevents both players from starting',async()=>{
+ const f=await fixture();let starts=0;try{const run=await f.host.present(item,png,{startLocal:async()=>{starts++;return true;}});await until(()=>!!run.startAt);f.host.stop(true);assert.equal(await run.begun,false);await pause(300);assert.equal(starts,0);assert.equal(f.frames.length,0);}finally{f.close();}
+});
+test('replacement during local prepare invalidates the old scheduled start',async()=>{
+ const f=await fixture();let release,first=0,second=0;const prepare=new Promise(r=>release=r);try{const old=await f.host.present(item,png,{prepareLocal:()=>prepare,startLocal:async()=>{first++;return true;}});const next=await f.host.present({...item,id:'next'},png,{startLocal:async()=>{second++;return true;}});release(true);assert.equal(await old.begun,false);await next.begun;assert.equal(first,0);assert.equal(second,1);await until(()=>f.frames.length===1);assert.equal(f.frames[0].item.id,'next');}finally{release(true);f.close();}
+});
+test('content cache keeps reusable hashes across different presentations within the byte budget',async()=>{
+ const f=await fixture();try{await f.host.present(item,png);await until(()=>f.frames.length===1);const first=f.packets.filter(p=>p.lane==='cinematic'&&p.kind==='chunk').length;const other=new Blob([await png.arrayBuffer(),Uint8Array.of(0)],{type:'image/png'}),id=await imageKey(other);await f.host.present({...item,imageId:id},other);await until(()=>f.frames.length===2);const second=f.packets.filter(p=>p.lane==='cinematic'&&p.kind==='chunk').length;assert.ok(second>first);await f.host.present(item,png);await until(()=>f.frames.length===3);assert.equal(f.packets.filter(p=>p.lane==='cinematic'&&p.kind==='chunk').length,second);assert.ok([...f.client.cache.values()].reduce((n,b)=>n+b.size,0)<=24*1024*1024);}finally{f.close();}
+});
+test('play promise latency is included when aligning the receiver timeline',async()=>{
+ const f=await fixture();try{f.frame.startPrepared=async()=>{await pause(80);return true;};const run=await f.host.present(item,png);await run.begun;await until(()=>f.host.peers.get(f.a).status==='apresentando');assert.ok(f.frame.time>=.07,'seek must include the time spent awaiting play()');}finally{f.close();}
 });

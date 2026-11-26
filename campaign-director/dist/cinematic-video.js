@@ -98,7 +98,7 @@ export class CinematicVideoLayer{
     const finished=!c.loop&&(localTime-c.delay)*c.rate>=v.duration;
     const use=!reduced&&c.enabled&&localTime>=c.delay&&(!c.window||time<range.end)&&!(finished&&c.end!=='freeze');
     this.wantPlaying=playing&&use&&!finished;
-    const blend=use?windowEnvelope(c.window,time,this.span):0;v.style??={};v.style.opacity=blend;this.fallback.style.opacity=use?1-blend:1;
+    const blend=use?(c.window?windowEnvelope(c.window,time,this.span):1):0;v.style??={};v.style.opacity=blend;this.fallback.style.opacity=use?1-blend:1;
     v.hidden=!use;this.fallback.style.visibility=(use&&blend>=1)||(finished&&c.end==='hide'&&!reduced)?'hidden':'visible';
     if(!use){v.pause();return;}
     const target=videoPosition(c,localTime,v.duration);
@@ -106,8 +106,8 @@ export class CinematicVideoLayer{
     v.playbackRate=c.rate;v.loop=c.loop;
     if(playing&&!finished){
       if(v.paused&&!this.starting){
-        this.starting=true;const revision=this.revision;
-        this.startPromise=Promise.resolve(v.play()).then(()=>{if(this.closed||revision!==this.revision||!this.wantPlaying)v.pause();},()=>{if(!this.closed)this.fail();}).finally(()=>{this.starting=false;});
+        this.autoplayBlocked=false;this.starting=true;const revision=this.revision;
+        this.startPromise=Promise.resolve(v.play()).then(()=>{if(this.closed||revision!==this.revision||!this.wantPlaying)v.pause();},error=>{if(!this.closed){if(error?.name==='NotAllowedError'){this.autoplayBlocked=true;this.wantPlaying=false;v.pause();}else this.fail();}}).finally(()=>{this.starting=false;});
       }
     }else v.pause();
     return this.startPromise;

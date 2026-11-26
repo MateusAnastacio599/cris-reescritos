@@ -1,0 +1,19 @@
+// Disposable QA data only. Optional argv[3] is an older repository checkout for before/after.
+import {spawnSync} from 'node:child_process';
+import {readFileSync,writeFileSync,copyFileSync} from 'node:fs';
+import {join,resolve} from 'node:path';
+const dest=resolve(process.argv[2]||''),root=resolve(process.argv[3]||new URL('../../..',import.meta.url).pathname);if(!process.argv[2])throw Error('Informe diretório novo.');
+const r=spawnSync(process.execPath,[join(root,'campaign-director/tests/fixtures/live-mobile-cinematic-demo.mjs'),dest],{encoding:'utf8'});if(r.status)throw Error(r.stderr);
+const web=join(dest,'public'),engine=join(web,'quadro/quadro-cris-v7.js');let js=readFileSync(engine,'utf8');
+js=js.replace('window.LIVE_QA={snapshot:',`window.LIVE_QA={scene:async(kind)=>{
+ const note=(id,x,y,text)=>({...structuredClone(u.items.find(i=>i.type==='note')||{}),id,type:'note',x,y,w:300,h:220,scale:1,rot:0,z:1,text,textFull:text});
+ u.items=[note('a',5000,1000,'Área principal'),note('b',kind==='spread'?-5000:5400,kind==='spread'?2600:1200,'Outra pista'),{...note('secret',100000,90000,'SEGREDO'),gm:true}];u.pins=[{id:'p1',item:'a',lx:0,ly:0},{id:'p2',item:'b',lx:0,ly:0}];u.strings=[{id:'s1',a:'p1',b:'p2'}];await ze();U();E();ar();
+ },snapshot:`);writeFileSync(engine,js);
+let qa=readFileSync(join(web,'live-board-qa.js'),'utf8');
+qa+=`\nfor(const kind of ['small','spread']){const b=document.createElement('button');b.id='qaScene'+kind;b.textContent='Quadro '+kind;b.onclick=()=>window.LIVE_QA.scene(kind);document.querySelector('#qaTools').append(b);}\n`;
+qa=qa.replace('cinematic:window.CRIS_REMOTE_CINEMATICS?.diagnostics?.(),', 'camera:window.LIVE_QA?.snapshot().state.cam,cinematic:window.CRIS_REMOTE_CINEMATICS?.diagnostics?.(),');writeFileSync(join(web,'live-board-qa.js'),qa);
+if(process.argv[4]){copyFileSync(process.argv[4],join(web,'qa-media/large.webm'));qa+=`\nconst large=document.createElement('button');large.id='qaLarge';large.textContent='WebM grande';large.onclick=async()=>{const image=new Blob([await(await fetch('../qa-media/palco.png')).arrayBuffer()],{type:'image/png'}),video=new Blob([await(await fetch('../qa-media/large.webm')).arrayBuffer()],{type:'video/webm'}),imageId=await imageKey(image),videoId=await imageKey(video);await qaLink.present({userId:window.CRIS_IDENTITY.userId,boardCampaignId:window.CRISBridge.campaignId},{campaignId:'qa',pageId:'theater',sceneId:'test'},{id:'qa-large',name:'WebM grande de teste',imageId,motion:'living',seconds:12,intensity:10,ending:'loop',fadeIn:.2,fadeOut:.3,backgroundVideo:{mediaId:videoId,enabled:true,loop:true,rate:1,delay:0,end:'fallback',transparent:false}},{[imageId]:image,[videoId]:video});};document.querySelector('#qaTools').append(large);\n`;writeFileSync(join(web,'live-board-qa.js'),qa);}
+let html=readFileSync(join(web,'quadro/index.html'),'utf8');if(js.includes('crisCameraPlaced'))html=html.replace('cinematic-frame.js?v=live01b2','cinematic-frame.js?v=live01b3');writeFileSync(join(web,'quadro/index.html'),html);
+let page=readFileSync(join(web,'room-qa.html'),'utf8').replace('<button data-action="qaShort">','<button data-action="qaScenesmall">Quadro pequeno</button><button data-action="qaScenespread">Quadro espalhado</button><button data-action="qaShort">').replace('<option>800</option>','<option>800</option><option>1024</option>').replace('allow="fullscreen"','allow="autoplay; fullscreen"');
+if(process.argv[4])page=page.replace('<button data-action="qaComplex">','<button data-action="qaLarge">WebM grande</button><button data-action="qaComplex">');
+page=page.replace('Primeiro decode do jogador atrasado 6,5 s; cena local dura 4 s.', 'Primeiro prepare atrasado 6,5 s; cena dura 4 s. Cenários fictícios de enquadramento.');writeFileSync(join(web,'room-qa.html'),page);console.log(dest);

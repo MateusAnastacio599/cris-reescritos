@@ -1,5 +1,5 @@
 import {CINEMATIC_CHANNEL,CINEMATIC_LEASE,cinematicEnvelope,sameBoard,sameCinematicScene,
-  sameCinematicSession,validBoard,validCinematicMessage} from './cinematic-protocol.js?v=live01b2';
+  sameCinematicSession,validBoard,validCinematicMessage} from './cinematic-protocol.js?v=live01b3';
 
 export class CinematicLink{
   constructor(){
@@ -35,8 +35,9 @@ export class CinematicLink{
         manual:'Apresentação encerrada.',
         expired:'Apresentação encerrada por perda de comunicação.',
       }[reply.reason]);
+      if(reply.type==='started'){if(!reply.ok){if(!request)this.stop('Não foi possível iniciar a apresentação.');return;}active.phase='apresentando';active.motionReduced=reply.motionReduced;this.notify(this.activeMessage());}
       if(reply.type==='local-ended'){active.localEnded=true;this.notify(this.activeMessage());}
-      if(reply.type==='remote-status'){active.remote=reply.participants;this.notify(this.activeMessage());}
+      if(reply.type==='remote-status'){active.remote=reply.participants;active.coordination=reply.coordination;this.notify(this.activeMessage());}
       if(reply.type==='motion'){active.motionReduced=reply.motionReduced;this.notify(this.activeMessage());}
       if(reply.type==='alive')active.lastSeen=Date.now();
     };
@@ -56,7 +57,7 @@ export class CinematicLink{
     });
   }
   activeMessage(){
-    return (this.active.localEnded?'Apresentação local concluída; aguardando os participantes.':`Apresentação “${this.active.name}” ativa no quadro deste navegador.`)+(this.active.motionReduced
+    return (this.active.phase==='preparando'?'Preparando a apresentação com os participantes…':this.active.localEnded?'Apresentação local concluída; aguardando os participantes.':`Apresentação “${this.active.name}” ativa no quadro deste navegador.`)+(this.active.motionReduced
       ?' Movimentos reduzidos no quadro. Use Permitir movimentos nesta ferramenta na janela do quadro para ativá-los.':'')+(this.active.remote?.length?' Remotos: '+this.active.remote.map(p=>p.name+' · '+(p.label||p.status)).join('; '):'');
   }
   send(active,type,fields={}){
@@ -82,11 +83,11 @@ export class CinematicLink{
       if(this.operation!==operation)return;
       const active=this.active={scope,senderId:this.senderId,boardId,sessionId:crypto.randomUUID(),scene,name:item.name,fadeOut:item.fadeOut??.3,lastSeen:Date.now()};
       const reply=await this.request(scope,{type:'start',boardId,sessionId:active.sessionId,scene,item,image,sequence:++this.sequence},
-        result=>result.type==='started'&&sameCinematicSession(active,result),6500,'O quadro não confirmou a abertura da imagem.');
+        result=>['accepted','started'].includes(result.type)&&sameCinematicSession(active,result),6500,'O quadro não confirmou a abertura da imagem.');
       if(this.operation!==operation)return;
-      if(!reply.ok)throw Error('O quadro não abriu a imagem. Confira o arquivo e se outra apresentação está ativa.');
+      if(reply.type==='started'&&!reply.ok)throw Error('O quadro não abriu a imagem. Confira o arquivo e se outra apresentação está ativa.');
       this.operation=null;
-      active.started=true;
+      active.started=true;active.phase=reply.type==='accepted'?'preparando':'apresentando';
       active.motionReduced=reply.motionReduced;
       active.lastSeen=Date.now();
       this.heartbeat=setInterval(()=>{

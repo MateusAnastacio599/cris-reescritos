@@ -187,3 +187,8 @@ test('automatic local ending keeps Director controls until remote completion, wi
  await receiver.handle(envelope({type:'start',item:legacy,image}));const pending=onEnd();assert.ok(receiver.active);assert.ok(replies.some(r=>r.type==='local-ended'));assert.equal(events.includes('stop'),false);
  await receiver.handle(envelope({type:'stop',sequence:2}));finish();await pending;assert.equal(receiver.active,null);assert.equal(events.filter(e=>e==='stop').length,1);assert.equal(replies.filter(r=>r.type==='ended').length,1);
 });
+test('coordinated receiver acknowledges preparation promptly and remains cancellable before local start',async()=>{
+ const messages=[];let release,starts=0,stops=0;const pending=new Promise(r=>release=r),receiver=new CinematicReceiver({scope,boardId:'coordinated-board',frame:{clear:async()=>true},send:m=>messages.push(m),coordinate:async({signal})=>{await pending;if(signal.aborted)return false;starts++;return true;},onPresentation:e=>{if(e.type==='stop')stops++;}});
+ const command=cinematicEnvelope(scope,{type:'start',senderId:'director',requestId:'request',sessionId:'session',boardId:'coordinated-board',scene,item:legacy,image,sequence:1});
+ const preparing=receiver.handle(command);assert.equal(messages[0].type,'accepted');assert.equal(starts,0);await receiver.handle({...command,type:'stop',immediate:true,sequence:2});release();await preparing;assert.equal(starts,0);assert.equal(stops,1);assert.equal(receiver.active,null);assert.ok(messages.some(m=>m.type==='ended'));
+});

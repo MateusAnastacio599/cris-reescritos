@@ -2,6 +2,24 @@ import {observeLiveConnection,liveConnectionStage,LIVE_STAGE_TEXT} from './board
 // LIVE-01A: PeerJS lifecycle and bounded, acknowledged board packets.
 // Account IDs in peer metadata are presence claims, NEVER authorization proofs.
 const clean=value=>typeof value==='string'&&/^[a-zA-Z0-9_-]{1,160}$/.test(value);
+// Shared by U() and accepted camcall; input is the already visible board only.
+export function boardBounds(items,pins=[],height=item=>item.h||item.w){
+ let left=Infinity,top=Infinity,right=-Infinity,bottom=-Infinity;
+ const include=(x,y,rx=0,ry=0)=>{if(![x,y,rx,ry].every(Number.isFinite))return;left=Math.min(left,x-rx);right=Math.max(right,x+rx);top=Math.min(top,y-ry);bottom=Math.max(bottom,y+ry);};
+ for(const item of items){const w=Math.abs(item.w||0),h=Math.abs(height(item)||0),scale=Math.abs(item.scale??1),angle=(item.rot||0)*Math.PI/180;include(item.x,item.y,(Math.abs(Math.cos(angle))*w+Math.abs(Math.sin(angle))*h)*scale/2,(Math.abs(Math.sin(angle))*w+Math.abs(Math.cos(angle))*h)*scale/2);}
+ for(const pin of pins)include(pin.x,pin.y,12,12);
+ return Number.isFinite(left)?{left,top,right,bottom}:null;
+}
+export function fitBoardCamera(bounds,{width,height,padding=36,maxZoom=1.6}){
+ if(!bounds||![bounds.left,bounds.top,bounds.right,bounds.bottom,width,height].every(Number.isFinite)||width<=0||height<=0)return null;
+ const margin=Math.min(padding,width/5,height/5),z=Math.min(maxZoom,(width-2*margin)/Math.max(1,bounds.right-bounds.left),(height-2*margin)/Math.max(1,bounds.bottom-bounds.top));
+ if(!Number.isFinite(z)||z<=0)return null;
+ return {z,x:(bounds.left+bounds.right)/2-width/(2*z),y:(bounds.top+bounds.bottom)/2-height/(2*z)};
+}
+export function fitCameraCall(view,viewport){
+ if(!view||![view.x,view.y,view.w,view.h,view.z].every(Number.isFinite)||view.w<=0||view.h<=0||view.z<=0)return null;
+ const w=view.w/view.z,h=view.h/view.z;return fitBoardCamera({left:view.x-w/2,right:view.x+w/2,top:view.y-h/2,bottom:view.y+h/2},{...viewport,maxZoom:6});
+}
 export const LIVE_LIMITS=Object.freeze({chunk:12000,packet:32*1024*1024,asset:24*1024*1024,queue:64,queueChars:64*1024*1024,ack:10000,retries:2,heartbeat:10000,lease:70000,transientQueue:256,transientPoses:1024,transientBatch:96,channelHighWater:256*1024});
 export const roomCode=value=>String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,32);
 export function newRoom(random=crypto){const b=new Uint8Array(12);random.getRandomValues(b);return Array.from(b,n=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n%32]).join('');}
@@ -10,8 +28,8 @@ export async function digest(text){const bytes=await crypto.subtle.digest('SHA-2
 export const validAsset=value=>typeof value==='string'&&value.length<=LIVE_LIMITS.asset&&/^data:(?:image\/(?:png|jpeg|webp|gif)|audio\/[a-zA-Z0-9.+-]+);base64,[A-Za-z0-9+/=]+$/.test(value);
 const ephemeral=new Set(['cur','fx','pose']);
 export class LiveWire{
- constructor({connection,scope,session,receive,known=new Map(),remoteAssets={},log=()=>{},fail=()=>{},limits=LIVE_LIMITS,priority=false,now=()=>performance.now()}){
-  Object.assign(this,{connection,scope,session,receive,known,log,fail,limits,priority,now});this.remoteAssets=new Map(Object.entries(remoteAssets).slice(0,1000));this.queue=[];this.serial=0;this.received=0;this.closed=false;this.inbound=Promise.resolve();this.inboundCount=0;this.bufferedChars=0;this.transients=new Map();this.deferred=new Map();this.replay=new Map();this.transientSequence=0;this.lastTransient=0;this.stats={packets:0,bytes:0,assets:0,reused:0,retries:0,ackMs:0,maxAckMs:0,hashMs:0,maxQueue:0,maxBufferedChars:0,lastTransferMs:0,transientSent:0,transientReceived:0,transientDropped:0};
+ constructor({connection,scope,session,receive,known=new Map(),remoteAssets={},log=()=>{},fail=()=>{},limits=LIVE_LIMITS,priority=false,now=()=>performance.now(),sendWindow=1}){
+  Object.assign(this,{connection,scope,session,receive,known,log,fail,limits,priority,now});this.sendWindow=Math.max(1,Math.min(4,Number.isInteger(sendWindow)?sendWindow:1));this.inFlight=new Map();this.remoteAssets=new Map(Object.entries(remoteAssets).slice(0,1000));this.queue=[];this.serial=0;this.received=0;this.closed=false;this.inbound=Promise.resolve();this.inboundCount=0;this.bufferedChars=0;this.transients=new Map();this.deferred=new Map();this.replay=new Map();this.transientSequence=0;this.lastTransient=0;this.stats={packets:0,bytes:0,assets:0,reused:0,retries:0,ackMs:0,maxAckMs:0,hashMs:0,maxQueue:0,maxBufferedChars:0,lastTransferMs:0,transientSent:0,transientReceived:0,transientDropped:0,maxInFlight:0};
  }
  raw(message){if(this.closed||!this.connection.open)throw Error('Conexão encerrada');this.connection.send({...message,live:2,scope:this.scope,session:this.session});}
  send(message){
@@ -46,8 +64,11 @@ export class LiveWire{
     const text=JSON.stringify(message);
     if(text.length>this.limits.packet)throw Error('Snapshot acima do limite de transmissão');
     const begin=this.now(),hash=await digest(text);this.stats.hashMs+=this.now()-begin;const id=entry.id,total=Math.ceil(text.length/this.limits.chunk);
-    for(let index=0;index<total;index++){
-     await this.acknowledge({kind:'chunk',id,index,total,length:text.length,hash,data:text.slice(index*this.limits.chunk,(index+1)*this.limits.chunk)});
+    // Only Cinematic opts into a bounded 4-fragment window. Ordered durable
+    // messages still commit sequentially; final ACK still waits for full SHA/apply.
+    for(let start=0;start<total;start+=this.sendWindow){
+     const batch=[];for(let index=start;index<Math.min(total,start+this.sendWindow);index++)batch.push(this.acknowledge({kind:'chunk',id,index,total,length:text.length,hash,data:text.slice(index*this.limits.chunk,(index+1)*this.limits.chunk)}));
+     await Promise.all(batch);
     }
     for(const [key,hash] of hashes)this.remoteAssets.set(key,hash);
     this.stats.packets++;this.stats.bytes+=text.length;if(message.t==='full'||Object.keys(imgs).length)this.log(message.t==='full'?'snapshot-sent':'image-sent');this.stats.lastTransferMs=this.now()-started;entry.resolve(true);
@@ -55,13 +76,16 @@ export class LiveWire{
   }}finally{this.sending=false;}
  }
  acknowledge(packet){return new Promise((resolve,reject)=>{
-  let tries=0,sentAt=this.now();const pending=this.pending={id:packet.id,index:packet.index,resolve:()=>{const elapsed=this.now()-sentAt;this.stats.ackMs=elapsed;this.stats.maxAckMs=Math.max(this.stats.maxAckMs,elapsed);clearTimeout(pending.timer);if(this.pending===pending)this.pending=null;resolve();},reject:error=>{clearTimeout(pending.timer);if(this.pending===pending)this.pending=null;reject(error);}};
+  let tries=0,sentAt=this.now();const key=packet.id+':'+packet.index;
+  const finish=()=>{clearTimeout(pending.timer);this.inFlight.delete(key);};
+  const pending={resolve:()=>{const elapsed=this.now()-sentAt;this.stats.ackMs=elapsed;this.stats.maxAckMs=Math.max(this.stats.maxAckMs,elapsed);finish();resolve();},reject:error=>{finish();reject(error);}};
+  this.inFlight.set(key,pending);this.stats.maxInFlight=Math.max(this.stats.maxInFlight,this.inFlight.size);
   const send=()=>{sentAt=this.now();try{this.raw(packet);}catch(error){pending.reject(error);return;}pending.timer=setTimeout(()=>{if(++tries>this.limits.retries)pending.reject(Error('Tempo esgotado aguardando confirmação do quadro'));else{this.stats.retries++;send();}},this.limits.ack);};send();
  });}
  handle(packet){
   if(this.closed||packet?.live!==2||packet.scope!==this.scope||packet.session!==this.session)return false;
   if(packet.kind==='transient'&&this.priority){this.acceptTransient(packet);return true;}
-  if(packet.kind==='ack'){if(this.pending?.id===packet.id&&this.pending.index===packet.index)this.pending.resolve();return true;}
+  if(packet.kind==='ack'){this.inFlight.get(packet.id+':'+packet.index)?.resolve();return true;}
   if(packet.kind==='nack'){this.abort(Error('Quadro recusou a sincronização'));return true;}
   if(this.inboundCount>=this.limits.queue){this.abort(Error('Fila de fragmentos recebidos excedida'));return true;}
   this.inboundCount++;this.inbound=this.inbound.then(()=>this.accept(packet)).catch(error=>this.abort(error)).finally(()=>{this.inboundCount--;});return true;
@@ -154,7 +178,7 @@ export class LiveWire{
   for(const message of this.deferred.values())this.dispatchTransient(message);this.deferred.clear();
  }
  abort(error){if(this.closed)return;this.log('sync-failed');try{this.raw({kind:'nack'});}catch{}this.close();this.fail(error);}
- close(){if(this.closed)return;this.closed=true;clearTimeout(this.transientTimer);this.transients.clear();this.deferred.clear();this.replay.clear();this.pending?.reject(Error('Conexão encerrada'));this.current?.reject(Error('Conexão encerrada'));for(const entry of this.queue)entry.reject(Error('Conexão encerrada'));this.queue=[];this.assembly=null;this.bufferedChars=0;}
+ close(){if(this.closed)return;this.closed=true;clearTimeout(this.transientTimer);this.transients.clear();this.deferred.clear();this.replay.clear();for(const ack of this.inFlight.values())ack.reject(Error('Conexão encerrada'));this.inFlight.clear();this.current?.reject(Error('Conexão encerrada'));for(const entry of this.queue)entry.reject(Error('Conexão encerrada'));this.queue=[];this.assembly=null;this.bufferedChars=0;}
 }
 
 // Board mutations from every connection share one application queue. Cosmetic cursor/FX
@@ -209,7 +233,7 @@ export class LivePeerSession{
  }
  dial(){
   if(this.role!=='client'||!this.peer?.open||this.dialing||this.links.size)return;
-  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,cinematic:3,assets:Object.fromEntries(this.known)}});
+  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,cinematic:4,assets:Object.fromEntries(this.known)}});
   this.dialing=connection;this.attach(connection,this.generation);
  }
  attach(c,generation){
@@ -233,7 +257,7 @@ export class LivePeerSession{
      c._openTimer=setTimeout(()=>this.drop(c,'duplicate-tab'),10000);this.log('duplicate-tab');return;
     }
     this.links.add(c);this.pending.delete(c);
-    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion,cinematic:3});}
+    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion,cinematic:4});}
     this.log('connection-open');this.changed();this.onReady(c);
    }
   });

@@ -49,6 +49,7 @@ export function mountRoomUI({role,entry,name,room,title,callbacks={}}){
    const presentation=remote.find(r=>r.id===p.id);if(presentation&&presentation.status!=='conectado')info.append(element('small',presentation.label||presentation.status),...(presentation.error?[element('small',presentation.error,'cris-room-error')]:[]));
    row.append(info,button('', 'Remover',()=>callbacks.kick?.(p.id)));row.lastChild.setAttribute('aria-label','Remover '+(p.name||'jogador'));participants.append(row);
   });
+  if(window.CRIS_REMOTE_CINEMATICS?.active?.canProceed)participants.append(button('cinematicProceed','Prosseguir com os prontos',()=>window.CRIS_REMOTE_CINEMATICS.proceed()));
   if(notice)participants.append(element('p',notice,'cris-room-error'));
  }
  function render(view,message=''){
@@ -68,5 +69,5 @@ export function mountRoomUI({role,entry,name,room,title,callbacks={}}){
   const st=element('p',error||entry.error||'','st');st.id='vwSt';st.setAttribute('role','status');card.append(st);card.onsubmit=async event=>{event.preventDefault();go.disabled=true;try{await callbacks.join(input.value,who.value);join.remove();}catch(error){st.textContent=error.message;go.disabled=false;}};
   join.append(card);document.body.append(join);return join;
  }
- return {panel,showEntry,render,show(){panel?.classList.add('show');},remote(value){remote=value;renderParticipants();},notice(value){notice=value;renderParticipants();},get view(){return lastView;}};
+ return {panel,showEntry,render,navigationHelp(){if(role!=='client'||!matchMedia('(pointer:coarse),(max-width:600px)').matches)return;try{const key='cris:board:gestures:v1';if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'shown');}catch{}callbacks.toast?.('Arraste o fundo para mover. Use dois dedos para aproximar ou afastar. Toque nos objetos para interagir.');},coordination(){renderParticipants();},show(){panel?.classList.add('show');},remote(value){remote=value;renderParticipants();},notice(value){notice=value;renderParticipants();},get view(){return lastView;}};
 }

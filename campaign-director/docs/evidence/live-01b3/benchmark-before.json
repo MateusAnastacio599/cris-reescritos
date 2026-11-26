@@ -1,0 +1,233 @@
+{
+  "hashReuse": {
+    "calls": 8,
+    "arrayBufferReads": 8,
+    "ms": 1.2644799999998213
+  },
+  "kind": "SIMULATION. Real hashes and LiveWire; decoder uses time stubs; no WebRTC or physical devices.",
+  "root": "/workspace/scratch/0aa6b72416ce/live01b3-base",
+  "results": [
+    {
+      "label": "simple, 2 participants",
+      "rttMs": 20,
+      "decoderDelayStubsMs": [
+        40,
+        100
+      ],
+      "totalMediaBytes": 12179,
+      "results": [
+        {
+          "cache": "cold",
+          "wallToLastStartMs": 212,
+          "startSpreadMs": 212,
+          "startAfterCommandMs": [
+            0,
+            150,
+            212
+          ],
+          "offsets": [
+            0,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.483696000000009,
+              "integrityMs": 4.902400999999998,
+              "decoderStubMs": 39.63119800000001,
+              "receiveToReadyMs": 117.766685,
+              "readyToStartMs": 20.389417000000037
+            },
+            {
+              "commandMs": 10.81717900000001,
+              "integrityMs": 2.1125040000000013,
+              "decoderStubMs": 99.93438999999998,
+              "receiveToReadyMs": 178.157397,
+              "readyToStartMs": 20.889742000000012
+            }
+          ],
+          "participants": [
+            {},
+            {}
+          ],
+          "hash": null
+        },
+        {
+          "cache": "warm",
+          "wallToLastStartMs": 154,
+          "startSpreadMs": 154,
+          "startAfterCommandMs": [
+            0,
+            92,
+            154
+          ],
+          "offsets": [
+            0,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.376137000000028,
+              "integrityMs": 0,
+              "decoderStubMs": 39.81485799999996,
+              "receiveToReadyMs": 60.60427800000002,
+              "readyToStartMs": 19.864129999999932
+            },
+            {
+              "commandMs": 10.561551000000009,
+              "integrityMs": 0,
+              "decoderStubMs": 100.48485900000003,
+              "receiveToReadyMs": 122.721789,
+              "readyToStartMs": 19.88228700000002
+            }
+          ],
+          "participants": [
+            {},
+            {}
+          ],
+          "hash": null
+        }
+      ]
+    },
+    {
+      "label": "layers + WebM, 2 participants",
+      "rttMs": 20,
+      "decoderDelayStubsMs": [
+        40,
+        100
+      ],
+      "totalMediaBytes": 21106,
+      "results": [
+        {
+          "cache": "cold",
+          "wallToLastStartMs": 253,
+          "startSpreadMs": 253,
+          "startAfterCommandMs": [
+            0,
+            192,
+            253
+          ],
+          "offsets": [
+            0,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 9.418560999999954,
+              "integrityMs": 7.620601000000079,
+              "decoderStubMs": 39.38085699999999,
+              "receiveToReadyMs": 159.92671299999995,
+              "readyToStartMs": 20.790309999999977
+            },
+            {
+              "commandMs": 10.756880000000024,
+              "integrityMs": 4.613263999999958,
+              "decoderStubMs": 100.64308800000003,
+              "receiveToReadyMs": 219.90383299999996,
+              "readyToStartMs": 20.878410999999915
+            }
+          ],
+          "participants": [
+            {},
+            {}
+          ],
+          "hash": null
+        },
+        {
+          "cache": "warm",
+          "wallToLastStartMs": 154,
+          "startSpreadMs": 154,
+          "startAfterCommandMs": [
+            0,
+            94,
+            154
+          ],
+          "offsets": [
+            0,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.397239000000127,
+              "integrityMs": 0,
+              "decoderStubMs": 40.79859299999998,
+              "receiveToReadyMs": 62.21315699999991,
+              "readyToStartMs": 19.902287000000115
+            },
+            {
+              "commandMs": 10.531386999999995,
+              "integrityMs": 0,
+              "decoderStubMs": 100.31162800000016,
+              "receiveToReadyMs": 123.13789999999995,
+              "readyToStartMs": 19.620589999999993
+            }
+          ],
+          "participants": [
+            {},
+            {}
+          ],
+          "hash": null
+        }
+      ]
+    },
+    {
+      "label": "large WebM, 1 participant",
+      "rttMs": 20,
+      "decoderDelayStubsMs": [
+        100
+      ],
+      "totalMediaBytes": 3829001,
+      "results": [
+        {
+          "cache": "cold",
+          "wallToLastStartMs": 9903,
+          "startSpreadMs": 9903,
+          "startAfterCommandMs": [
+            0,
+            9903
+          ],
+          "offsets": [
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.486550999999963,
+              "integrityMs": 726.3465790000009,
+              "decoderStubMs": 100.96565999999984,
+              "receiveToReadyMs": 9841.122598,
+              "readyToStartMs": 21.122070999999778
+            }
+          ],
+          "participants": [
+            {}
+          ],
+          "hash": null
+        },
+        {
+          "cache": "warm",
+          "wallToLastStartMs": 243,
+          "startSpreadMs": 243,
+          "startAfterCommandMs": [
+            0,
+            243
+          ],
+          "offsets": [
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.709100000000035,
+              "integrityMs": 0,
+              "decoderStubMs": 100.06504200000018,
+              "receiveToReadyMs": 136.90820600000006,
+              "readyToStartMs": 22.687826999999743
+            }
+          ],
+          "participants": [
+            {}
+          ],
+          "hash": null
+        }
+      ]
+    }
+  ]
+}

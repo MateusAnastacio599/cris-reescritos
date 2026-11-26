@@ -72,7 +72,7 @@ if(new URLSearchParams(location.search).get('demoSession'))demoScope.boardCampai
         });
         watch.observe(document.body,{childList:true,attributes:true,attributeFilter:['hidden','class'],subtree:true});
 `+boardHTML.slice(end);
-boardHTML=boardHTML.replace("        import {mountBoardSession} from './board-session.js?v=337';\n",'')
+boardHTML=boardHTML.replace(/        import \{mountBoardSession\} from '\.\/board-session\.js(?:\?[^']*)?';\n/,'')
   .replace('await mountBoardSession(identity);','');
 writeFileSync(board,boardHTML);
 cpSync(join(repo,'lume/assets/teatro-garnier.jpg'),join(web,'teatro-garnier.jpg'));

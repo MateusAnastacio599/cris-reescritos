@@ -167,3 +167,7 @@ test('cinematic preview, protocol, board overlay and UI do not instantiate or co
     assert.doesNotMatch(source,/AudioEngine|startScene|stopAll|boardSnapshot|saveBoard|\.snapshot\(/);
   }
 });
+test('hash cache reuses only the identical immutable Blob; altered bytes still fail identity checks',async()=>{
+ const {imageKey,cinematicHashMetrics}=await import('../dist/cinematic-media.js');const blob=new Blob([Uint8Array.of(137,80,78,71,13,10,26,10)],{type:'image/png'}),before=cinematicHashMetrics.calls;
+ const id=await imageKey(blob);assert.equal(await imageKey(blob),id);assert.equal(cinematicHashMetrics.calls-before,1);const changed=new Blob([await blob.arrayBuffer(),Uint8Array.of(1)],{type:'image/png'});assert.notEqual(await imageKey(changed),id);
+});

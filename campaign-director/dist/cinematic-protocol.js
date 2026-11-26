@@ -17,10 +17,10 @@ export function validCinematicMessage(message,scope,now=Date.now()){
   if(!isCinematicKey(message.boardId))return false;
   if(message.type==='ready')return message.priority===undefined||Number.isInteger(message.priority)&&message.priority>=0&&message.priority<=3;
   if(!isCinematicKey(message.sessionId)||!validScene(message.scene))return false;
-  if(message.type==='remote-status')return Array.isArray(message.participants)&&message.participants.length<=64&&message.participants.every(p=>typeof p.name==='string'&&p.name.length<=80&&['preparando','aguardando','pronto','fullscreen','conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado'].includes(p.status));
+  if(message.type==='remote-status')return Array.isArray(message.participants)&&message.participants.length<=64&&message.participants.every(p=>typeof p.name==='string'&&p.name.length<=80&&['preparando','aguardando','pronto','fullscreen','lento','bloqueado','conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado'].includes(p.status));
   if(message.type==='ended')return ['automatic','manual','expired'].includes(message.reason);
   if(message.type==='motion')return typeof message.motionReduced==='boolean';
-  if(['started','closed','alive','local-ended'].includes(message.type))return (message.motionReduced===undefined||typeof message.motionReduced==='boolean')&&
+  if(['started','accepted','closed','alive','local-ended'].includes(message.type))return (message.motionReduced===undefined||typeof message.motionReduced==='boolean')&&
     (message.type!=='started'||typeof message.ok==='boolean');
   if(!Number.isSafeInteger(message.sequence)||message.sequence<1)return false;
   if(['stop','heartbeat'].includes(message.type))return message.immediate===undefined||typeof message.immediate==='boolean';
@@ -35,8 +35,8 @@ export const sameCinematicSession=(a,b)=>!!a&&!!b&&a.senderId===b.senderId&&
   a.boardId===b.boardId&&a.sessionId===b.sessionId&&sameCinematicScene(a.scene,b.scene);
 
 export class CinematicReceiver{
-  constructor({scope,boardId,frame,send,ready=()=>true,now=Date.now,onPresentation=()=>{},priority=()=>0,onAutoEnd=()=>Promise.resolve()}){
-    Object.assign(this,{scope,boardId,frame,send,ready,now,onPresentation,priority,onAutoEnd});
+  constructor({scope,boardId,frame,send,ready=()=>true,now=Date.now,onPresentation=()=>{},priority=()=>0,onAutoEnd=()=>Promise.resolve(),coordinate=null}){
+    Object.assign(this,{scope,boardId,frame,send,ready,now,onPresentation,priority,onAutoEnd,coordinate});
     this.watermarks=new Map();
   }
   reply(message,fields){
@@ -75,19 +75,21 @@ export class CinematicReceiver{
       return;
     }
     const active={senderId:message.senderId,boardId:message.boardId,sessionId:message.sessionId,
-      scene:message.scene,requestId:message.requestId,expires:now+CINEMATIC_LEASE};
-    this.active=active;
+      scene:message.scene,requestId:message.requestId,expires:now+CINEMATIC_LEASE,controller:new AbortController()};
+    this.active?.controller?.abort();this.active=active;
     try{
-      const shown=await this.frame.show(message.image,message.item,async()=>{
+      if(this.coordinate){active.accepted=true;this.reply(active,{type:'accepted'});}
+      const ended=async()=>{
         if(this.active!==active)return;
         this.reply(active,{type:'local-ended'});await this.onAutoEnd();if(this.active!==active)return;
         this.active=null;this.onPresentation({type:'stop',immediate:false});
         this.reply(active,{type:'ended',reason:'automatic'});
-      });
+      };
+      const shown=this.coordinate?await this.coordinate({signal:active.controller.signal,item:message.item,asset:message.image,prepare:()=>this.frame.prepare(message.image,message.item,ended),start:async offset=>{const at=this.now(),shown=await this.frame.startPrepared();if(this.active===active)this.frame.seek(offset+(this.now()-at)/1000);return shown;}}):await this.frame.show(message.image,message.item,ended);
       if(this.active===active&&shown){
-        active.started=true;this.onPresentation({type:'start',item:message.item,asset:message.image});
+        active.started=true;if(!this.coordinate)this.onPresentation({type:'start',item:message.item,asset:message.image});
         this.reply(active,{type:'started',ok:true,motionReduced:!!this.frame.motionReduced});
-      }
+      }else if(this.active===active){this.clear(true);this.reply(message,{type:'started',ok:false});}
     }catch{
       if(this.active===active){
         this.clear();
@@ -96,12 +98,12 @@ export class CinematicReceiver{
     }
   }
   async finish(active,reason,immediate=false){
-    this.active=null;this.onPresentation({type:'stop',immediate});
+    active.controller?.abort();this.active=null;this.onPresentation({type:'stop',immediate});
     this.ending=active;
     const removed=await this.frame.clear({immediate});
     if(this.ending!==active)return;
     this.ending=null;
-    if(removed!==false&&active.started)this.reply(active,{type:'ended',reason});
+    if(removed!==false&&(active.started||active.accepted))this.reply(active,{type:'ended',reason});
   }
   motionChanged(reduced){
     if(this.active?.started)this.reply(this.active,{type:'motion',motionReduced:reduced});
@@ -110,7 +112,7 @@ export class CinematicReceiver{
     if(this.active&&this.now()>=this.active.expires)void this.finish(this.active,'expired');
   }
   clear(immediate=false){
-    this.onPresentation({type:'stop',immediate});
+    this.active?.controller?.abort();this.onPresentation({type:'stop',immediate});
     this.active=null;
     this.ending=null;
     this.frame.clear({immediate});

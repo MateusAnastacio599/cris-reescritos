@@ -107,7 +107,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   }
   function F(e2, t2, o2) {
     const a2 = u.cam;
-    o2 = c(o2, 0.12, 4);
+    o2 = c(o2, Math.min(0.12,a2.z), 4);
     const n2 = e2 / a2.z + a2.x, i2 = t2 / a2.z + a2.y;
     a2.z = o2, a2.x = n2 - e2 / o2, a2.y = i2 - t2 / o2, q(), I();
   }
@@ -115,16 +115,16 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
   function I() {
     clearTimeout(z), z = setTimeout(E, 400);
   }
+  let crisCameraPlaced=false,crisCameraRevision=0,crisCameraRoom='';
   function U() {
-    if (!u.items.length) return u.cam = { x: -60, y: -40, z: 0.8 }, void q();
-    let e2 = 1e9, t2 = 1e9, o2 = -1e9, a2 = -1e9;
-    u.items.filter((e3) => !xo(e3)).forEach((n3) => {
-      const i3 = Math.max(n3.w, B(n3)) * n3.scale * 0.75;
-      e2 = Math.min(e2, n3.x - i3), t2 = Math.min(t2, n3.y - i3), o2 = Math.max(o2, n3.x + i3), a2 = Math.max(a2, n3.y + i3);
-    });
-    const n2 = x ? 140 : 40, i2 = innerWidth - 2 * n2, s2 = innerHeight - 2 * n2, r2 = c(Math.min(i2 / (o2 - e2), s2 / (a2 - t2)), 0.12, 1.6);
-    u.cam = { z: r2, x: (e2 + o2) / 2 - innerWidth / 2 / r2, y: (t2 + a2) / 2 - innerHeight / 2 / r2 }, q(), I();
+    const items=u.items.filter(item=>!xo(item)&&!item.hand&&!(Ks&&item.gm)),ids=new Set(items.map(item=>item.id));
+    const pins=u.pins.filter(pin=>!pin.hid&&!pin.gm&&(!pin.item||ids.has(pin.item))).map(pin=>D(pin));
+    const bounds=window.CRIS_BOARD_LIVE.boardBounds(items,pins,B),cam=window.CRIS_BOARD_LIVE.fitBoardCamera(bounds,{width:innerWidth,height:innerHeight,padding:innerWidth<600?32:52});
+    if(cam)u.cam=cam;else u.cam={x:-innerWidth/2,y:-innerHeight/2,z:1};q();I();
   }
+  function crisManualCamera(){crisCameraRevision++;crisCameraPlaced=true;}
+  for(const type of ['pointerdown','wheel'])o.addEventListener(type,crisManualCamera,{capture:true,passive:true});
+  addEventListener('resize',()=>{if(Ks&&crisCameraPlaced&&!crisCameraRevision&&!document.body.classList.contains('cris-cinematic-active'))U();});
   function K(e2) {
     return u.items.find((t2) => t2.id === e2);
   }
@@ -5242,6 +5242,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     return crisLive.send(connection,message).catch(()=>{if(Ks)Ar("Falha ao sincronizar. Reconectando…");else vr("Um jogador perdeu a sincronização; aguardando reconexão.");});
   }
   function crisNewLive(role){
+    const focusRoom=window.CRISBridge.campaignId+':'+(role==='client'?Us:Os.code);if(role==='client'&&focusRoom!==crisCameraRoom){crisCameraRoom=focusRoom;crisCameraPlaced=false;crisCameraRevision=0;}
     crisLive?.stop();crisApply?.close();
     const apply=new crisLiveAPI.LiveApplyQueue((message,connection)=>{
       if(crisLive!==live||!live.links.has(connection))return;
@@ -5400,12 +5401,13 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     }
   }
   async function cr(e2) {
+    const focusRevision=crisCameraRevision;
     Object.assign(p, e2.imgs || {});
     const t2 = JSON.parse(e2.s);
     u.fx=window.CRIS_BOARD_RULES.sceneEffects(t2.fx);
     if (u.items = t2.items || [], u.pins = t2.pins || [], u.strings = t2.strings || [], Ns.forEach((e3) => {
       e3 in t2 && (u[e3] = t2[e3]);
-    }), u.z = t2.z || 1, await ze(), U(), er(), Os.links.size) {
+    }), u.z = t2.z || 1, await ze(), (!crisCameraPlaced&&focusRevision===crisCameraRevision&&(U(),crisCameraPlaced=true,crisRoomUI?.navigationHelp?.())), er(), Os.links.size) {
       const e3 = [...Os.links][0];
       Object.keys(p).forEach((t3) => e3._imgs.add(t3));
     }
@@ -6183,7 +6185,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       if ("touch" === e2.pointerType && ph2.has(e2.pointerId)) {
         if (ph2.set(e2.pointerId, { x: e2.clientX, y: e2.clientY }), fh2 && ph2.size >= 2) {
           e2.stopImmediatePropagation();
-          const t2 = gh2(), o2 = c(fh2.z * t2.d / Math.max(20, fh2.c.d), 0.15, 6), a2 = fh2.cam.x + fh2.c.x / fh2.z, n2 = fh2.cam.y + fh2.c.y / fh2.z;
+          const t2 = gh2(), o2 = c(fh2.z * t2.d / Math.max(20, fh2.c.d), Math.min(0.15,fh2.z), 6), a2 = fh2.cam.x + fh2.c.x / fh2.z, n2 = fh2.cam.y + fh2.c.y / fh2.z;
           return u.cam = { x: a2 - t2.x / o2, y: n2 - t2.y / o2, z: o2 }, void q();
         }
         mh2 && (e2.stopImmediatePropagation(), u.cam.x -= (e2.clientX - mh2.x) / u.cam.z, u.cam.y -= (e2.clientY - mh2.y) / u.cam.z, mh2 = { x: e2.clientX, y: e2.clientY }, q());
@@ -8133,7 +8135,7 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
       clearTimeout(n2), a2();
     }, t("#caGo").onclick = () => {
       clearTimeout(n2), a2();
-      const t2 = Math.min(innerWidth / e2.w, innerHeight / e2.h), o3 = c(e2.z * t2, 0.15, 6), i2 = { ...u.cam }, s2 = o3, r2 = e2.x - innerWidth / 2 / o3, l2 = e2.y - innerHeight / 2 / o3, d2 = performance.now(), p2 = () => {
+      const target=window.CRIS_BOARD_LIVE.fitCameraCall(e2,{width:innerWidth,height:innerHeight});if(!target)return;crisManualCamera();const focusRevision=crisCameraRevision;const i2 = { ...u.cam }, s2 = target.z, r2 = target.x, l2 = target.y, d2 = performance.now(), p2 = () => {if(focusRevision!==crisCameraRevision)return;
         const e3 = Math.min(1, (performance.now() - d2) / 600), t3 = e3 < 0.5 ? 2 * e3 * e3 : 1 - Math.pow(-2 * e3 + 2, 2) / 2;
         u.cam = { x: i2.x + (r2 - i2.x) * t3, y: i2.y + (l2 - i2.y) * t3, z: i2.z + (s2 - i2.z) * t3 }, q(), e3 < 1 && requestAnimationFrame(p2);
       };
@@ -12679,20 +12681,6 @@ addEventListener("keydown", (e2) => {
     o2(), new MutationObserver(o2).observe(e2, { childList: true });
   }, 1e3);
   const Lm = () => matchMedia("(max-width:760px),(max-height:520px)").matches;
-  {
-    const Ex2 = U;
-    U = function() {
-      const e2 = Ex2.apply(this, arguments);
-      try {
-        if (Lm() && u.cam.z < 0.28 && u.items.length) {
-          const e3 = u.cam.x + innerWidth / 2 / u.cam.z, t2 = u.cam.y + innerHeight / 2 / u.cam.z, o2 = 0.28;
-          u.cam = { x: e3 - innerWidth / 2 / o2, y: t2 - innerHeight / 2 / o2, z: o2 }, q();
-        }
-      } catch (e3) {
-      }
-      return e2;
-    };
-  }
   {
     const Rx2 = mt;
     mt = function(e2) {
@@ -29573,7 +29561,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
       return;
     }
                 const snapshot=()=>{const imgs={};for(const i of u.items)for(const k of ['imgId','audioId','prevAudio'])if(i[k]&&p[i[k]])imgs[i[k]]=p[i[k]];return {state:JSON.parse(JSON.stringify(u)),imgs};};
-                window.CRIS_BOARD_API={snapshot,persistLocal:value=>new Promise((resolve,reject)=>{if(!A){reject(Error('Não foi possível guardar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));return;}try{const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(value,crisBoardStorageKey());tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(Error('Não foi possível salvar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));}catch(error){reject(error);}}),save:()=>window.CRISBridge.saveBoard(snapshot()),visibility:async(id,visible)=>{
+                window.CRIS_BOARD_API={snapshot,center:()=>{crisManualCamera();U();},persistLocal:value=>new Promise((resolve,reject)=>{if(!A){reject(Error('Não foi possível guardar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));return;}try{const tx=A.transaction('kv','readwrite');tx.objectStore('kv').put(value,crisBoardStorageKey());tx.oncomplete=()=>resolve();tx.onerror=tx.onabort=()=>reject(Error('Não foi possível salvar neste aparelho. Mantenha o quadro aberto e exporte uma cópia pelo menu Cenas.'));}catch(error){reject(error);}}),save:()=>window.CRISBridge.saveBoard(snapshot()),visibility:async(id,visible)=>{
                     const it=K(id);if(!it||it.hand){const error=Error('Pista não encontrada neste quadro: '+id);error.code='CLUE_MISSING';throw error;}
                     if(visible){if(it.gm)Zl(it);}else if(!it.gm){$();it.gm=true;Fe(it);E();ar();}
                 }};
@@ -29595,7 +29583,7 @@ if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.creat
 
                 if(session)session.ready(window.CRIS_BOARD_API);
                 E();
-                if(!saved){qt();U();E();}
+                if(!saved){qt();U();E();}else if(Ks&&u.items.length&&!crisCameraPlaced){U();crisCameraPlaced=true;}
                 crisBoot.ready();window.QIL?.pronto();
 })().catch(error=>{
   console.warn('CRIS: falha ao abrir quadro',error);

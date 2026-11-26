@@ -1,7 +1,7 @@
 import {mountDirectorLights} from './cinematic-light-player.js';
-import {CinematicVideoLayer} from './cinematic-video.js?v=live01b2';
+import {CinematicVideoLayer} from './cinematic-video.js?v=live01b3';
 import {mountLighting} from './cinematic-direction-player.js';
-import {validateCompositionMedia,matchesCinematicDimensions} from './cinematic-media.js';
+import {validateCompositionMedia,matchesCinematicDimensions} from './cinematic-media.js?v=live01b3';
 
 export function compositionSize(width,height,aspect){
   const w=Math.max(width,height*aspect);
@@ -69,9 +69,9 @@ export async function loadComposition(asset,item,document,{signal,video=false,wa
         visibility=document.createElement('div');visibility.className='cinematic-layer-visibility';position.append(visibility);let parent=visibility;
         for(const effect of entry.effects??[]){const node=document.createElement('div');node.className='cinematic-layer-effect';node.style.transformOrigin=`${(effect.anchor?.x??entry.anchor?.x??.5)*100}% ${(effect.anchor?.y??entry.anchor?.y??.5)*100}%`;parent.append(node);parent=node;effects.push({node,effect});}
         parent.append(image);plane.append(position);
-        if(video&&entry.video){const player=new CinematicVideoLayer({document,container:parent,fallback:image,blob:asset[entry.video.mediaId],config:entry.video,span:item.sceneDuration??(item.seconds+(item.hold??2)),metadata:dimensions.get(entry.video.mediaId),warn});videos.push(player);player.preparing=player.prepare().catch(()=>{if(!player.closed)player.fail();});signal?.throwIfAborted();}
+        if(video&&entry.video){const player=new CinematicVideoLayer({document,container:parent,fallback:image,blob:asset[entry.video.mediaId],config:entry.video,span:item.sceneDuration??(item.seconds+(item.hold??2)),metadata:dimensions.get(entry.video.mediaId),warn});videos.push(player);const started=performance.now();player.preparing=player.prepare().catch(()=>{if(!player.closed)player.fail();}).finally(()=>player.prepareMs=performance.now()-started);signal?.throwIfAborted();}
       }
-      if(video&&entry.id==='background'&&entry.video){const player=new CinematicVideoLayer({document,container:plane,fallback:image,blob:asset[entry.video.mediaId],config:entry.video,span:item.sceneDuration??(item.seconds+(item.hold??2)),metadata:dimensions.get(entry.video.mediaId),warn});videos.push(player);player.preparing=player.prepare().catch(()=>{if(!player.closed)player.fail();});}
+      if(video&&entry.id==='background'&&entry.video){const player=new CinematicVideoLayer({document,container:plane,fallback:image,blob:asset[entry.video.mediaId],config:entry.video,span:item.sceneDuration??(item.seconds+(item.hold??2)),metadata:dimensions.get(entry.video.mediaId),warn});videos.push(player);const started=performance.now();player.preparing=player.prepare().catch(()=>{if(!player.closed)player.fail();}).finally(()=>player.prepareMs=performance.now()-started);}
       camera.append(plane);planes.push({plane,entry,effects,visibility});
     }
     const background=nodes[0];

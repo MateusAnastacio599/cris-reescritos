@@ -1,0 +1,418 @@
+{
+  "hashReuse": {
+    "calls": 8,
+    "arrayBufferReads": 1,
+    "ms": 0.33819000000039523
+  },
+  "kind": "SIMULATION. Real hashes and LiveWire; decoder uses time stubs; no WebRTC or physical devices.",
+  "root": "/workspace/scratch/0aa6b72416ce/cris-live-next",
+  "results": [
+    {
+      "label": "simple, 2 participants",
+      "rttMs": 20,
+      "decoderDelayStubsMs": [
+        40,
+        100
+      ],
+      "totalMediaBytes": 12179,
+      "results": [
+        {
+          "cache": "cold",
+          "wallToLastStartMs": 995,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            994,
+            995,
+            995
+          ],
+          "offsets": [
+            0,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.464067999999997,
+              "integrityMs": 2.6387730000000147,
+              "decoderStubMs": 39.748211,
+              "receiveToReadyMs": 111.072281,
+              "readyToStartMs": 871.5993840000001
+            },
+            {
+              "commandMs": 10.804040000000015,
+              "integrityMs": 3.4970329999999876,
+              "decoderStubMs": 100.23650800000001,
+              "receiveToReadyMs": 172.335184,
+              "readyToStartMs": 810.000945
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795722352013,
+              "totalBytes": 12179,
+              "bytes": 12179,
+              "reused": 0,
+              "base64Ms": 5,
+              "transferMs": 71,
+              "wire": 16417,
+              "commandMs": 9.5,
+              "decodeBase64Ms": 1,
+              "integrityMs": 2,
+              "prepareMs": 40,
+              "firstFrameMs": 111,
+              "readyAt": 1795722352146,
+              "readyToPlayMs": 872,
+              "startSkewMs": -0.5
+            },
+            {
+              "offeredAt": 1795722352014,
+              "totalBytes": 12179,
+              "bytes": 12179,
+              "reused": 0,
+              "base64Ms": 2,
+              "transferMs": 72,
+              "wire": 16417,
+              "commandMs": 10.5,
+              "decodeBase64Ms": 0,
+              "integrityMs": 3,
+              "prepareMs": 100,
+              "firstFrameMs": 172,
+              "readyAt": 1795722352207,
+              "readyToPlayMs": 810,
+              "startSkewMs": -0.5
+            }
+          ],
+          "hash": {
+            "calls": 2,
+            "bytes": 24358,
+            "ms": 3.8851660000000265,
+            "reused": 3
+          }
+        },
+        {
+          "cache": "warm",
+          "wallToLastStartMs": 944,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            944,
+            944,
+            944
+          ],
+          "offsets": [
+            0,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 9.417668999999933,
+              "integrityMs": 0,
+              "decoderStubMs": 40.216432999999824,
+              "receiveToReadyMs": 64.78033600000003,
+              "readyToStartMs": 869.645121
+            },
+            {
+              "commandMs": 10.079598000000033,
+              "integrityMs": 0,
+              "decoderStubMs": 99.71831199999997,
+              "receiveToReadyMs": 123.75404299999991,
+              "readyToStartMs": 810.0501360000001
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795722353113,
+              "totalBytes": 12179,
+              "bytes": 0,
+              "reused": 1,
+              "base64Ms": 0,
+              "transferMs": 24,
+              "wire": 0,
+              "commandMs": 9.5,
+              "integrityMs": 0,
+              "prepareMs": 41,
+              "firstFrameMs": 65,
+              "readyAt": 1795722353198,
+              "readyToPlayMs": 869,
+              "startSkewMs": -0.5
+            },
+            {
+              "offeredAt": 1795722353113,
+              "totalBytes": 12179,
+              "bytes": 0,
+              "reused": 1,
+              "base64Ms": 0,
+              "transferMs": 23,
+              "wire": 0,
+              "commandMs": 10.5,
+              "integrityMs": 0,
+              "prepareMs": 100,
+              "firstFrameMs": 123,
+              "readyAt": 1795722353257,
+              "readyToPlayMs": 810,
+              "startSkewMs": -0.5
+            }
+          ],
+          "hash": {
+            "calls": 0,
+            "bytes": 0,
+            "ms": 0,
+            "reused": 3
+          }
+        }
+      ]
+    },
+    {
+      "label": "layers + WebM, 2 participants",
+      "rttMs": 20,
+      "decoderDelayStubsMs": [
+        40,
+        100
+      ],
+      "totalMediaBytes": 21106,
+      "results": [
+        {
+          "cache": "cold",
+          "wallToLastStartMs": 1032,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            1032,
+            1032,
+            1032
+          ],
+          "offsets": [
+            0,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.479233999999906,
+              "integrityMs": 2.2335030000003826,
+              "decoderStubMs": 40.26212100000021,
+              "receiveToReadyMs": 150.79980299999988,
+              "readyToStartMs": 869.584883
+            },
+            {
+              "commandMs": 10.671378999999888,
+              "integrityMs": 1.4911250000004657,
+              "decoderStubMs": 99.5599470000002,
+              "receiveToReadyMs": 210.0449209999997,
+              "readyToStartMs": 810.1650770000001
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795722354257,
+              "totalBytes": 21106,
+              "bytes": 21106,
+              "reused": 0,
+              "base64Ms": 4,
+              "transferMs": 110,
+              "wire": 28676,
+              "commandMs": 11,
+              "decodeBase64Ms": 1,
+              "integrityMs": 2,
+              "prepareMs": 40,
+              "firstFrameMs": 150,
+              "readyAt": 1795722354429,
+              "readyToPlayMs": 870,
+              "startSkewMs": 0
+            },
+            {
+              "offeredAt": 1795722354257,
+              "totalBytes": 21106,
+              "bytes": 21106,
+              "reused": 0,
+              "base64Ms": 3,
+              "transferMs": 110,
+              "wire": 28676,
+              "commandMs": 11,
+              "decodeBase64Ms": 0,
+              "integrityMs": 2,
+              "prepareMs": 100,
+              "firstFrameMs": 210,
+              "readyAt": 1795722354488,
+              "readyToPlayMs": 810,
+              "startSkewMs": 0
+            }
+          ],
+          "hash": {
+            "calls": 6,
+            "bytes": 42212,
+            "ms": 2.8207420000007914,
+            "reused": 9
+          }
+        },
+        {
+          "cache": "warm",
+          "wallToLastStartMs": 943,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            943,
+            943,
+            943
+          ],
+          "offsets": [
+            0,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.286663999999746,
+              "integrityMs": 0,
+              "decoderStubMs": 40.151010999999926,
+              "receiveToReadyMs": 61.31623600000012,
+              "readyToStartMs": 870.7074030000003
+            },
+            {
+              "commandMs": 10.465118999999959,
+              "integrityMs": 0,
+              "decoderStubMs": 100.68477999999959,
+              "receiveToReadyMs": 121.81024699999989,
+              "readyToStartMs": 810.0771010000003
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795722355393,
+              "totalBytes": 21106,
+              "bytes": 0,
+              "reused": 3,
+              "base64Ms": 0,
+              "transferMs": 20,
+              "wire": 0,
+              "commandMs": 11,
+              "integrityMs": 0,
+              "prepareMs": 41,
+              "firstFrameMs": 61,
+              "readyAt": 1795722355475,
+              "readyToPlayMs": 870,
+              "startSkewMs": 0
+            },
+            {
+              "offeredAt": 1795722355393,
+              "totalBytes": 21106,
+              "bytes": 0,
+              "reused": 3,
+              "base64Ms": 0,
+              "transferMs": 21,
+              "wire": 0,
+              "commandMs": 11,
+              "integrityMs": 0,
+              "prepareMs": 100,
+              "firstFrameMs": 121,
+              "readyAt": 1795722355535,
+              "readyToPlayMs": 811,
+              "startSkewMs": 1
+            }
+          ],
+          "hash": {
+            "calls": 0,
+            "bytes": 0,
+            "ms": 0,
+            "reused": 9
+          }
+        }
+      ]
+    },
+    {
+      "label": "large WebM, 1 participant",
+      "rttMs": 20,
+      "decoderDelayStubsMs": [
+        100
+      ],
+      "totalMediaBytes": 3829001,
+      "results": [
+        {
+          "cache": "cold",
+          "wallToLastStartMs": 10071,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            10071,
+            10071
+          ],
+          "offsets": [
+            0.001
+          ],
+          "observations": [
+            {
+              "commandMs": 9.378501000000142,
+              "integrityMs": 112.91246599999977,
+              "decoderStubMs": 99.6465849999986,
+              "receiveToReadyMs": 9245.20224,
+              "readyToStartMs": 811.8168549999991
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795722356583,
+              "totalBytes": 3829001,
+              "bytes": 3829001,
+              "reused": 0,
+              "base64Ms": 252,
+              "transferMs": 9143,
+              "wire": 5105691,
+              "commandMs": 10,
+              "decodeBase64Ms": 16,
+              "integrityMs": 64,
+              "prepareMs": 102,
+              "firstFrameMs": 9245,
+              "readyAt": 1795722365849,
+              "readyToPlayMs": 812,
+              "startSkewMs": 1
+            }
+          ],
+          "hash": {
+            "calls": 3,
+            "bytes": 3841180,
+            "ms": 64.60773900000004,
+            "reused": 3
+          }
+        },
+        {
+          "cache": "warm",
+          "wallToLastStartMs": 956,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            955,
+            956
+          ],
+          "offsets": [
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 9.310009999999238,
+              "integrityMs": 0,
+              "decoderStubMs": 100.09506800000054,
+              "receiveToReadyMs": 131.36877400000049,
+              "readyToStartMs": 810.816605
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795722366754,
+              "totalBytes": 3829001,
+              "bytes": 0,
+              "reused": 2,
+              "base64Ms": 0,
+              "transferMs": 20,
+              "wire": 0,
+              "commandMs": 10,
+              "integrityMs": 0,
+              "prepareMs": 111,
+              "firstFrameMs": 131,
+              "readyAt": 1795722366906,
+              "readyToPlayMs": 811,
+              "startSkewMs": 0
+            }
+          ],
+          "hash": {
+            "calls": 0,
+            "bytes": 0,
+            "ms": 0,
+            "reused": 4
+          }
+        }
+      ]
+    }
+  ]
+}

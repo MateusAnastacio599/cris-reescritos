@@ -2,7 +2,7 @@
 import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 const root=resolve(import.meta.dirname,'../..');
-const files=['quadro/quadro-cris-v7.js','quadro/board-live.js','quadro/board-entry.js','quadro/board-cinematic.js','quadro/board-room-ui.js','quadro/board-room.css','quadro/board-polish.css','quadro/index.html','integration-bridge.js'];
+const files=['quadro/quadro-cris-v7.js','quadro/board-live.js','quadro/board-entry.js','quadro/board-session.js','quadro/board-cinematic.js','quadro/board-room-ui.js','quadro/board-room.css','quadro/board-polish.css','quadro/index.html','integration-bridge.js'];
 for(const file of files){const original=readFileSync(resolve(root,file),'utf8');for(const target of ['campaign-director/integration-main/','campaign-director/dist/cris/']){
  let content=original;if(target.endsWith('dist/cris/')){
   if(file==='quadro/board-cinematic.js')content=content.replaceAll('../campaign-director/dist/','../../');

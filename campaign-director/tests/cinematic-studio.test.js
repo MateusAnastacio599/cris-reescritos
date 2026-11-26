@@ -111,3 +111,8 @@ test('real workspace export/import restores direction metadata and video without
     const saved=values.get(STORAGE_KEY),count=writes,corrupt=JSON.parse(text);corrupt.cinematicMedia[webm].base64='AAAA';await assert.rejects(importWorkspace(JSON.stringify(corrupt),target));assert.equal(writes,count);assert.equal(values.get(STORAGE_KEY),saved);
   }finally{if(prior===undefined)delete globalThis.localStorage;else globalThis.localStorage=prior;}
 });
+test('autoplay denial is recoverable and is not silently classified as a decoder fallback',async()=>{
+ const fallback={style:{}},p=new CinematicVideoLayer({document:{},container:{},fallback,config:{enabled:true,loop:true,rate:1,delay:0,end:'fallback'},warn:()=>assert.fail('autoplay is not a codec failure')});
+ let attempts=0;p.video={duration:2,currentTime:0,paused:true,style:{},pause(){this.paused=true;},play(){attempts++;if(attempts===1)return Promise.reject(new DOMException('blocked','NotAllowedError'));this.paused=false;return Promise.resolve();}};p.ready=true;
+ await p.sync(0,true,false);assert.equal(p.autoplayBlocked,true);assert.equal(p.ready,true);await p.sync(.5,true,false);assert.equal(p.autoplayBlocked,false);assert.equal(p.video.paused,false);assert.equal(attempts,2);
+});
