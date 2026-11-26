@@ -19,7 +19,7 @@ export async function prepareRoomEntry({identity,bridge,storage=localStorage,loc
  if(bridge.archiveId)return null;
  const binding=new RoomBinding({storage,userId:identity.userId,campaignId:bridge.campaignId,origin:location.origin});
  let current,error;try{current=binding.invite(location.search)||(!identity.isMaster?binding.read():null);
- if(current){const campaign=await bridge.resolveLiveCampaign?.(current);if(campaign)current={...current,campaignId:campaign.id,title:campaign.title};if(bridge.selectCampaign)await bridge.selectCampaign(current.campaignId);}}catch(cause){error=cause.message;current=null;}
+ if(current){current.explicitInvite=new URLSearchParams(location.search).has('sala');const campaign=await bridge.resolveLiveCampaign?.(current);if(campaign)current={...current,campaignId:campaign.id,title:campaign.title};if(bridge.selectCampaign)await bridge.selectCampaign(current.campaignId);}}catch(cause){error=cause.message;current=null;}
  const accept=async input=>{
   let value=parseRoomInvite(input,{campaignId:current?.campaignId||bridge.campaignId,origin:location.origin});
   const campaign=await bridge.resolveLiveCampaign?.(value);if(campaign)value={...value,campaignId:campaign.id,title:campaign.title};
@@ -39,5 +39,6 @@ export async function prepareRoomEntry({identity,bridge,storage=localStorage,loc
   dialog.querySelector('form').onsubmit=async event=>{event.preventDefault();const button=dialog.querySelector('[type=submit]');button.disabled=true;try{navigate(await accept(dialog.querySelector('input').value));}catch(error){dialog.querySelector('[role=status]').textContent=error.message;button.disabled=false;}};
   document.body.append(dialog);dialog.showModal();dialog.querySelector('input').focus();
  };
- return {binding,current,error,accept,navigate,change};
+ let campaignTitle=current?.title;try{campaignTitle||=(await bridge.currentCampaign?.())?.title;}catch{}
+ return {binding,current,error,accept,navigate,change,campaignTitle};
 }

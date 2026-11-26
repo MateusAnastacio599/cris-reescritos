@@ -15,15 +15,15 @@ html=html.replace("const identity={userId:demoScope.userId,name:'Mestre · Demon
 html=html.replace('loadBoard:async()=>structuredClone(snapshot)',`loadBoard:async()=>structuredClone(snapshot)`);
 html=html.replace("        const capture=document.createElement('button');",`        const capture=document.createElement('button');`);
 html=html.replace('</body>',`<aside style="position:fixed;bottom:8px;right:8px;z-index:2147483647;background:#171923;color:#eee;padding:10px;border:1px solid #888;max-width:360px;font:12px system-ui"><strong>LIVE-01 · contas fictícias · não publicar</strong><p id="qaStatus">Aguardando motor…</p><button id="qaImage">Adicionar PNG (fluxo nativo)</button> <button id="qaDrop">Simular queda</button><button id="qaRestart">Reabrir compartilhamento</button><button id="qaCinematic">Apresentar local de teste</button><button id="qaCinematicStop">Encerrar local</button><pre id="qaReport" style="max-height:180px;overflow:auto;white-space:pre-wrap"></pre></aside><script type="module" src="../live-board-qa.js"></script></body>`);
-html=html.replace('let saved;',`Object.assign(CRISBridge,{resolveLiveCampaign:async value=>({id:value.campaignId,title:'Campanha FICTÍCIA de teste'}),selectCampaign:async id=>{CRISBridge.campaignId=id;},registerLiveHost:async(room,publicKey)=>localStorage.setItem('qa-live-host:'+CRISBridge.campaignId+':'+room,JSON.stringify(publicKey)),liveHostKey:async room=>JSON.parse(localStorage.getItem('qa-live-host:'+CRISBridge.campaignId+':'+room)||'null')});
+html=html.replace('let saved;',`Object.assign(CRISBridge,{currentCampaign:async()=>({title:'Campanha FICTÍCIA de teste'}),resolveLiveCampaign:async value=>({id:value.campaignId,title:'Campanha FICTÍCIA de teste'}),selectCampaign:async id=>{CRISBridge.campaignId=id;},registerLiveHost:async(room,publicKey)=>localStorage.setItem('qa-live-host:'+CRISBridge.campaignId+':'+room,JSON.stringify(publicKey)),liveHostKey:async room=>JSON.parse(localStorage.getItem('qa-live-host:'+CRISBridge.campaignId+':'+room)||'null')});
         let saved;`);
 writeFileSync(file,html);
 const directorFile=join(web,'campaign-director/dist/app.js');let directorJS=readFileSync(directorFile,'utf8');directorJS=directorJS.replace('const account=Object.assign',"demoScope.userId='live-fixture-master';demoScope.boardCampaignId='live-fixture-'+(new URLSearchParams(location.search).get('case')||'case');\nconst account=Object.assign");writeFileSync(directorFile,directorJS);
 
 const engine=join(web,'quadro/quadro-cris-v7.js');let js=readFileSync(engine,'utf8');
-if(!js.includes('  let crisLive,crisApply;'))throw Error('Gancho do teste não encontrado; não gerar fixture incompleta.');
-js=js.replace('  let crisLive,crisApply;',`  window.LIVE_QA={snapshot:()=>({state:structuredClone(u),imgs:{...p}}),drop:()=>{for(const c of [...Os.links])c.close();},restart:()=>{br();yr(false);},share:()=>yr(false)};
-  let crisLive,crisApply;`);
+if(!js.includes('  const crisLiveAPI=window.CRIS_BOARD_LIVE;'))throw Error('Gancho do teste não encontrado; não gerar fixture incompleta.');
+js=js.replace('  const crisLiveAPI=window.CRIS_BOARD_LIVE;',`  window.LIVE_QA={snapshot:()=>({state:structuredClone(u),imgs:{...p}}),drop:()=>{for(const c of [...Os.links])c.close();},restart:()=>{br();yr(false);},share:()=>yr(false)};
+  const crisLiveAPI=window.CRIS_BOARD_LIVE;`);
 writeFileSync(engine,js);
 cpSync(new URL('./live-board-qa.js',import.meta.url),join(web,'live-board-qa.js'));
 writeFileSync(join(web,'index.html'),`<!doctype html><meta charset="utf-8"><title>LIVE-01 · clientes independentes</title><h1>LIVE-01A · validação PeerJS</h1><p>Abra mestre e jogadores em sessões de navegador SEPARADAS. Não há iframe nem BroadcastChannel de teste.</p><a href="quadro/">Mestre</a><p>Depois de compartilhar, copie o link e acrescente user=one, user=two ou user=three aos jogadores em contextos isolados.</p>`);

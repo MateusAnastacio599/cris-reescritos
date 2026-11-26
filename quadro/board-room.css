@@ -1,0 +1,61 @@
+/* Room controls: board 0–89, menus 90, room 95, entry 110, cinematic 200.
+   Native modal dialogs occupy the top layer only after an explicit action. */
+#sharePanel.cris-room-panel{position:fixed;inset:74px 16px auto auto;width:min(380px,calc(100vw - 32px));max-height:calc(100dvh - 96px);overflow:auto;box-sizing:border-box;padding:20px;z-index:95;color:#eadfc9;background:#261e18;border:1px solid #80684b;box-shadow:0 16px 48px #0007;font:14px/1.45 system-ui;clip-path:none}
+#sharePanel.cris-room-panel:not(.show){display:none}
+.cris-room-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.cris-room-heading h2{font:600 19px/1.2 Georgia,serif;margin:0;letter-spacing:.02em}
+#sharePanel.cris-room-panel button{font:600 13px/1.3 system-ui;min-height:44px;white-space:normal;letter-spacing:0;text-transform:none;clip-path:none;border-radius:5px;padding:10px 12px}
+#sharePanel.cris-room-panel #shX{font-size:24px;min-width:44px;padding:4px;background:transparent;border:0}
+.cris-room-info>strong,.cris-room-info>small{display:block;overflow-wrap:anywhere}
+.cris-room-info>small{color:#bcae98;font-size:12px;margin-top:3px}
+.cris-room-status{font-size:13px;margin:9px 0 0;color:#d7c191;display:flex;align-items:center;gap:7px}
+.cris-room-status::before,.cris-room-dot{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:#ab9b84;flex-shrink:0}
+.cris-room-status[data-state=synced]::before,.cris-menu-toggle[data-room-state=synced] .cris-room-dot{background:#99bd96}
+.cris-room-status[data-state=reconnecting]::before,.cris-menu-toggle[data-room-state=reconnecting] .cris-room-dot{background:#e3b064}
+.cris-room-status[data-state=failed]::before,.cris-menu-toggle[data-room-state=failed] .cris-room-dot{background:#e89a87}
+.cris-room-detail,.cris-room-error{font:12px/1.5 system-ui;color:#efb3a3;margin:8px 0}
+.cris-room-detail[hidden]{display:none}
+.cris-room-invite{margin:18px 0;padding:14px 0;border-block:1px solid #705d473d}
+.cris-room-invite>small{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#bcae98}
+.cris-room-code-row{display:flex;align-items:center;gap:10px;margin:6px 0 10px}
+#sharePanel.cris-room-panel #shCodeB{font:600 clamp(14px,3.9vw,19px)/1.3 monospace;letter-spacing:.025em;white-space:nowrap;overflow-x:auto;display:block;min-width:0;flex:1;word-break:normal}
+#sharePanel.cris-room-panel #shCopy{width:100%;background:#d3ba87;color:#2a2118}
+.cris-room-participants h3{font:600 12px system-ui;text-transform:uppercase;letter-spacing:.08em;color:#bcae98;margin:0 0 10px}
+.cris-room-empty{font-size:13px;color:#bcae98;margin:12px 0 18px}
+.cris-room-person{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #705d473d}
+.cris-room-person>div{min-width:0}.cris-room-person strong,.cris-room-person small{display:block;overflow-wrap:anywhere}.cris-room-person strong{font-size:14px;font-weight:500}.cris-room-person small{font-size:12px;color:#bcae98;margin-top:3px}
+#sharePanel.cris-room-panel .cris-room-person button{font-size:11px;padding:8px;background:transparent;flex-shrink:0}
+#sharePanel.cris-room-panel #shCam{width:100%;margin:14px 0;background:transparent}
+.cris-room-actions{display:flex;gap:8px}.cris-room-actions button{flex:1}
+.cris-room-advanced{margin-top:18px;padding-top:14px;border-top:1px solid #705d4766}
+.cris-room-advanced summary{font-size:13px;cursor:pointer;min-height:32px;line-height:32px;color:#cdbfa7}
+.cris-room-advanced label{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;margin:10px 0}
+.cris-room-advanced select{max-width:50%;min-height:44px;font:13px system-ui}
+.cris-room-advanced>button{display:block;width:100%;margin:6px 0;text-align:left;background:transparent}
+.cris-room-advanced pre{max-height:240px;overflow:auto;font:11px/1.4 monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:#bcae98}
+#vwJoin.cris-room-entry{position:fixed;inset:0;z-index:110;display:grid;place-items:center;padding:24px;background:#17120ff2;box-sizing:border-box}
+#vwJoin.cris-room-entry .card{width:min(400px,100%);max-height:calc(100dvh - 48px);overflow:auto;box-sizing:border-box;padding:28px;text-align:left;background:#261f19;border:1px solid #6d5942;box-shadow:0 16px 60px #0005}
+#vwJoin.cris-room-entry h1{font:500 29px/1.2 Georgia,serif;letter-spacing:0;margin:12px 0}
+.cris-room-eyebrow{font:10px system-ui;text-transform:uppercase;letter-spacing:.14em;color:#baa887}
+.cris-room-campaign{font:13px/1.5 system-ui;color:#c4b69e;margin:0 0 24px;overflow-wrap:anywhere}
+#vwJoin.cris-room-entry label{display:block;font:13px system-ui;color:#e0d2b9}
+#vwJoin.cris-room-entry input{display:block;width:100%;box-sizing:border-box;min-height:48px;margin:8px 0 16px;border:1px solid #796449;border-radius:5px;background:#1e1813;color:#efe4d0;font:16px system-ui;letter-spacing:0;text-align:left;padding:10px 12px}
+#vwJoin.cris-room-entry #vwGo{width:100%;min-height:48px;border:0;border-radius:5px;background:#d3ba87;color:#241c14;font:600 15px system-ui;letter-spacing:0;clip-path:none;margin:0}
+#vwJoin.cris-room-entry .cris-room-last{min-height:44px;font:12px/1.5 system-ui;color:#ccba96;background:transparent;border:0;padding:8px 0;letter-spacing:0;text-transform:none;clip-path:none;width:100%;margin:8px 0}
+#vwJoin.cris-room-entry details{border-top:1px solid #705d4766;margin-top:16px;padding-top:12px}
+#vwJoin.cris-room-entry summary{font:12px system-ui;color:#bcae98;cursor:pointer;min-height:32px}
+#vwJoin.cris-room-entry .st{font:13px/1.5 system-ui;color:#efb3a3;margin:12px 0 0}
+#vwJoin.cris-room-entry #vwCores{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}#vwJoin.cris-room-entry #vwCores button{height:32px;width:32px;min-height:32px;margin:0;padding:0;border:2px solid transparent;background:var(--c);border-radius:50%;clip-path:none}#vwJoin.cris-room-entry #vwCores button.on{outline:2px solid #e0d2b9;outline-offset:2px}
+#crisRoomDialog{width:min(400px,calc(100vw - 32px));box-sizing:border-box}#crisRoomDialog input{width:100%;box-sizing:border-box;min-height:48px;margin:10px 0;font-size:16px}#crisRoomDialog [role=status]{font-size:13px;color:#efb3a3}
+.cris-board-menu{max-height:calc(100dvh - 112px);overflow:auto}.cris-room-info{padding:4px 2px 12px;border-bottom:1px solid #705d4766}.cris-room-info>button{margin-top:8px}
+.cinematic-frame.cinematic-board-layer{z-index:200}body.cris-cinematic-active .cris-board-toolbar,body.cris-cinematic-active #sharePanel{visibility:hidden}body.cris-cinematic-active #vwJoin{visibility:hidden}
+@media(max-width:400px){#sharePanel.cris-room-panel{inset:68px 10px auto;width:calc(100vw - 20px);padding:16px;max-height:calc(100dvh - 80px)}#vwJoin.cris-room-entry{padding:16px}#vwJoin.cris-room-entry .card{padding:24px 20px;max-height:calc(100dvh - 32px)}}
+.cris-cinematic-controls{position:fixed;right:14px;bottom:14px;z-index:210;padding:9px 14px;min-height:40px;background:#1c1712d9;color:#cbbba1;border:1px solid #79644877;border-radius:5px;font:12px system-ui;cursor:pointer}.cris-cinematic-controls[hidden]{display:none}
+body.cris-cinematic-active>:not(.cinematic-board-layer):not(.cris-cinematic-controls):not(dialog){visibility:hidden}
+body.cris-cinematic-controls-open #sharePanel,body.cris-cinematic-controls-open .cris-board-toolbar{visibility:visible;z-index:210}
+.cris-room-info button[hidden],.cris-room-info>small[hidden]{display:none!important}
+/* The existing master launch had styles only in an unused legacy CSS bundle. */
+#masterLaunch{position:fixed;inset:0;z-index:110;background:#17120fe8;display:grid;place-items:center;padding:20px;box-sizing:border-box}
+#masterLaunch .master-card{width:min(440px,100%);box-sizing:border-box;padding:28px;background:#261e18;border:1px solid #80684b;box-shadow:0 16px 60px #0007;color:#e6d6b9;font:14px/1.5 system-ui}
+#masterLaunch .master-title{font:500 24px/1.3 Georgia,serif;letter-spacing:.03em;margin-bottom:14px}#masterLaunch .master-actions{display:grid;gap:10px;margin-top:24px}
+#masterLaunch button{min-height:48px;border:1px solid #80684b;border-radius:5px;letter-spacing:0;padding:10px 12px;font:600 13px system-ui;background:transparent;color:#e6d6b9}#masterLaunch #masterStart{background:#d3ba87;color:#261e18}

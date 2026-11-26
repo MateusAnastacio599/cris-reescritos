@@ -2,7 +2,7 @@ import {isCinematic,cinematicMediaIds,CINEMATIC_COMPOSITION_BYTES,cinematicTotal
 import {sceneSpan} from './cinematic-timing.js';
 import {imageKey,validateCompositionMedia} from './cinematic-media.js';
 const key=v=>typeof v==='string'&&/^[\w-]{1,128}$/.test(v);
-const statuses=new Set(['conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado']);
+const statuses=new Set(['preparando','conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado']);
 const mime=new Set(['image/png','image/jpeg','image/webp','video/webm']);
 const bytes64=bytes=>btoa(String.fromCharCode(...bytes));
 const from64=text=>Uint8Array.from(atob(text),c=>c.charCodeAt(0));
@@ -25,23 +25,28 @@ export function validateManifest(message){
 export class RemoteCinematics{
  constructor({Wire,frame,bridge,changed=()=>{},now=Date.now}){
   Object.assign(this,{Wire,frame,bridge,changed,now});this.peers=new Map();this.cache=new Map();this.revision=0;this.watermark=0;this.generation=0;
+  this.events=[];this.hostFailure=null;
   this.lease=setInterval(()=>{if(this.pending&&this.now()-this.pending.lastSeen>45000)void this.endClient('expired',true);},5000);
  }
- notify(){this.changed([...this.peers.values()].map(p=>({name:String(p.connection._name||'Jogador').slice(0,80),status:p.status,error:p.error||''})));}
+ trace(peer,phase,code=''){if(peer)peer.phase=phase;this.events.push({at:this.now(),phase,...(code?{code}:{})});if(this.events.length>80)this.events.shift();}
+ diagnostics(){return {hostReady:!!this.sign,hostFailure:this.hostFailure,active:!!this.active,peers:[...this.peers.values()].map(p=>({phase:p.phase,status:p.status,code:p.code||null,verified:p.verified,boardSynced:!!p.connection._syncReady,version:p.connection._cinematicVersion||1})),events:this.events.slice()};}
+ notify(){this.changed([...this.peers.values()].map(p=>({id:p.connection._identity||p.connection.peer,name:String(p.connection._name||'Jogador').slice(0,80),status:p.status,label:({conectado:'Conectado',preparando:'Preparando apresentação',recebendo:'Recebendo mídia',carregando:'Carregando apresentação',apresentando:'Apresentando',falhou:'Falhou',encerrando:'Encerrando',encerrado:'Encerrado'})[p.status],error:p.error||''})));}
  state(peer,status,error=''){if(peer.status===status&&peer.error===error)return;peer.status=status;peer.error=error;this.notify();}
+ fail(peer,code,text){peer.code=code;this.trace(peer,'failed',code);this.state(peer,'falhou',text);if(peer.live.role==='client')this.control(peer,'failure',{code});}
+ refresh(){for(const peer of this.peers.values())if(peer.live.role==='host'&&peer.verified&&this.active&&!peer.run&&peer.offered!==this.active.sid&&peer.connection._syncReady!==false)void this.offer(peer,this.active);}
  async prepareHost(room){
   this.stop(true);this.sign=null;const generation=this.hostGeneration=(this.hostGeneration||0)+1;
-  try{const sign=await createHostProof((r,jwk)=>this.bridge.registerLiveHost(r,jwk),room);if(this.hostGeneration!==generation)return;this.sign=sign;this.hostError='';}
-  catch{if(this.hostGeneration!==generation)return;this.sign=null;this.hostError='Não foi possível validar o anfitrião na campanha. Reabra o compartilhamento com acesso de mestre.';}
+  try{const sign=await createHostProof((r,jwk)=>this.bridge.registerLiveHost(r,jwk),room);if(this.hostGeneration!==generation)return;this.sign=sign;this.hostError='';this.hostFailure=null;this.trace(null,'host-key-registered');this.notify();return true;}
+  catch(error){if(this.hostGeneration!==generation)return false;this.sign=null;const cause=/^(?:42501|PGRST\d+)$/.test(error?.code||'')?error.code:'host-registration-failed';this.hostFailure={phase:'host-key-registration',code:cause};this.trace(null,'host-key-registration',cause);this.hostError='Cinematics indisponíveis: não foi possível validar o mestre nesta campanha. Confira o acesso e reabra a mesa.';this.notify();return false;}
  }
  control(peer,kind,fields={}){
   if(peer.closed||!peer.connection.open||!peer.connection._session)return;
-  try{peer.connection.send({...fields,cinematic:1,kind,campaign:peer.live.campaign,room:peer.live.code,session:peer.connection._session});}catch{this.state(peer,'falhou','A conexão foi interrompida.');}
+  try{const packet={...fields,cinematic:1,kind,campaign:peer.live.campaign,room:peer.live.code,session:peer.connection._session};if(JSON.stringify(packet).length>32768){this.fail(peer,'manifest-too-large','A apresentação excede o limite de instruções. Simplifique a composição.');return false;}peer.connection.send(packet);return true;}catch{this.state(peer,'falhou','A conexão foi interrompida.');}
  }
  bind(connection,live){
-  const peer={connection,live,status:'conectado',verified:false,closed:false};this.peers.set(connection,peer);this.notify();
-  if(connection._legacy){this.state(peer,'falhou','Este cliente precisa atualizar o CRIS para receber Cinematics.');return;}
-  if(live.role==='client'){this.watermark=0;peer.nonce=crypto.randomUUID();this.control(peer,'challenge',{nonce:peer.nonce});peer.proofTimer=setTimeout(()=>{if(!peer.verified)this.state(peer,'falhou','O anfitrião não confirmou sua identidade para Cinematics.');},15000);}
+  const peer={connection,live,status:'conectado',phase:'connected',verified:false,closed:false};this.peers.set(connection,peer);this.notify();
+  if(connection._legacy){this.fail(peer,'legacy-client','Este cliente precisa atualizar o CRIS para receber Cinematics.');return;}
+  if(live.role==='client'){this.watermark=0;peer.nonce=crypto.randomUUID();this.control(peer,'challenge',{nonce:peer.nonce});peer.proofTimer=setTimeout(()=>{if(!peer.verified)this.fail(peer,'host-proof-timeout','O mestre não confirmou a apresentação. Atualize os dois aparelhos e reabra a mesa.');},15000);}
  }
  packet(packet,connection){
   const peer=this.peers.get(connection);if(!peer)return false;
@@ -50,38 +55,39 @@ export class RemoteCinematics{
   }
   if(packet?.cinematic!==1)return false;
   if(peer.closed||packet.session!==connection._session||packet.campaign!==peer.live.campaign||packet.room!==peer.live.code||JSON.stringify(packet).length>32768)return true;
-  void this.handle(peer,packet).catch(()=>this.state(peer,'falhou','Não foi possível carregar a apresentação.'));return true;
+  void this.handle(peer,packet).catch(()=>{this.fail(peer,'presentation-failed','Não foi possível carregar a apresentação. Consulte o diagnóstico da mesa.');if(this.pending?.peer===peer)void this.endClient('failed',true);});return true;
  }
  async handle(peer,m){
   const host=peer.live.role==='host';
   if(host){
+   if(m.kind==='failure'){this.fail(peer,/^[a-z-]{1,64}$/.test(m.code||'')?m.code:'client-failed','O jogador não confirmou a apresentação. Veja o diagnóstico avançado.');return;}
    if(m.kind==='challenge'&&key(m.nonce)){
     if(!this.sign){this.control(peer,'unavailable');this.state(peer,'falhou',this.hostError||'Reabra o compartilhamento.');return;}
-    const signature=await this.sign(hostChallenge(m.nonce,m.campaign,m.room,m.session));
-    this.control(peer,'proof',{nonce:m.nonce,signature,hostNow:this.now()});return;
+    this.trace(peer,'host-proof-signing');const signature=await this.sign(hostChallenge(m.nonce,m.campaign,m.room,m.session));
+    this.trace(peer,'host-proof-sent');this.control(peer,'proof',{nonce:m.nonce,signature,hostNow:this.now()});return;
    }
-   if(m.kind==='verified'){peer.verified=true;if(this.active)void this.offer(peer,this.active);return;}
+   if(m.kind==='verified'){peer.verified=true;this.trace(peer,'host-proof-confirmed');this.refresh();return;}
    if(m.kind==='need'&&peer.run?.sid===m.sid&&Array.isArray(m.ids)&&m.ids.length<=27&&new Set(m.ids).size===m.ids.length&&m.ids.every(id=>peer.run.assets.some(a=>a.id===id))){
-    if(peer.sending)return;peer.sending=true;this.state(peer,'recebendo');void this.transfer(peer,peer.run,m.ids);return;
+    if(peer.sending)return;peer.sending=true;this.trace(peer,'media-requested');this.state(peer,'recebendo');void this.transfer(peer,peer.run,m.ids);return;
    }
    if(m.kind==='state'&&(peer.run?.sid===m.sid||!peer.run&&peer.ending===m.sid)&&statuses.has(m.status)){
-    if(m.status==='encerrado')peer.ending=null;if(m.status==='falhou'){peer.run=null;peer.wire?.close();}this.state(peer,m.status,m.status==='falhou'?'O jogador não conseguiu carregar a apresentação.':'');if(['apresentando','falhou','encerrando','encerrado'].includes(m.status))clearTimeout(peer.timeout);return;
+    if(m.status==='encerrado')peer.ending=null;if(m.status==='falhou'){peer.run=null;peer.wire?.close();}this.trace(peer,'participant-'+m.status);this.state(peer,m.status,m.status==='falhou'?'O jogador não conseguiu carregar a apresentação.':'');if(['apresentando','falhou','encerrando','encerrado'].includes(m.status))clearTimeout(peer.timeout);return;
    }
    // Incoming client start/stop/media commands never reach the player or other peers.
    return;
   }
   if(m.kind==='unavailable'){this.state(peer,'falhou','O mestre precisa reabrir o compartilhamento para habilitar Cinematics.');return;}
   if(m.kind==='proof'&&m.nonce===peer.nonce&&!peer.verified){
-   const publicKey=await this.bridge.liveHostKey(peer.live.code);
+   this.trace(peer,'host-key-reading');let publicKey;try{publicKey=await this.bridge.liveHostKey(peer.live.code);}catch{this.fail(peer,'host-key-unavailable','Não foi possível validar a chave da mesa. Peça ao mestre para reabrir o compartilhamento.');return;}
    const valid=await verifyHostProof(publicKey,hostChallenge(peer.nonce,m.campaign,m.room,m.session),m.signature);
    if(peer.closed)return;
-   if(!valid){this.state(peer,'falhou','A identidade do anfitrião não foi confirmada.');return;}
-   peer.verified=true;peer.clockOffset=Number.isFinite(m.hostNow)?this.now()-m.hostNow:0;clearTimeout(peer.proofTimer);this.control(peer,'verified');this.state(peer,'conectado');return;
+   if(!valid){this.fail(peer,'host-proof-invalid','A identidade do mestre não foi confirmada. Reabra a mesa e tente novamente.');return;}
+   peer.verified=true;this.trace(peer,'host-proof-verified');peer.clockOffset=Number.isFinite(m.hostNow)?this.now()-m.hostNow:0;clearTimeout(peer.proofTimer);this.control(peer,'verified');this.state(peer,'conectado');return;
   }
   if(!peer.verified)return;
   if(m.kind==='prepare'){
    if(!validateManifest(m)||m.revision<=this.watermark)return;
-   this.watermark=m.revision;const generation=++this.generation;
+   this.trace(peer,'manifest-received');this.watermark=m.revision;const generation=++this.generation;
    await this.frame.clear({immediate:true});if(peer.closed||generation!==this.generation)return;
    this.pending={...m,peer,lastSeen:this.now(),generation};clearTimeout(this.cacheTimer);
    this.makeWire(peer,m.sid);this.evict(m.assets);
@@ -101,7 +107,7 @@ export class RemoteCinematics{
   peer.wire?.close();peer.sending=false;
   const connection={get open(){return peer.connection.open&&!peer.closed;},send:packet=>peer.connection.send({...packet,lane:'cinematic'})};
   peer.wire=new this.Wire({connection,scope:peer.live.campaign+':'+peer.live.code+':cinematic',session:peer.connection._session+':'+sid,
-   receive:message=>this.receiveAsset(peer,message),fail:()=>{if(!peer.closed){this.state(peer,'falhou','Falha de integridade ou tempo esgotado na mídia.');if(peer.live.role==='client')void this.endClient('failed',true);}}});
+   receive:message=>this.receiveAsset(peer,message),fail:()=>{if(!peer.closed){this.fail(peer,'media-transfer-failed','A mídia não chegou íntegra ou a transferência demorou demais.');if(peer.live.role==='client')void this.endClient('failed',true);}}});
  }
  async present(item,asset){
   this.stop(true);const revision=++this.revision,operation={revision};this.operation=operation;
@@ -112,13 +118,13 @@ export class RemoteCinematics{
    await validateCompositionMedia(projected,media);if(this.operation!==operation)return;
    const run=this.active={sid:crypto.randomUUID(),revision,item:projected,media,assets:Object.entries(media).map(([id,b])=>({id,type:b.type,size:b.size})),startedAt:this.now()};
    this.operation=null;for(const peer of this.peers.values())if(peer.live.role==='host'){
-    if(peer.verified)void this.offer(peer,run);else this.state(peer,'falhou','O jogador ainda não validou o anfitrião.');
+    if(peer.verified&&peer.connection._syncReady!==false)void this.offer(peer,run);else if(peer.verified)this.state(peer,'preparando','Aguardando sincronização do quadro.');else this.state(peer,'falhou','O jogador ainda não validou o anfitrião.');
    }
    this.heartbeat=setInterval(()=>{for(const peer of this.peers.values())if(peer.run===run)this.control(peer,'heartbeat',{sid:run.sid});},4000);
   }catch{if(this.operation===operation){this.operation=null;for(const peer of this.peers.values())this.state(peer,'falhou','A composição não pôde ser preparada para transmissão.');}}
  }
  async offer(peer,run){
-  if(peer.closed||this.active!==run)return;peer.run=run;peer.ending=null;this.makeWire(peer,run.sid);
+  if(peer.closed||this.active!==run)return;peer.offered=run.sid;peer.run=run;this.trace(peer,'manifest-sent');this.state(peer,'preparando');peer.ending=null;this.makeWire(peer,run.sid);
   this.control(peer,'prepare',{sid:run.sid,revision:run.revision,item:run.item,assets:run.assets,startedAt:run.startedAt});
   clearTimeout(peer.timeout);peer.timeout=setTimeout(()=>{if(peer.run===run){peer.run=null;peer.wire?.close();this.control(peer,'stop',{sid:run.sid,revision:run.revision,immediate:true});this.state(peer,'falhou','O jogador não confirmou a apresentação no prazo.');}},180000);
  }
@@ -141,7 +147,7 @@ export class RemoteCinematics{
   const blob=new Blob([from64(message.base64)],{type:entry.type});
   if(blob.size!==entry.size||await imageKey(blob)!==entry.id)throw Error('Integridade da mídia inválida');
   if(this.pending!==pending)return;
-  this.cache.set(entry.id,blob);if([...this.cache.values()].reduce((sum,b)=>sum+b.size,0)>CINEMATIC_COMPOSITION_BYTES)throw Error('Limite de mídia excedido');
+  this.trace(peer,'media-validated');this.cache.set(entry.id,blob);if([...this.cache.values()].reduce((sum,b)=>sum+b.size,0)>CINEMATIC_COMPOSITION_BYTES)throw Error('Limite de mídia excedido');
  }
  async playClient(pending){
   if(this.pending!==pending||pending.playing)return;pending.playing=true;
@@ -150,16 +156,16 @@ export class RemoteCinematics{
    const media=Object.fromEntries(pending.assets.map(a=>[a.id,this.cache.get(a.id)]));await validateCompositionMedia(item,media);if(this.pending!==pending)return;
    const elapsed=Math.max(0,(this.now()-(peer.clockOffset||0)-pending.startedAt)/1000);
    if(item.ending!=='loop'&&elapsed>=cinematicTotal(item)){await this.endClient('automatic',true);return;}
-   const shown=await this.frame.show(item.layers?.length||item.backgroundVideo?media:media[item.imageId],item,()=>{if(this.pending===pending)void this.endClient('automatic',true);});
-   if(this.pending!==pending||!shown)return;
-   this.frame.seek(item.ending==='loop'?elapsed%sceneSpan(item):elapsed);this.state(peer,'apresentando');this.control(peer,'state',{sid:pending.sid,status:'apresentando'});
+   this.trace(peer,'player-loading');const shown=await this.frame.show(item.layers?.length||item.backgroundVideo?media:media[item.imageId],item,()=>{if(this.pending===pending)void this.endClient('automatic',true);});
+   if(this.pending!==pending)return;if(!shown)throw Error('Player recusou a apresentação');
+   this.frame.seek(item.ending==='loop'?elapsed%sceneSpan(item):elapsed);this.trace(peer,'player-started');this.state(peer,'apresentando');this.control(peer,'state',{sid:pending.sid,status:'apresentando'});
   }catch{if(this.pending===pending){await this.endClient('failed',true);}}
  }
  async endClient(reason,immediate=false){
   const pending=this.pending;this.pending=null;this.generation=(this.generation||0)+1;const generation=this.generation;
   if(pending){pending.peer.wire?.close();this.state(pending.peer,reason==='failed'?'falhou':'encerrando',reason==='failed'?'Não foi possível carregar a mídia.':'');}
   await this.frame.clear({immediate});if(this.generation!==generation)return;
-  if(pending){const status=reason==='failed'?'falhou':'encerrado';this.state(pending.peer,status,reason==='failed'?'Não foi possível carregar a mídia.':'');this.control(pending.peer,'state',{sid:pending.sid,status});}
+  if(pending){this.trace(pending.peer,'player-ended');const status=reason==='failed'?'falhou':'encerrado';this.state(pending.peer,status,reason==='failed'?'Não foi possível carregar a mídia.':'');this.control(pending.peer,'state',{sid:pending.sid,status});}
   clearTimeout(this.cacheTimer);if(!this.closed)this.cacheTimer=setTimeout(()=>this.cache.clear(),30000);
  }
  stop(immediate=false){

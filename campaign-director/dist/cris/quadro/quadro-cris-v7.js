@@ -5235,7 +5235,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     Hm2("Enigmas", ["transp", "bloco", "balanca", "peso", "lacre"]), Hm2("Laborat\xF3rio", ["leitor", "mesaluz", "revelador", "pendulo"]);
   }
   const Fs = new URL("./",location.href).href, zs = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js", Is = new URLSearchParams(location.search), Us = (window.CRISBridge.archiveId ? (window.CRIS_IDENTITY.isMaster ? "" : "ARCHIVE") : (window.CRIS_BOARD_ENTRY?.current?.room || "")).toUpperCase().replace(/[^A-Z0-9]/g, ""), Ks = !!Us || !window.CRIS_IDENTITY.isMaster, Bs = Ks, Os = { me: Ks ? "p" + window.CRIS_IDENTITY.userId : "host", name: window.CRIS_IDENTITY.name || "Mestre", links: /* @__PURE__ */ new Set(), sent: /* @__PURE__ */ new Map(), sentPose: /* @__PURE__ */ new Map(), sentPins: "", sentGlob: "", peer: null, code: null, st: "", ready: !Ks, fx: {}, cur: {}, echo: false, q: Promise.resolve(), soonT: 0, myFx: "", myCur: null, lastCur: "", rtune: false }, js = /* @__PURE__ */ new Set(["_scr", "_scan", "_sum"]), Ds = ["x", "y", "rot", "scale", "z"], Ns = ["surface", "light", "lampOff", "amb"];
-  let crisLive,crisApply;
+  let crisLive,crisApply,crisRoomUI,crisEverReady=false,crisStopped=true;
   const crisLiveAPI=window.CRIS_BOARD_LIVE;
   function crisSend(connection,message){
     if(!crisLive||!crisLive.links.has(connection))return;
@@ -5253,9 +5253,9 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       legacy:role==='client'?Us==='CASO26107':Os.code==='CASO26107',
       onControl:(message,c)=>window.CRIS_REMOTE_CINEMATICS?.packet(message,c)||false,
       onDrop:c=>window.CRIS_REMOTE_CINEMATICS?.disconnect(c),
-      changed:()=>{if(crisLive===live){Os.links=live.links;Os.peer=live.peer;vr();}},
-      status:message=>{if(crisLive===live){Ks?Ar(message):vr(message);const retry=t('#vwRetry');if(retry)retry.hidden=!!live.code;}},
-      onLost:()=>{if(crisLive!==live)return;Os.ready=false;Ar("Conexão interrompida. Reconectando à mesma sala…");ac(true);const retry=t("#vwRetry");if(retry)retry.hidden=false;},
+      changed:()=>{if(crisLive===live){Os.links=live.links;Os.peer=live.peer;vr();window.CRIS_REMOTE_CINEMATICS?.refresh?.();}},
+      status:message=>{if(crisLive===live)Ks?Ar(message):vr(message);},
+      onLost:()=>{if(crisLive!==live)return;Os.ready=false;Ar("Conexão interrompida. Reconectando à mesma sala…");ac(true);},
       onReady:connection=>{
         if(crisLive!==live)return;
         connection._imgs=new Set();Os.links=live.links;Os.peer=live.peer;window.CRIS_REMOTE_CINEMATICS?.bind(connection,live);
@@ -5488,7 +5488,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       o2 && (or(e2, t2), E());
     });
     else return cr(e2).then(() => {
-      if(!crisLive?.links.has(t2))return;Os.ready=true;
+      if(!crisLive?.links.has(t2))return;Os.ready=true;t2._syncReady=true;crisEverReady=true;
       Ar("AO VIVO \xB7 " + (Os.name || "voc\xEA"), true), ac(false), e2.v && void 0 !== hl && e2.v !== hl && nc("Sua vers\xE3o (" + hl + ") \xE9 diferente da do mestre (" + e2.v + "). Recarregue a p\xE1gina.");
     });
   }
@@ -5527,47 +5527,42 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     for (let o2 = 0; o2 < 6; o2++) t2 += e2[32 * Math.random() | 0];
     return t2;
   }
-  function vr(e2) {
-    if (!t("#sharePanel")) return;
-    null != e2 && (Os.st = e2);
-    const o2 = !(!Os.peer || !Os.peer.open);
-    t("#shSt").textContent = Os.st || "", t("#shSt").className = "shst" + (o2 ? " on" : ""), t("#shLink").value = Os.code ? hr() : "";
-    const a2 = crisLive?.participants().filter(p=>p.online||p.legacy).map(p=>p.name) || [];
-    t("#shN").textContent = a2.length ? "Na mesa: " + a2.join(", ") : "Ningu\xE9m conectado ainda", t("#shareBtn").classList.toggle("live", o2);
-    const n2 = t("#shareBtn .l");
-    n2 && (n2.textContent = o2 ? "Ao vivo" + (a2.length ? " \xB7 " + a2.length : "") : "");
+  function crisRoomView(){return window.CRIS_ROOM_UI.connectionView({role:Ks?'client':'host',links:[...Os.links],pending:crisLive?.pending?.size||0,peerOpen:!!Os.peer?.open,error:crisLive?.peerError,everReady:crisEverReady,stopped:crisStopped});}
+  function vr(message) {
+    const view=crisRoomView();if(view.state==='synced')crisEverReady=true;
+    crisRoomUI?.notice(window.CRIS_CINEMATIC_ERROR?'O módulo de apresentação não carregou. Atualize o CRIS.':window.CRIS_REMOTE_CINEMATICS?.hostError||'');
+    const reason={'scope-rejected':'Esta sala não corresponde à campanha. Confira o convite.','duplicate-tab':'Esta conta já está em outra aba. Feche-a e use Reconectar.','unavailable-id':'Esta mesa já está aberta em outro lugar. Feche a outra sessão ou gere outro código.'}[crisLive?.peerError];
+    crisRoomUI?.render(view,view.state==='failed'?(reason||message||'Confira a conexão e tente novamente.'):'');
+    const button=t('#shareBtn');button?.classList.toggle('live',view.state==='synced'||view.state==='waiting');
+    const label=t('#shareBtn .l');if(label)label.textContent=view.state==='synced'?'Ao vivo':'';
   }
   async function yr(fresh,legacy=false) {
     const panel=t('#sharePanel');
     panel.style.top=Math.round(t('#top').getBoundingClientRect().bottom+10)+'px';panel.classList.add('show');
-    if(crisLive?.peer&&!fresh&&!legacy)return vr();
+    if(crisLive?.peer?.open&&!fresh&&!legacy)return vr();
     if(legacy){if(!confirm('Reabrir o link antigo CASO26107? Ele não identifica uma campanha e pode estar ocupado. Compartilhe o link novo sempre que possível.'))return;Os.code='CASO26107';}
     else Os.code=crisLiveAPI.storedRoom(localStorage,window.CRISBridge.campaignId,!!fresh);
-    vr('Abrindo a sala…');const request=++crisOpening;
+    crisStopped=false;vr('Abrindo a sala…');const request=++crisOpening;
     try{await Qs();await window.CRIS_CINEMATIC_READY;if(request!==crisOpening)return;await window.CRIS_REMOTE_CINEMATICS?.prepareHost(Os.code);if(request!==crisOpening)return;const live=crisNewLive('host');Os.peer=live.start(Os.code);Os.links=live.links;}
     catch{vr('Não foi possível abrir a sala. Confira a internet e tente novamente.');}
   }
-  function br(){crisOpening++;window.CRIS_REMOTE_CINEMATICS?.stop(true);crisLive?.stop();Os.peer=null;Os.links.clear();vr('Compartilhamento parado.');}
+  function br(){crisStopped=true;crisOpening++;window.CRIS_REMOTE_CINEMATICS?.stop(true);crisLive?.stop();Os.peer=null;Os.links.clear();vr('Compartilhamento parado.');}
   const xr = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7M5.6 5.6a9 9 0 000 12.8M18.4 5.6a9 9 0 010 12.8"/></svg>';
   function wr() {
-    const e2 = t("#hideBtn");
-    if (!e2) return;
-    const o2 = document.createElement("button");
-    o2.className = "b", o2.id = "shareBtn", o2.title = "Abrir a mesa pros jogadores (link ao vivo)", o2.innerHTML = xr + '<span class="l"></span>', e2.before(o2);
-    const a2 = document.createElement("div");
-    a2.id = "sharePanel", a2.className = "panel", a2.innerHTML = '<div class="lt">Mesa compartilhada</div><div class="shst" id="shSt"></div><div class="row"><input type="text" id="shLink" readonly><button class="b" id="shCopy">Copiar</button></div><div class="hint" id="shN"></div><div class="btns"><button class="b" id="shNew">Link novo</button><button class="b" id="shStop">Parar</button><button class="b" id="shX">Fechar</button></div><div class="hint">Quem abrir o link v\xEA e mexe em tudo: move, abre, resolve enigmas, usa lanterna, r\xE1dio\u2026 S\xF3 n\xE3o v\xEA o painel de propriedades (senhas e respostas), n\xE3o cria objetos nem apaga o que \xE9 seu. Esta aba precisa ficar aberta; o link continua o mesmo nas pr\xF3ximas sess\xF5es.</div>', document.body.appendChild(a2), o2.onclick = (e3) => {
-      e3.stopPropagation(), yr(false);
-    }, t("#shX").onclick = () => a2.classList.remove("show"), t("#shStop").onclick = br, t("#shNew").onclick = () => yr(true), t("#shCopy").onclick = () => {
-      const e3 = t("#shLink").value;
-      e3 && (navigator.clipboard ? navigator.clipboard.writeText(e3) : Promise.reject()).then(() => St("Link copiado"), () => {
-        t("#shLink").select(), document.execCommand("copy"), St("Link copiado");
-      });
-    }, vr("");
+    if(crisRoomUI)return;const anchor=t('#hideBtn');if(!anchor)return;
+    const trigger=document.createElement('button');trigger.id='shareBtn';trigger.className='b';trigger.title='Mesa compartilhada';trigger.innerHTML=xr+'<span class="l"></span>';anchor.before(trigger);
+    crisRoomUI=window.CRIS_ROOM_UI.mountRoomUI({role:'host',entry:window.CRIS_BOARD_ENTRY,title:window.CRIS_BOARD_ENTRY?.campaignTitle,callbacks:{
+      room:()=>Os.code,invite:hr,obs:()=>hr()+'&obs=1',toast:St,open:yr,stop:br,call:()=>_c(),legacy:()=>yr(false,true),
+      limit:()=>Os.maxP,setLimit:value=>{Os.maxP=value;try{localStorage.setItem('qi-maxp',value);}catch{}},
+      participants:()=>[...Os.links].filter(c=>!c._obs&&!c._kick).map(c=>({id:c._identity||c.peer,name:c._name||'Jogador',legacy:!!c._legacy,online:crisLiveAPI.liveLinkOnline(c),reconnecting:c._syncReady&&!crisLiveAPI.liveLinkOnline(c)})),
+      kick:id=>{const c=[...Os.links].find(c=>(c._identity||c.peer)===id);if(c)qiKick(c);},
+      diagnostics:()=>({board:window.CRIS_LIVE_DIAGNOSTICS?.(),cinematic:window.CRIS_REMOTE_CINEMATICS?.diagnostics?.(),module:window.CRIS_CINEMATIC_ERROR||null})
+    }});
+    window.CRIS_ROOM_CONTROLS=crisRoomUI;trigger.onclick=e=>{e.stopPropagation();crisRoomUI.panel.classList.toggle('show');vr();};
+    t('#hideBtn').addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();crisRoomUI.show();crisRoomUI.panel.querySelector('.cris-room-advanced').open=true;},true);
+    vr();
   }
-  if (!Ks&&!window.CRISBridge.archiveId) setTimeout(()=>{
-    wr();const button=document.createElement('button');button.type='button';button.className='b';button.textContent='Link antigo';button.title='Compatibilidade explícita com CASO26107';button.onclick=()=>yr(false,true);t('#sharePanel .btns').append(button);
-    const diagnostics=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Diagnóstico da conexão';diagnostics.append(summary);const pre=document.createElement('pre');pre.style.cssText='max-height:180px;overflow:auto;white-space:pre-wrap';diagnostics.append(pre);diagnostics.ontoggle=()=>{if(diagnostics.open){const value=window.CRIS_LIVE_DIAGNOSTICS?.();pre.textContent=value?JSON.stringify({connections:value.connections,participants:value.participants.map(p=>({connections:p.connections,legacy:p.legacy})),transport:value.transport,events:value.events,stats:value.stats},null,2):'Compartilhamento ainda não iniciado.';}};t('#sharePanel').append(diagnostics);
-  },0);
+  if(!Ks&&!window.CRISBridge.archiveId)setTimeout(wr,0);
   if (Ks) {
     E = function() {
       void 0 !== co && co && (clearTimeout(C), C = setTimeout(go, 120)), nr();
@@ -5597,36 +5592,17 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       e2.target.closest && e2.target.closest('[data-q="del"]') && h && !Zm2(K(h)) && (e2.stopImmediatePropagation(), e2.preventDefault(), St("S\xF3 o mestre pode tirar isso da mesa"));
     }, true);
   }
-  function Ar(e2, o2) {
-    const a2 = t("#vwTxt");
-    a2 && (a2.textContent = e2);
-    const n2 = t("#vwBar");
-    n2 && n2.classList.toggle("live", !!o2);
-    const i2 = t("#vwSt");
-    i2 && (i2.textContent = e2);
-  }
+  function Ar(message){vr(message);const st=t('#vwSt');if(st)st.textContent=message;}
   async function kr() {
-    if(window.CRISBridge.archiveId)return;
-    document.body.classList.add('player');
-    const entry=window.CRIS_BOARD_ENTRY,current=entry?.current;
-    const join=document.createElement('div');join.id='vwJoin';
-    join.innerHTML='<div class="card"><div class="t">Entrar na mesa</div><div class="s" id="vwRoomLabel"></div><label>Link ou código da mesa<input id="vwRoom" aria-label="Link ou código da mesa" maxlength="2048" autocomplete="off"></label><input id="vwName" maxlength="18" aria-label="Seu nome ou personagem"><button id="vwGo">Entrar nesta mesa</button><button id="vwOfficial" type="button">Mesa do caso atual · CASO26107</button><div id="vwSt" class="st" role="status">Informe a mesa enviada pelo mestre.</div></div>';
-    document.body.append(join);t('#vwRoom').value=current?.room||'';t('#vwName').value=Os.name;try{t('#vwName').value=localStorage.getItem('qi-nome')||Os.name;}catch{}
-    if(entry?.error)Ar(entry.error);
-    t('#vwRoomLabel').textContent=current?(current.title||'Campanha atual')+' · Sala '+current.room:'Escolha uma mesa para continuar';
-    const bar=document.createElement('div');bar.id='vwBar';bar.innerHTML='<span class="dot"></span><span id="vwRoomActive"></span><span id="vwTxt">Desconectado</span><button type="button" id="vwRetry" hidden>Reconectar</button><button type="button" id="vwChange">Trocar mesa</button>';document.body.append(bar);t('#vwRoomActive').textContent=current?(current.title||'Campanha')+' · '+current.room:'';
-    const connect=async()=>{t('#vwRetry').hidden=true;Ar('Conectando à sala '+Us+'…');try{await Qs();await window.CRIS_CINEMATIC_READY;Mr();}catch{Ar('Não foi possível conectar. Tente novamente.');t('#vwRetry').hidden=false;}};
-    t('#vwRetry').onclick=connect;t('#vwChange').onclick=()=>{if(join.isConnected){t('#vwRoom').focus();t('#vwRoom').select();}else entry.change();};
-    t('#vwOfficial').onclick=()=>{t('#vwRoom').value='CASO26107';t('#vwRoom').focus();};
-    t('#vwGo').onclick=async()=>{
-      const button=t('#vwGo');button.disabled=true;
-      try{const chosen=await entry.accept(t('#vwRoom').value);Os.name=t('#vwName').value.trim().slice(0,18)||'Jogador';try{localStorage.setItem('qi-nome',Os.name);}catch{}
-       if(chosen.room!==Us||chosen.campaignId!==window.CRISBridge.campaignId){entry.navigate(chosen);return;}
-       Bt();join.remove();await connect();
-      }catch(error){Ar(error.message);button.disabled=false;}
-    };
-    t('#vwRoom').onkeydown=e=>{if(e.key==='Enter')t('#vwGo').click();};
-    try{const next=JSON.parse(sessionStorage.getItem('cris:live:joinNext:'+window.CRIS_IDENTITY.userId)||'null');sessionStorage.removeItem('cris:live:joinNext:'+window.CRIS_IDENTITY.userId);if(next?.room===Us&&next?.campaignId===window.CRISBridge.campaignId)t('#vwGo').click();}catch{}
+    if(window.CRISBridge.archiveId)return;document.body.classList.add('player');
+    const entry=window.CRIS_BOARD_ENTRY,current=entry.current;
+    const connect=async(force=false)=>{if(force&&crisLive?.dialing)crisLive.drop(crisLive.dialing,'manual-retry');crisStopped=false;Ar('');try{await Qs();await window.CRIS_CINEMATIC_READY;Mr();}catch{crisStopped=false;crisRoomUI.render({state:'failed',text:'Não foi possível conectar'},'Confira a internet e tente novamente.');}};
+    crisRoomUI=window.CRIS_ROOM_UI.mountRoomUI({role:'client',entry,name:Os.name,room:current?.room,title:current?.title||entry.campaignTitle,callbacks:{connect:()=>connect(true),color:()=>Os.cols?.[Os.me],setColor:value=>{Os.cols[Os.me]=value;try{localStorage.setItem('qi-cor',value);}catch{}Xs({t:'cor',from:Os.me,c:value});},join:async(input,name)=>{
+      const chosen=await entry.accept(input);Os.name=name.trim().slice(0,40)||Os.name;
+      if(chosen.room!==Us||chosen.campaignId!==window.CRISBridge.campaignId){entry.navigate(chosen);return;}
+      Bt();await connect();
+    }}});window.CRIS_ROOM_CONTROLS=crisRoomUI;crisRoomUI.showEntry();
+    try{const next=JSON.parse(sessionStorage.getItem('cris:live:joinNext:'+window.CRIS_IDENTITY.userId)||'null');sessionStorage.removeItem('cris:live:joinNext:'+window.CRIS_IDENTITY.userId);if(next?.room===Us&&next?.campaignId===window.CRISBridge.campaignId){t('#vwRoom').value=Us;t('#vwGo').click();}}catch{}
     for(const selector of ['#lightColor','#lightInt','#surfSel','#lampBtn'])if(t(selector))t(selector).style.display='none';
     document.querySelectorAll('#top [data-d]').forEach(el=>el.style.display='none');
   }
@@ -7568,9 +7544,8 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
       n2 && p[n2] && !t2.has(n2) && (t2.add(n2), e2 += p[n2].length);
     })), e2 / 1048576;
   }
-  function ac(e2) {
-    let o2 = t("#vwDown");
-    e2 ? o2 || (o2 = document.createElement("div"), o2.id = "vwDown", o2.innerHTML = '<div class="card"><div class="spin"></div><div class="t">O mestre saiu da mesa</div><div class="s">Assim que ele abrir de novo, a mesa volta sozinha. N\xE3o precisa recarregar.</div></div>', document.body.appendChild(o2)) : o2 && o2.remove();
+  function ac(disconnected) {
+    t('#vwDown')?.remove();if(disconnected)vr('Conexão interrompida. Tentando reconectar à mesma mesa…');
   }
   function nc(e2) {
     let o2 = t("#verBar");
@@ -8186,12 +8161,7 @@ ${t2.data || ""} \xB7 ${t2.agencia || ""}`;
     }, addEventListener("pointerdown", (e3) => {
       !Qr || Qr !== s2 && Qr !== r2 || e3.target.closest(".flyout,#handBtn,#ambBtn") || e3.target.closest(".hcard") || (Qr.classList.remove("open"), Qr = null);
     }, true), Mc();
-    const l2 = t("#sharePanel");
-    if (l2) {
-      const e3 = document.createElement("button");
-      e3.className = "b", e3.id = "shCam", e3.textContent = "\u{1F441} Chamar todos pra minha vis\xE3o";
-      l2.querySelector(".btns").after(e3), e3.onclick = _c;
-    }
+
   }, 160), setTimeout(() => {
     u.amb && Nc();
   }, 1500), addEventListener("pointerdown", () => {
@@ -12334,26 +12304,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     mr = function(e2, t2) {
       return e2 && "hello" === e2.t && "OBS" === e2.name && e2.obs ? (t2._obs = 1, t2._name = "\u{1F4FA} OBS", vr(), void St("OBS conectado")) : Nb.apply(this, arguments);
     };
-    const Hb = vr;
-    vr = function() {
-      const e2 = Hb.apply(this, arguments);
-      try {
-        if (t("#sharePanel") && !t("#shObs")) {
-          const e4 = document.createElement("div");
-          e4.className = "row", e4.innerHTML = '<input type="text" id="shObs" readonly title="Cole no OBS: Fonte \u2192 Navegador"><button class="b" id="shObsCp">Copiar link do OBS</button>';
-          t("#shLink").closest(".row").after(e4), t("#shObsCp").onclick = () => {
-            const e5 = t("#shObs").value;
-            e5 && (navigator.clipboard ? navigator.clipboard.writeText(e5) : Promise.reject()).then(() => St("Link do OBS copiado: cole como Fonte de Navegador"), () => {
-              t("#shObs").select(), document.execCommand("copy"), St("Link do OBS copiado");
-            });
-          };
-        }
-        const e3 = t("#shObs");
-        e3 && (e3.value = Os.code ? hr() + "&obs=1" : "");
-      } catch (e3) {
-      }
-      return e2;
-    };
+
   }
   try {
     localStorage.getItem("qi-leve-v2") || (localStorage.setItem("qi-leve-v2", "1"), localStorage.getItem("qi-leve-avisado") && void 0 !== Ef && Ef.leve && (Ef.leve = false, Rf())), void 0 !== Ef && Ef.leveAuto && (Ef.leve = false, delete Ef.leveAuto, Rf());
@@ -12431,58 +12382,6 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     Nc = function() {
       const e2 = (u.amb || {}).yt || {};
       return e2.on && e2.id && !Nc._av && (Nc._av = 1, St("Trilha do YouTube s\xF3 toca pelo site, n\xE3o direto do computador")), tx2.apply(this, arguments);
-    };
-  }
-  if (!Ks) {
-    const ox2 = (e2) => e2 ? e2.slice(0, 3) + " " + e2.slice(3) : "", ax2 = () => Math.round((t("#top") || document.body).getBoundingClientRect().bottom + 10) + "px", nx2 = (e2) => {
-      const t2 = String(e2 || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-      if (!/^[A-Z0-9]{6,32}$/.test(t2)) return void St("Confira o código completo enviado pelo mestre (6 a 32 letras/números).");
-      const o2 = new URLSearchParams();
-      o2.set("sala", t2);
-      const a2 = Is.get("peerhost");
-      a2 && o2.set("peerhost", a2), location.href = location.pathname + "?" + o2.toString();
-    };
-    setTimeout(() => {
-      const e2 = document.createElement("div");
-      e2.id = "shChoose", e2.className = "panel", e2.innerHTML = '<div class="lt">Jogar junto</div><button class="b shc-big" id="shcHost"><b>Compartilhar esta mesa</b><span>gera um c\xF3digo pros jogadores entrarem</span></button><button class="b shc-big" id="shcJoin"><b>Entrar numa sala</b><span>tenho o c\xF3digo do mestre</span></button><div class="row" id="shcJ" style="display:none"><input id="shcCode" maxlength="40" placeholder="C\xF3digo (ex.: ABC 123)" autocomplete="off" autocapitalize="characters"><button class="b gold" id="shcGo">Entrar</button></div><div class="btns"><button class="b" id="shcX">Fechar</button></div>', document.body.appendChild(e2), t("#shcHost").onclick = () => {
-        e2.classList.remove("show"), yr(false);
-      }, t("#shcJoin").onclick = () => {
-        t("#shcJ").style.display = "", t("#shcCode").focus();
-      }, t("#shcGo").onclick = () => nx2(t("#shcCode").value), t("#shcCode").onkeydown = (e3) => {
-        e3.stopPropagation(), "Enter" === e3.key && nx2(e3.target.value);
-      }, t("#shcX").onclick = () => e2.classList.remove("show"), addEventListener("click", (o3) => {
-        o3.target.closest && o3.target.closest("#shareBtn") && (Os.peer && !Os.peer.destroyed || (o3.stopImmediatePropagation(), o3.preventDefault(), e2.style.top = ax2(), e2.classList.toggle("show"), t("#shcJ").style.display = "none"));
-      }, true), addEventListener("pointerdown", (t2) => {
-        e2.classList.contains("show") && !t2.target.closest("#shChoose,#shareBtn") && e2.classList.remove("show");
-      }, true);
-      const o2 = t("#shareBtn");
-      o2 && (o2.title = "Jogar junto: compartilhar esta mesa ou entrar numa sala");
-      const a2 = t("#hideBtn");
-      a2 && (a2.title = "Link pra colocar a mesa no OBS (H esconde a interface aqui)", addEventListener("click", (o3) => {
-        if (!o3.target.closest || !o3.target.closest("#hideBtn")) return;
-        o3.stopImmediatePropagation(), o3.preventDefault(), e2.classList.remove("show");
-        yr(false), setTimeout(() => {
-          const e3 = t("#shObs");
-          e3 && (e3.closest(".row").classList.add("shobs-on"), setTimeout(() => e3.closest(".row").classList.remove("shobs-on"), 2400)), St("Copie o link do OBS e cole no OBS: Fontes \u2192 Navegador");
-        }, 400);
-      }, true));
-    }, 0);
-    const ix2 = vr;
-    vr = function() {
-      const e2 = ix2.apply(this, arguments);
-      try {
-        if (t("#sharePanel") && !t("#shCodeB")) {
-          const e4 = document.createElement("div");
-          e4.className = "shcode", e4.innerHTML = '<span class="shc-l">C\xF3digo da sala</span><b id="shCodeB"></b><button class="b" id="shCodeCp">Copiar c\xF3digo</button><div class="hint">Os jogadores abrem o quadro, clicam em <b>Jogar junto \u2192 Entrar numa sala</b> e digitam o c\xF3digo. Ou mande o link abaixo.</div>', t("#shSt").after(e4), t("#shCodeCp").onclick = () => {
-            const e5 = Os.code;
-            e5 && (navigator.clipboard ? navigator.clipboard.writeText(e5) : Promise.reject()).then(() => St("C\xF3digo copiado: " + ox2(e5)), () => St("C\xF3digo: " + ox2(e5)));
-          };
-        }
-        const e3 = t("#shCodeB");
-        e3 && (e3.textContent = Os.code ? ox2(Os.code) : "\u2026");
-      } catch (e3) {
-      }
-      return e2;
     };
   }
   const Rm = matchMedia("(pointer:coarse)").matches || "ontouchstart" in window;
@@ -12585,37 +12484,11 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     } catch (mx2) {
     }
     $m.includes(ux2) || (ux2 = $m[Math.random() * $m.length | 0]), Os.cols[Os.me] = ux2;
-    const px2 = kr;
-    kr = async function() {
-      const e2 = px2.apply(this, arguments);
-      try {
-        const e3 = t("#vwName");
-        if (e3 && !t("#vwCores")) {
-          const t2 = document.createElement("div");
-          t2.id = "vwCores", t2.innerHTML = '<div class="vc-l">Sua cor</div>' + $m.map((e4) => `<button type="button" data-c="${e4}" style="--c:${e4}" class="${e4 === ux2 ? "on" : ""}" aria-label="cor"></button>`).join(""), e3.after(t2), t2.querySelectorAll("[data-c]").forEach((e4) => e4.onclick = () => {
-            ux2 = e4.dataset.c, Os.cols[Os.me] = ux2;
-            try {
-              localStorage.setItem("qi-cor", ux2);
-            } catch (e5) {
-            }
-            t2.querySelectorAll("[data-c]").forEach((t3) => t3.classList.toggle("on", t3 === e4)), fx2();
-          });
-        }
-      } catch (e3) {
-      }
-      return e2;
-    };
-    const fx2 = () => {
-      for (const e2 of Os.links) if (e2.open) try {
-        crisSend(e2,{ t: "cor", from: Os.me, c: ux2 });
-      } catch (e3) {
-      }
-    };
     setInterval(() => {
       for (const e2 of Os.links) if (e2.open && !e2._corOk) {
         e2._corOk = 1;
         try {
-          crisSend(e2,{ t: "cor", from: Os.me, c: ux2 });
+          crisSend(e2,{ t: "cor", from: Os.me, c: Os.cols[Os.me] });
         } catch (e3) {
         }
       }
@@ -12661,7 +12534,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
         }
       });
     }, 700), window.qiKick = (e2) => {
-      const t2 = gx2()[e2];
+      const t2 = typeof e2==='number'?gx2()[e2]:e2;
       if (!t2) return;
       t2._kick = 1;
       try {
@@ -12715,53 +12588,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
     };
   }
   if (!Ks) {
-    const Ax2 = (e2) => e2 ? e2.slice(0, 3) + " " + e2.slice(3) : "", kx2 = vr;
-    vr = function() {
-      const e2 = kx2.apply(this, arguments);
-      try {
-        const o2 = t("#sharePanel");
-        if (!o2) return e2;
-        if (!o2.querySelector(".pn-x")) {
-          const e3 = document.createElement("button");
-          e3.className = "pn-x", e3.title = "Fechar", e3.innerHTML = "\u2715", e3.onclick = () => o2.classList.remove("show"), o2.prepend(e3);
-          const a3 = t("#shX");
-          a3 && (a3.style.display = "none");
-          const n3 = t("#shLink");
-          n3 && (n3.closest(".row").style.display = "none");
-          const i3 = t("#shObs");
-          i3 && (i3.closest(".row").style.display = "none");
-          const s3 = o2.querySelector(".shcode .hint");
-          s3 && (s3.innerHTML = "Os jogadores abrem o quadro, tocam em <b>Jogar junto \u2192 Entrar numa sala</b> e digitam o c\xF3digo.");
-          const r2 = t("#shCodeCp");
-          if (r2) {
-            const e4 = document.createElement("button");
-            e4.className = "b", e4.id = "shObsB", e4.innerHTML = "\u{1F4FA} OBS", e4.title = "Copia o link pra colar no OBS (Fontes \u2192 Navegador)", r2.after(e4), e4.onclick = () => {
-              const e5 = Os.code ? hr() + "&obs=1" : "";
-              e5 && (navigator.clipboard ? navigator.clipboard.writeText(e5) : Promise.reject()).then(() => St("Link do OBS copiado: cole no OBS em Fontes \u2192 Navegador"), () => {
-                prompt("Link do OBS:", e5);
-              });
-            };
-          }
-          const l2 = document.createElement("div");
-          l2.className = "row shlim", l2.innerHTML = '<span>Limite de jogadores</span><select id="shMax">' + [0, 1, 2, 3, 4, 5, 6, 8, 10, 12].map((e4) => `<option value="${e4}">${e4 || "sem limite"}</option>`).join("") + "</select>", t("#shN").after(l2), t("#shMax").value = String(Os.maxP || 0), t("#shMax").onchange = (e4) => {
-            Os.maxP = +e4.target.value;
-            try {
-              localStorage.setItem("qi-maxp", Os.maxP);
-            } catch (e5) {
-            }
-            St(Os.maxP ? "M\xE1ximo de " + Os.maxP + " jogadores" : "Sem limite de jogadores");
-          };
-          const c2 = t("#shCam");
-          c2 && (c2.textContent = "\u{1F441} Chamar todos pra minha vis\xE3o", c2.classList.add("shcam-mob"));
-        }
-        const a2 = t("#shN"), n2 = [...Os.links].filter((e3) => crisLiveAPI.liveLinkOnline(e3) && !e3._obs && !e3._kick), i2 = [...Os.links].some((e3) => e3.open && e3._obs);
-        a2 && (a2.innerHTML = (n2.length ? "<div class='shl-t'>Na mesa</div>" + n2.map((e3, t2) => `<div class="shl-r"><i style="background:${pr(e3._from || e3.peer || "")}"></i><span>${gt(e3._name || "\u2026")}</span><button class="b shl-k" data-k="${t2}" title="Tirar da mesa">tirar</button></div>`).join("") : "Ningu\xE9m conectado ainda") + (i2 ? "<div class='shl-o'>\u{1F4FA} OBS conectado</div>" : "")), a2 && a2.querySelectorAll("[data-k]").forEach((e3) => e3.onclick = () => qiKick(+e3.dataset.k));
-        const s2 = t("#shCodeB");
-        s2 && (s2.textContent = Os.code ? Ax2(Os.code) : "\u2026");
-      } catch (e3) {
-      }
-      return e2;
-    }, addEventListener("keydown", (e2) => {
+addEventListener("keydown", (e2) => {
       if (!e2.shiftKey || e2.ctrlKey || e2.metaKey || e2.altKey || "v" !== e2.key.toLowerCase()) return;
       const t2 = document.activeElement;
       t2 && (["INPUT", "TEXTAREA", "SELECT"].includes(t2.tagName) || t2.isContentEditable) || (e2.preventDefault(), e2.stopImmediatePropagation(), "function" == typeof _c && _c());
@@ -12781,15 +12608,7 @@ ${a2 ? "registro " + (o2.seed % 9e4 + 1e4) : ud(o2.opts.nome).toUpperCase()}` : 
       return e2 && e2.from && t2 && !t2._from && "host" !== e2.from && (t2._from = e2.from), Cx2.apply(this, arguments);
     };
   }
-  setTimeout(() => {
-    const e2 = t("#shChoose");
-    if (e2 && !e2.querySelector(".pn-x")) {
-      const o2 = document.createElement("button");
-      o2.className = "pn-x", o2.title = "Fechar", o2.innerHTML = "\u2715", o2.onclick = () => e2.classList.remove("show"), e2.prepend(o2);
-      const a2 = t("#shcX");
-      a2 && (a2.closest(".btns").style.display = "none");
-    }
-  }, 900), Sm = function() {
+  Sm = function() {
     try {
       navigator.audioSession && "playback" !== navigator.audioSession.type && (navigator.audioSession.type = "playback");
     } catch (e3) {
@@ -19651,7 +19470,7 @@ Clique pra mudar`, m2.innerHTML = `${Hv(f2)}<span>${u2}</span>${c2 > 1 ? `<em>${
     };
   }
   {
-    const DA = [["#fxPanel", "#fxBtn"], ["#ambPanel", "#ambBtn"], ["#vmenu", "#sndBtn"], ["#lightMenu", "#lightBtn"], ["#scenePanel", "#sceneBtn"], ["#shChoose", "#shareBtn"], ["#sharePanel", "#shareBtn"], ["#surfPanel", "#surfBtn"], ["#searchPanel", "#searchBtn"], ["#notesPanel", "#notesBtn"], ["#handPanel", "#handBtn"], ["#pocketPanel", "#pocketBtn"], ["#hwPanel", "#hwBtn"], ["#about", "#aboutBtn"], ["#diceMenu", "#diceBtn"]], jA = (e2) => {
+    const DA = [["#fxPanel", "#fxBtn"], ["#ambPanel", "#ambBtn"], ["#vmenu", "#sndBtn"], ["#lightMenu", "#lightBtn"], ["#scenePanel", "#sceneBtn"], ["#sharePanel", "#shareBtn"], ["#surfPanel", "#surfBtn"], ["#searchPanel", "#searchBtn"], ["#notesPanel", "#notesBtn"], ["#handPanel", "#handBtn"], ["#pocketPanel", "#pocketBtn"], ["#hwPanel", "#hwBtn"], ["#about", "#aboutBtn"], ["#diceMenu", "#diceBtn"]], jA = (e2) => {
       if (!e2 || !e2.isConnected) return false;
       const t2 = getComputedStyle(e2);
       return "none" !== t2.display && "hidden" !== t2.visibility && +t2.opacity > 0.05;
@@ -19691,7 +19510,7 @@ Clique pra mudar`, m2.innerHTML = `${Hv(f2)}<span>${u2}</span>${c2 > 1 ? `<em>${
       const s2 = t2.createGain();
       s2.gain.setValueAtTime(e2 ? 0.045 : 0.028, o2), s2.gain.exponentialRampToValueAtTime(4e-4, o2 + 0.05), r2.connect(s2), s2.connect(a2), r2.start(o2), r2.stop(o2 + 0.06);
     };
-    const VA = "#top,#tools,#props,.panel,.flyout,.qi-more,#objMenu,#markMenu,#fitaMenu,#hwPanel,#about,#objBig,#qa,#qaMulti,#reactPick,#puz,#tuneUI,#lockUI,#dialUI,#vwJoin,#qiToolsMore,#undoBtn,#redoBtn,#shChoose,#sharePanel,#vmenu,.mtab", UA = "button,.b,summary,label.chk,.qi-mrow,.mtab,select,input[type=checkbox],input[type=color],[role=button]";
+    const VA = "#top,#tools,#props,.panel,.flyout,.qi-more,#objMenu,#markMenu,#fitaMenu,#hwPanel,#about,#objBig,#qa,#qaMulti,#reactPick,#puz,#tuneUI,#lockUI,#dialUI,#vwJoin,#qiToolsMore,#undoBtn,#redoBtn,#sharePanel,#vmenu,.mtab", UA = "button,.b,summary,label.chk,.qi-mrow,.mtab,select,input[type=checkbox],input[type=color],[role=button]";
     let GA = null, JA = 0;
     window.qiTic = vT, addEventListener("pointerdown", (e2) => {
       if (e2.button > 0) return;
@@ -22484,17 +22303,7 @@ Clique pra mudar`, m2.innerHTML = `${Hv(f2)}<span>${u2}</span>${c2 > 1 ? `<em>${
     }
     qf.debug = Mq;
     const Pq = () => document.body && document.body.classList.toggle("qi-debug", Mq);
-    if (document.body ? Pq() : addEventListener("DOMContentLoaded", Pq), !Mq && "function" == typeof Ar) {
-      const Eq = Ar;
-      Ar = function() {
-        const e2 = Eq.apply(this, arguments);
-        for (const e3 of ["vwTxt", "vwSt"]) {
-          const t2 = document.getElementById(e3);
-          t2 && / · conexão de reserva$/.test(t2.textContent) && (t2.textContent = t2.textContent.replace(/ · conexão de reserva$/, ""));
-        }
-        return e2;
-      };
-    }
+    document.body ? Pq() : addEventListener('DOMContentLoaded',Pq);
   }
 
   {
@@ -29517,7 +29326,7 @@ const crisProps=vt;
 vt=function(){const result=crisProps.apply(this,arguments);if(!Ks&&h){const item=K(h),panel=t('#props');if(item&&panel)window.CRISMOUNT_CLUE_PANEL?.({panel,item,onChange:()=>{E();ar();}});}return result;};
 
 
-if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.createElement('div');modal.id='masterLaunch';modal.innerHTML='<div class="master-card"><div class="master-title">C.R.I.S. · MESA INVESTIGATIVA</div><p>Prepare o quadro ou inicie a transmissão para os agentes.</p><div class="master-actions"><button id="masterStart" class="master-primary">INICIAR MESA OFICIAL</button><button id="masterOffline" class="master-secondary">EDITAR SEM TRANSMITIR</button><button id="masterBack" class="master-secondary">VOLTAR AO C.R.I.S.</button></div></div>';document.body.append(modal);t('#masterOffline').onclick=()=>modal.remove();t('#masterBack').onclick=()=>location.href='../';t('#masterStart').onclick=async()=>{if(!t('#sharePanel'))wr();await yr(false);modal.remove();};},0);}
+if(!Ks&&!window.CRISBridge.archiveId){setTimeout(()=>{const modal=document.createElement('div');modal.id='masterLaunch';modal.innerHTML='<div class="master-card"><div class="master-title">C.R.I.S. · MESA INVESTIGATIVA</div><p>Prepare o quadro ou inicie a transmissão para os agentes.</p><div class="master-actions"><button id="masterStart" class="master-primary">ABRIR MESA COMPARTILHADA</button><button id="masterOffline" class="master-secondary">EDITAR SEM TRANSMITIR</button><button id="masterBack" class="master-secondary">VOLTAR AO C.R.I.S.</button></div></div>';document.body.append(modal);t('#masterOffline').onclick=()=>modal.remove();t('#masterBack').onclick=()=>location.href='../';t('#masterStart').onclick=async()=>{if(!t('#sharePanel'))wr();await yr(false);modal.remove();};},0);}
 
 
   /*! Quadro Investigativo © Viquitor "Harden" Saldanha · hipsandhops.com.br · Todos os direitos reservados. */
