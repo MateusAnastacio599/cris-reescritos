@@ -17,10 +17,10 @@ export function validCinematicMessage(message,scope,now=Date.now()){
   if(!isCinematicKey(message.boardId))return false;
   if(message.type==='ready')return message.priority===undefined||Number.isInteger(message.priority)&&message.priority>=0&&message.priority<=3;
   if(!isCinematicKey(message.sessionId)||!validScene(message.scene))return false;
-  if(message.type==='remote-status')return Array.isArray(message.participants)&&message.participants.length<=64&&message.participants.every(p=>typeof p.name==='string'&&p.name.length<=80&&['preparando','conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado'].includes(p.status));
+  if(message.type==='remote-status')return Array.isArray(message.participants)&&message.participants.length<=64&&message.participants.every(p=>typeof p.name==='string'&&p.name.length<=80&&['preparando','aguardando','pronto','fullscreen','conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado'].includes(p.status));
   if(message.type==='ended')return ['automatic','manual','expired'].includes(message.reason);
   if(message.type==='motion')return typeof message.motionReduced==='boolean';
-  if(['started','closed','alive'].includes(message.type))return (message.motionReduced===undefined||typeof message.motionReduced==='boolean')&&
+  if(['started','closed','alive','local-ended'].includes(message.type))return (message.motionReduced===undefined||typeof message.motionReduced==='boolean')&&
     (message.type!=='started'||typeof message.ok==='boolean');
   if(!Number.isSafeInteger(message.sequence)||message.sequence<1)return false;
   if(['stop','heartbeat'].includes(message.type))return message.immediate===undefined||typeof message.immediate==='boolean';
@@ -35,8 +35,8 @@ export const sameCinematicSession=(a,b)=>!!a&&!!b&&a.senderId===b.senderId&&
   a.boardId===b.boardId&&a.sessionId===b.sessionId&&sameCinematicScene(a.scene,b.scene);
 
 export class CinematicReceiver{
-  constructor({scope,boardId,frame,send,ready=()=>true,now=Date.now,onPresentation=()=>{},priority=()=>0}){
-    Object.assign(this,{scope,boardId,frame,send,ready,now,onPresentation,priority});
+  constructor({scope,boardId,frame,send,ready=()=>true,now=Date.now,onPresentation=()=>{},priority=()=>0,onAutoEnd=()=>Promise.resolve()}){
+    Object.assign(this,{scope,boardId,frame,send,ready,now,onPresentation,priority,onAutoEnd});
     this.watermarks=new Map();
   }
   reply(message,fields){
@@ -78,8 +78,9 @@ export class CinematicReceiver{
       scene:message.scene,requestId:message.requestId,expires:now+CINEMATIC_LEASE};
     this.active=active;
     try{
-      const shown=await this.frame.show(message.image,message.item,()=>{
+      const shown=await this.frame.show(message.image,message.item,async()=>{
         if(this.active!==active)return;
+        this.reply(active,{type:'local-ended'});await this.onAutoEnd();if(this.active!==active)return;
         this.active=null;this.onPresentation({type:'stop',immediate:false});
         this.reply(active,{type:'ended',reason:'automatic'});
       });

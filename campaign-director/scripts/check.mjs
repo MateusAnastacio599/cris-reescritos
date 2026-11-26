@@ -7,7 +7,7 @@ if(!manifest.project_id||manifest.static?.directory!=='dist')throw new Error('Ma
 for(const file of readdirSync(dist).filter(f=>f.endsWith('.js'))){
   const path=join(dist,file),source=readFileSync(path,'utf8');
   const check=spawnSync(process.execPath,['--check',path],{encoding:'utf8'});if(check.status!==0)throw new Error(check.stderr);
-  for(const match of source.matchAll(/(?:from\s+|import\s*)['"](\.[^'"]+)['"]/g))if(!existsSync(resolve(dirname(path),match[1])))throw new Error(`Import ausente em ${file}: ${match[1]}`);
+  for(const match of source.matchAll(/(?:from\s+|import\s*)['"](\.[^'"]+)['"]/g))if(!existsSync(resolve(dirname(path),match[1].split(/[?#]/)[0])))throw new Error(`Import ausente em ${file}: ${match[1]}`);
 }
 const html=readFileSync(join(dist,'index.html'),'utf8');
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);

@@ -209,7 +209,7 @@ export class LivePeerSession{
  }
  dial(){
   if(this.role!=='client'||!this.peer?.open||this.dialing||this.links.size)return;
-  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,cinematic:2,assets:Object.fromEntries(this.known)}});
+  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,cinematic:3,assets:Object.fromEntries(this.known)}});
   this.dialing=connection;this.attach(connection,this.generation);
  }
  attach(c,generation){
@@ -233,7 +233,7 @@ export class LivePeerSession{
      c._openTimer=setTimeout(()=>this.drop(c,'duplicate-tab'),10000);this.log('duplicate-tab');return;
     }
     this.links.add(c);this.pending.delete(c);
-    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion,cinematic:2});}
+    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion,cinematic:3});}
     this.log('connection-open');this.changed();this.onReady(c);
    }
   });

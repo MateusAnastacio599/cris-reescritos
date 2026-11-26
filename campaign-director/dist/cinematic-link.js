@@ -1,5 +1,5 @@
 import {CINEMATIC_CHANNEL,CINEMATIC_LEASE,cinematicEnvelope,sameBoard,sameCinematicScene,
-  sameCinematicSession,validBoard,validCinematicMessage} from './cinematic-protocol.js';
+  sameCinematicSession,validBoard,validCinematicMessage} from './cinematic-protocol.js?v=live01b2';
 
 export class CinematicLink{
   constructor(){
@@ -35,6 +35,7 @@ export class CinematicLink{
         manual:'Apresentação encerrada.',
         expired:'Apresentação encerrada por perda de comunicação.',
       }[reply.reason]);
+      if(reply.type==='local-ended'){active.localEnded=true;this.notify(this.activeMessage());}
       if(reply.type==='remote-status'){active.remote=reply.participants;this.notify(this.activeMessage());}
       if(reply.type==='motion'){active.motionReduced=reply.motionReduced;this.notify(this.activeMessage());}
       if(reply.type==='alive')active.lastSeen=Date.now();
@@ -55,8 +56,8 @@ export class CinematicLink{
     });
   }
   activeMessage(){
-    return `Apresentação “${this.active.name}” ativa no quadro deste navegador.`+(this.active.motionReduced
-      ?' Movimentos reduzidos no quadro. Use Permitir movimentos nesta ferramenta na janela do quadro para ativá-los.':'')+(this.active.remote?.length?' Remotos: '+this.active.remote.map(p=>p.name+' · '+p.status).join('; '):'');
+    return (this.active.localEnded?'Apresentação local concluída; aguardando os participantes.':`Apresentação “${this.active.name}” ativa no quadro deste navegador.`)+(this.active.motionReduced
+      ?' Movimentos reduzidos no quadro. Use Permitir movimentos nesta ferramenta na janela do quadro para ativá-los.':'')+(this.active.remote?.length?' Remotos: '+this.active.remote.map(p=>p.name+' · '+(p.label||p.status)).join('; '):'');
   }
   send(active,type,fields={}){
     const {scope,senderId,boardId,sessionId,scene}=active;

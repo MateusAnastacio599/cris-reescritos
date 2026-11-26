@@ -1,0 +1,133 @@
+{
+  "transport": "simulated",
+  "host": {
+    "hostReady": true,
+    "hostFailure": null,
+    "active": false,
+    "peers": [
+      {
+        "phase": "participant-encerrado",
+        "status": "encerrado",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "version": 3
+      }
+    ],
+    "events": [
+      {
+        "at": 1795715977639,
+        "phase": "host-key-registered"
+      },
+      {
+        "at": 1795716001001,
+        "phase": "host-proof-signing"
+      },
+      {
+        "at": 1795716001002,
+        "phase": "host-proof-sent"
+      },
+      {
+        "at": 1795716001004,
+        "phase": "host-proof-confirmed"
+      },
+      {
+        "at": 1795716003983,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795716003985,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795716003992,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795716010502,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795716010508,
+        "phase": "participant-fullscreen"
+      },
+      {
+        "at": 1795716016876,
+        "phase": "participant-apresentando"
+      },
+      {
+        "at": 1795716021108,
+        "phase": "participant-encerrado"
+      }
+    ]
+  },
+  "player": {
+    "hostReady": false,
+    "hostFailure": null,
+    "active": false,
+    "peers": [
+      {
+        "phase": "player-ended",
+        "status": "encerrado",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "version": 3
+      }
+    ],
+    "events": [
+      {
+        "at": 1795716001003,
+        "phase": "host-key-reading"
+      },
+      {
+        "at": 1795716001003,
+        "phase": "host-proof-verified"
+      },
+      {
+        "at": 1795716003984,
+        "phase": "manifest-received"
+      },
+      {
+        "at": 1795716003985,
+        "phase": "mobile-preparing"
+      },
+      {
+        "at": 1795716003991,
+        "phase": "media-validated"
+      },
+      {
+        "at": 1795716003992,
+        "phase": "receiver-preparing"
+      },
+      {
+        "at": 1795716010502,
+        "phase": "media-ready"
+      },
+      {
+        "at": 1795716010503,
+        "phase": "awaiting-gesture"
+      },
+      {
+        "at": 1795716016862,
+        "phase": "player-loading"
+      },
+      {
+        "at": 1795716016862,
+        "phase": "requesting-fullscreen"
+      },
+      {
+        "at": 1795716016863,
+        "phase": "player-started"
+      },
+      {
+        "at": 1795716016876,
+        "phase": "fullscreen-unavailable"
+      },
+      {
+        "at": 1795716021101,
+        "phase": "player-ended"
+      }
+    ]
+  }
+}

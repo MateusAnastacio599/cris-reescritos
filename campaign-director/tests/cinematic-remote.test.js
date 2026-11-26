@@ -94,3 +94,33 @@ test('falha ao ler chave no jogador chega ao diagnóstico do mestre sem fingir a
 test('player que recusa show sem lançar erro reporta falhou, não fica carregando indefinidamente',async()=>{
  const f=await fixture();try{f.frame.show=async()=>false;await f.host.present(item,png);await until(()=>f.host.peers.get(f.a).status==='falhou');assert.equal(f.client.pending,null);}finally{f.close();}
 });
+test('primeiro play frio não expira enquanto a mídia chega; reprodução inicia do zero',async()=>{
+ const f=await fixture({drop:m=>m.kind==='play'});try{
+  await f.host.present({...item,ending:'auto',seconds:4,hold:0},png);await until(()=>!!f.client.pending&&f.client.cache.size===1);
+  const pending=f.client.pending;f.client.now=()=>pending.startedAt+30000;
+  await f.client.playClient(pending);assert.equal(f.frames.length,1);assert.equal(f.frame.time,0);
+ }finally{f.close();}
+});
+test('host waits for receiver/media readiness instead of issuing play after only transfer ACK',async()=>{
+ const f=await fixture();let release;const ready=new Promise(resolve=>release=resolve);f.frame.prepare=async()=>{await ready;return true;};
+ try{await f.host.present(item,png);await until(()=>f.client.cache.size===1);await pause(20);assert.equal(f.packets.some(p=>p.kind==='play'),false);assert.equal(f.host.peers.get(f.a).status,'carregando');release();await until(()=>f.frames.length===1);assert.ok(f.packets.findIndex(p=>p.kind==='ready')<f.packets.findIndex(p=>p.kind==='play'));}finally{release();f.close();}
+});
+test('local ending does not cancel a cold remote preparation; completion waits for the participant',async()=>{
+ const f=await fixture();let release;const ready=new Promise(resolve=>release=resolve);f.frame.prepare=async()=>{await ready;return true;};
+ try{await f.host.present(item,png);await until(()=>f.client.cache.size===1);let complete=false;const wait=f.host.waitForCompletion().then(()=>complete=true);await pause(20);assert.equal(complete,false);release();await until(()=>f.frames.length===1);await pause(10);assert.equal(complete,false);f.frames[0].end();await wait;assert.equal(complete,true);}finally{release();f.close();}
+});
+test('stop during preparation invalidates readiness and does not start the cancelled presentation',async()=>{
+ const f=await fixture();let release;const ready=new Promise(resolve=>release=resolve);f.frame.prepare=async()=>{await ready;return true;};
+ try{await f.host.present(item,png);await until(()=>f.client.cache.size===1);f.host.stop(true);await until(()=>!f.client.pending);release();await pause(20);assert.equal(f.frames.length,0);assert.equal(f.packets.some(p=>p.kind==='ready'),false);}finally{release();f.close();}
+});
+test('natural remote completion followed by local stop keeps confirmed ended status',async()=>{
+ const f=await fixture();try{await f.host.present(item,png);await until(()=>f.host.peers.get(f.a).status==='apresentando');f.frames[0].end();await until(()=>f.host.peers.get(f.a).status==='encerrado');const stops=f.packets.filter(p=>p.kind==='stop').length;f.host.stop();assert.equal(f.host.peers.get(f.a).status,'encerrado');assert.equal(f.packets.filter(p=>p.kind==='stop').length,stops);}finally{f.close();}
+});
+test('stop received during fullscreen cleanup invalidates the waiting prepare command',async()=>{
+ const f=await fixture();let release;try{
+  await f.host.present(item,png);await until(()=>f.frames.length===1);const peer=f.client.peers.get(f.b),old=f.client.pending;
+  const cleanup=new Promise(resolve=>release=resolve);f.client.presentation={end:()=>cleanup};
+  const prepare=f.client.handle(peer,{...old,kind:'prepare',sid:'replacement-waiting',revision:old.revision+1});
+  const stop=f.client.handle(peer,{kind:'stop',revision:old.revision+2,immediate:true});release();await Promise.all([prepare,stop]);assert.equal(f.client.pending,null);assert.equal(f.frames.length,1);
+ }finally{release?.();f.client.presentation=null;f.close();}
+});

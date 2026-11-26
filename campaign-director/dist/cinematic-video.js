@@ -107,9 +107,10 @@ export class CinematicVideoLayer{
     if(playing&&!finished){
       if(v.paused&&!this.starting){
         this.starting=true;const revision=this.revision;
-        Promise.resolve(v.play()).then(()=>{if(this.closed||revision!==this.revision||!this.wantPlaying)v.pause();},()=>{if(!this.closed)this.fail();}).finally(()=>{this.starting=false;});
+        this.startPromise=Promise.resolve(v.play()).then(()=>{if(this.closed||revision!==this.revision||!this.wantPlaying)v.pause();},()=>{if(!this.closed)this.fail();}).finally(()=>{this.starting=false;});
       }
     }else v.pause();
+    return this.startPromise;
   }
   dispose(){this.closed=true;this.revision++;this.controller?.abort();if(this.video){this.video.pause();this.video.removeAttribute('src');this.video.load();this.video.remove();}if(this.url)URL.revokeObjectURL(this.url);this.video=null;}
 }
