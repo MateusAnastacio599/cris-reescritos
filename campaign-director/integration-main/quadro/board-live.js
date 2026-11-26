@@ -193,7 +193,7 @@ export class LivePeerSession{
   this.links=new Set();this.generation=0;this.known=new Map();this.events=[];this.retries=0;this.traces=[];
  }
  log(event,details){this.events.push({at:new Date(this.now()).toISOString(),event,...(details?{stage:liveConnectionStage({...details,peerOpen:!!this.peer?.open,peerError:this.peerError}),elapsedMs:details.elapsedMs,connection:details.connection,ice:details.ice,gathering:details.gathering,signaling:details.signaling,channelState:details.channelState,configuration:details.configuration,remoteCandidates:details.remoteCandidates,localSdpCandidates:details.localSdpCandidates,remoteSdpCandidates:details.remoteSdpCandidates,statsLocalCandidates:details.statsLocalCandidates,statsRemoteCandidates:details.statsRemoteCandidates,candidateEvents:details.candidateEvents,emptyCandidateEvents:details.emptyCandidateEvents,errorType:details.errorType,localDescription:details.localDescription,remoteDescription:details.remoteDescription,candidates:details.candidates,iceErrorCodes:details.iceErrorCodes}: {})});if(this.events.length>120)this.events.shift();}
- participants(){const p=new Map();for(const c of this.links)if(c.open){const key=c._identity||c.peer;if(!p.has(key))p.set(key,{name:c._name||'Conectando…',connections:0,legacy:!!c._legacy,online:liveLinkOnline(c),state:liveConnectionStage({...c._trace?.read(),peerOpen:!!this.peer?.open,applied:!!c._syncReady,channelOpen:!!c.open}),identity:'declared-unverified'});p.get(key).connections++;}return [...p.values()];}
+ participants(){const p=new Map();for(const c of this.links)if(c.open){const key=c._identity||c.peer;if(!p.has(key))p.set(key,{name:c._name||'Conectando…',connections:0,legacy:!!c._legacy,online:liveLinkOnline(c),state:liveConnectionStage({...c._trace?.read(),peerOpen:!!this.peer?.open,applied:!!c._syncReady,channelOpen:!!c.open}),identity:'declared-unverified',id:key});p.get(key).connections++;}return [...p.values()];}
  start(code){this.stop();this.peerError=null;this.code=roomCode(code);if(!this.code)throw Error('Sala inválida');const generation=this.generation;this.log('room-open');
   const peer=this.peer=new this.Peer(this.role==='host'?'qimesa-'+this.code:undefined,this.options());
   const owned=()=>this.generation===generation&&this.peer===peer,current=()=>owned()&&!peer.destroyed;
@@ -209,14 +209,14 @@ export class LivePeerSession{
  }
  dial(){
   if(this.role!=='client'||!this.peer?.open||this.dialing||this.links.size)return;
-  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,assets:Object.fromEntries(this.known)}});
+  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,cinematic:2,assets:Object.fromEntries(this.known)}});
   this.dialing=connection;this.attach(connection,this.generation);
  }
  attach(c,generation){
   const valid=()=>this.generation===generation&&!c._closed&&(this.links.has(c)||this.dialing===c||this.pending?.has(c));
   if((this.pending?.size||0)+this.links.size>=64){c.close();this.log('connection-limit');return;}
   (this.pending??=new Set()).add(c);c._lastSeen=this.now();
-  c._trace=observeLiveConnection(c,{now:this.now,event:(name,value)=>{if(valid()){this.log(name,value);this.changed();if(this.role==='client')this.status(LIVE_STAGE_TEXT[liveConnectionStage({...value,peerOpen:!!this.peer?.open,peerError:this.peerError})]);}}});
+  c._trace=observeLiveConnection(c,{now:this.now,event:(name,value)=>{if(valid()){this.log(name,value);this.changed();if(this.role==='client'&&!c._syncReady)this.status(LIVE_STAGE_TEXT[liveConnectionStage({...value,peerOpen:!!this.peer?.open,peerError:this.peerError})]);}}});
   c._openTimer=setTimeout(()=>{if(valid()){const stage=liveConnectionStage({...c._trace.read(),peerOpen:!!this.peer?.open,peerError:this.peerError});this.drop(c,'connect-timeout');this.status(LIVE_STAGE_TEXT[stage]+' Tentativa encerrada; reconectando.');}},20000);
   c.on('open',()=>{
    if(!valid())return c.close();
@@ -226,24 +226,24 @@ export class LivePeerSession{
     const modern=m?.live===2&&m.campaign===this.campaign&&m.room===this.code&&clean(m.userId)&&clean(m.tabId);
     if(!modern&&!this.legacy){this.drop(c,'scope-rejected');return;}
     if(m?.live===2&&!modern){this.drop(c,'scope-rejected');return;}
-    c._identity=modern?m.userId:'legacy:'+c.peer;c._legacy=!modern;
+    c._syncReady=false;c._cinematicVersion=m?.cinematic||1;c._identity=modern?m.userId:'legacy:'+c.peer;c._legacy=!modern;
     // Keep the active logical session; a second tab must not trigger takeover/retry ping-pong.
     if(modern&&[...this.links].some(old=>old._identity===c._identity)){
      c.send({live:'busy',campaign:this.campaign,room:this.code,tabId:m.tabId});
      c._openTimer=setTimeout(()=>this.drop(c,'duplicate-tab'),10000);this.log('duplicate-tab');return;
     }
     this.links.add(c);this.pending.delete(c);
-    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion});}
+    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion,cinematic:2});}
     this.log('connection-open');this.changed();this.onReady(c);
    }
   });
   c.on('data',message=>{
    if(!valid())return;
    if(this.links.has(c)&&this.onControl(message,c))return;
-   if(message?.live==='busy'&&this.role==='client'&&this.dialing===c&&message.campaign===this.campaign&&message.room===this.code&&message.tabId===this.tabId){this.stop();this.status('Esta conta já está na mesa em outra aba. Feche a outra aba e use Reconectar para continuar aqui.');return;}
+   if(message?.live==='busy'&&this.role==='client'&&this.dialing===c&&message.campaign===this.campaign&&message.room===this.code&&message.tabId===this.tabId){this.stop();this.peerError='duplicate-tab';this.status('Esta conta já está na mesa em outra aba. Feche a outra aba e use Reconectar para continuar aqui.');return;}
    if(message?.live==='welcome'&&this.role==='client'&&this.dialing===c){
     if(message.campaign!==this.campaign||message.room!==this.code||!clean(message.session)){this.drop(c,'scope-rejected');return;}
-    c._session=message.session;c._identity='host';c._wireVersion=message.wire===3?3:2;this.wire(c);this.links.add(c);this.pending.delete(c);this.dialing=null;clearTimeout(c._openTimer);this.log('connection-open');this.changed();this.onReady(c);return;
+    c._syncReady=false;c._cinematicVersion=message.cinematic||1;c._session=message.session;c._identity='host';c._wireVersion=message.wire===3?3:2;this.wire(c);this.links.add(c);this.pending.delete(c);this.dialing=null;clearTimeout(c._openTimer);this.log('connection-open');this.changed();this.onReady(c);return;
    }
    if(message?.live==='ping'){if(c._session&&c._session===message.session){c._lastSeen=this.now();c.send({live:'pong',session:c._session});}return;}
    if(message?.live==='pong'){if(c._session&&c._session===message.session)c._lastSeen=this.now();return;}
@@ -262,7 +262,7 @@ export class LivePeerSession{
  send(c,message){if(!this.links.has(c)||!c.open)return Promise.resolve(false);if(c._wire)return c._wire.send(message).then(result=>{if(message.t==='full'&&this.role==='host'&&!c._closed){c._syncReady=true;this.changed();}return result;});try{if(JSON.stringify(message).length>LIVE_LIMITS.packet)throw Error('Snapshot muito grande para cliente antigo');c.send(message);return Promise.resolve(true);}catch(error){this.drop(c,'send-failed');return Promise.reject(error);}}
  drop(c,reason){
   if(c._closed)return;const owned=this.links.has(c)||this.pending?.has(c)||this.dialing===c;c._closed=true;clearTimeout(c._openTimer);if(c._trace){const trace=c._trace.read();this.traces.push({...trace,reason,stage:liveConnectionStage({...trace,peerOpen:!!this.peer?.open,peerError:this.peerError,protocolFailed:reason==='sync-failed'})});if(this.traces.length>8)this.traces.shift();c._trace.close();}c._wire?.close();this.links.delete(c);this.pending?.delete(c);if(this.dialing===c)this.dialing=null;try{c.close();}catch{}
-  if(!owned)return;this.onDrop(c,reason);this.log(reason);this.changed();if(this.role==='client'){this.onLost(reason);this.retry();}
+  if(!owned)return;if(this.role==='client'&&reason==='scope-rejected')this.peerError=reason;this.onDrop(c,reason);this.log(reason);this.changed();if(this.role==='client'){this.onLost(reason);if(reason!=='scope-rejected')this.retry();}
  }
  diagnostics(){return {peerOpen:!!this.peer?.open,peerError:this.peerError||null,identity:'declared-unverified',connections:[...new Set([...this.links,...(this.pending||[])])].map(c=>{const v=c._trace?.read()||{};return {...v,stage:liveConnectionStage({...v,peerOpen:!!this.peer?.open,peerError:this.peerError})};}),recent:this.traces.slice(),events:this.events.slice()};}
  tick(){for(const c of [...this.links]){if(this.now()-c._lastSeen>LIVE_LIMITS.lease){this.drop(c,'lease-expired');continue;}if(c._session)try{c.send({live:'ping',session:c._session});}catch{this.drop(c,'heartbeat-failed');}}}

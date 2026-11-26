@@ -17,7 +17,7 @@ export function validCinematicMessage(message,scope,now=Date.now()){
   if(!isCinematicKey(message.boardId))return false;
   if(message.type==='ready')return message.priority===undefined||Number.isInteger(message.priority)&&message.priority>=0&&message.priority<=3;
   if(!isCinematicKey(message.sessionId)||!validScene(message.scene))return false;
-  if(message.type==='remote-status')return Array.isArray(message.participants)&&message.participants.length<=64&&message.participants.every(p=>typeof p.name==='string'&&p.name.length<=80&&['conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado'].includes(p.status));
+  if(message.type==='remote-status')return Array.isArray(message.participants)&&message.participants.length<=64&&message.participants.every(p=>typeof p.name==='string'&&p.name.length<=80&&['preparando','conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado'].includes(p.status));
   if(message.type==='ended')return ['automatic','manual','expired'].includes(message.reason);
   if(message.type==='motion')return typeof message.motionReduced==='boolean';
   if(['started','closed','alive'].includes(message.type))return (message.motionReduced===undefined||typeof message.motionReduced==='boolean')&&

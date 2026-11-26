@@ -1,0 +1,29 @@
+{
+  "transport": "PeerJS real, contas fictícias no mesmo perfil de navegador; não é homologação entre aparelhos",
+  "result": "blocked before board snapshot and cinematic host proof",
+  "playerState": {
+    "state": "connecting",
+    "text": "Conectando à mesa"
+  },
+  "cinematicPeers": 0,
+  "connection": {
+    "reason": "connect-timeout",
+    "stage": "ice-candidates-not-emitted",
+    "elapsedMs": 20001,
+    "connection": "new",
+    "ice": "new",
+    "gathering": "complete",
+    "signaling": "stable",
+    "localDescription": true,
+    "remoteDescription": true,
+    "channelState": "connecting",
+    "channelOpen": false,
+    "localSdpCandidates": 0,
+    "remoteSdpCandidates": 0,
+    "candidateEvents": 0,
+    "emptyCandidateEvents": 1,
+    "statsLocalCandidates": 2,
+    "statsRemoteCandidates": 0,
+    "statsSamples": 40
+  }
+}

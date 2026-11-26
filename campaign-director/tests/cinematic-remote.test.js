@@ -85,3 +85,12 @@ test('descoberta local prefere quadro compartilhado ativo quando outra janela re
  for(const [name,priority] of [['old',0],['shared',3]]){const channel=new BroadcastChannel(CINEMATIC_CHANNEL);channels.push(channel);const r=new CinematicReceiver({scope,boardId:name,priority:()=>priority,frame:{clear:async()=>true},send:m=>channel.postMessage(m)});channel.onmessage=e=>void r.handle(e.data);receivers.push(r);}
  const link=new CinematicLink();link.connect();try{const selected=await link.request(scope,{type:'discover'},reply=>reply.type==='ready',1800,'Sem quadro',{collect:true});assert.equal(selected.boardId,'shared');assert.equal(selected.priority,3);}finally{link.close();for(const r of receivers)r.close();for(const channel of channels)channel.close();}
 });
+test('Cinematic aguarda snapshot confirmado e refresh oferece a sessão atual uma única vez',async()=>{
+ const f=await fixture();try{f.a._syncReady=false;await f.host.present(item,png);await pause(30);assert.equal(f.packets.some(p=>p.kind==='prepare'),false);assert.equal(f.host.peers.get(f.a).status,'preparando');f.a._syncReady=true;f.host.refresh();f.host.refresh();await until(()=>f.frames.length===1);assert.equal(f.packets.filter(p=>p.kind==='prepare').length,1);assert.equal(f.host.peers.get(f.a).offered,f.host.active.sid);}finally{f.close();}
+});
+test('falha ao ler chave no jogador chega ao diagnóstico do mestre sem fingir apresentação',async()=>{
+ const f=await fixture();try{f.host.disconnect(f.a);f.client.disconnect(f.b);f.client.bridge={liveHostKey:async()=>{throw Error('permission denied token=secret');}};f.a._session=f.b._session='fresh';f.host.bind(f.a,{role:'host',campaign:'case',code:'ROOMONE'});f.client.bind(f.b,{role:'client',campaign:'case',code:'ROOMONE'});await until(()=>f.host.peers.get(f.a).status==='falhou');assert.equal(f.host.peers.get(f.a).code,'host-key-unavailable');assert.equal(JSON.stringify(f.host.diagnostics()).includes('secret'),false);assert.equal(f.frames.length,0);}finally{f.close();}
+});
+test('player que recusa show sem lançar erro reporta falhou, não fica carregando indefinidamente',async()=>{
+ const f=await fixture();try{f.frame.show=async()=>false;await f.host.present(item,png);await until(()=>f.host.peers.get(f.a).status==='falhou');assert.equal(f.client.pending,null);}finally{f.close();}
+});
