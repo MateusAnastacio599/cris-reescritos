@@ -1,0 +1,317 @@
+{
+  "transport": "simulated",
+  "master": {
+    "hostReady": true,
+    "hostFailure": null,
+    "active": false,
+    "peers": [
+      {
+        "phase": "participant-encerrado",
+        "status": "encerrado",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "version": 3
+      }
+    ],
+    "events": [
+      {
+        "at": 1795715977639,
+        "phase": "host-key-registered"
+      },
+      {
+        "at": 1795716001001,
+        "phase": "host-proof-signing"
+      },
+      {
+        "at": 1795716001002,
+        "phase": "host-proof-sent"
+      },
+      {
+        "at": 1795716001004,
+        "phase": "host-proof-confirmed"
+      },
+      {
+        "at": 1795716003983,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795716003985,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795716003992,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795716010502,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795716010508,
+        "phase": "participant-fullscreen"
+      },
+      {
+        "at": 1795716016876,
+        "phase": "participant-apresentando"
+      },
+      {
+        "at": 1795716021108,
+        "phase": "participant-encerrado"
+      },
+      {
+        "at": 1795716025537,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795716025540,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795716025557,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795716025606,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795716025624,
+        "phase": "participant-fullscreen"
+      },
+      {
+        "at": 1795716035476,
+        "phase": "participant-apresentando"
+      },
+      {
+        "at": 1795716043148,
+        "phase": "participant-encerrado"
+      },
+      {
+        "at": 1795716043150,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795716043153,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795716043155,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795716043202,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795716043208,
+        "phase": "participant-fullscreen"
+      },
+      {
+        "at": 1795716050185,
+        "phase": "participant-encerrado"
+      },
+      {
+        "at": 1795716050474,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795716050476,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795716050477,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795716050500,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795716050517,
+        "phase": "participant-fullscreen"
+      },
+      {
+        "at": 1795716057186,
+        "phase": "participant-apresentando"
+      },
+      {
+        "at": 1795716074541,
+        "phase": "host-proof-signing"
+      },
+      {
+        "at": 1795716074541,
+        "phase": "host-proof-sent"
+      },
+      {
+        "at": 1795716074564,
+        "phase": "host-proof-confirmed"
+      },
+      {
+        "at": 1795716074564,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795716074606,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795716074614,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795716078824,
+        "phase": "participant-encerrado"
+      },
+      {
+        "at": 1795716087719,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795716087720,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795716087721,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795716087736,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795716087737,
+        "phase": "participant-apresentando"
+      },
+      {
+        "at": 1795716096082,
+        "phase": "participant-encerrado"
+      },
+      {
+        "at": 1795716096087,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795716096089,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795716096094,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795716096125,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795716096129,
+        "phase": "participant-apresentando"
+      },
+      {
+        "at": 1795716100831,
+        "phase": "participant-encerrado"
+      }
+    ]
+  },
+  "player": {
+    "hostReady": false,
+    "hostFailure": null,
+    "active": false,
+    "peers": [
+      {
+        "phase": "player-ended",
+        "status": "encerrado",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "version": 3
+      }
+    ],
+    "events": [
+      {
+        "at": 1795716074545,
+        "phase": "host-key-reading"
+      },
+      {
+        "at": 1795716074546,
+        "phase": "host-proof-verified"
+      },
+      {
+        "at": 1795716074604,
+        "phase": "manifest-received"
+      },
+      {
+        "at": 1795716074605,
+        "phase": "mobile-preparing"
+      },
+      {
+        "at": 1795716074613,
+        "phase": "media-validated"
+      },
+      {
+        "at": 1795716074614,
+        "phase": "receiver-preparing"
+      },
+      {
+        "at": 1795716078823,
+        "phase": "player-ended"
+      },
+      {
+        "at": 1795716087720,
+        "phase": "manifest-received"
+      },
+      {
+        "at": 1795716087721,
+        "phase": "receiver-preparing"
+      },
+      {
+        "at": 1795716087735,
+        "phase": "media-ready"
+      },
+      {
+        "at": 1795716087737,
+        "phase": "player-loading"
+      },
+      {
+        "at": 1795716087737,
+        "phase": "player-started"
+      },
+      {
+        "at": 1795716096081,
+        "phase": "player-ended"
+      },
+      {
+        "at": 1795716096088,
+        "phase": "manifest-received"
+      },
+      {
+        "at": 1795716096091,
+        "phase": "media-validated"
+      },
+      {
+        "at": 1795716096093,
+        "phase": "media-validated"
+      },
+      {
+        "at": 1795716096094,
+        "phase": "receiver-preparing"
+      },
+      {
+        "at": 1795716096123,
+        "phase": "media-ready"
+      },
+      {
+        "at": 1795716096128,
+        "phase": "player-loading"
+      },
+      {
+        "at": 1795716096129,
+        "phase": "player-started"
+      },
+      {
+        "at": 1795716100829,
+        "phase": "player-ended"
+      }
+    ]
+  }
+}

@@ -70,3 +70,23 @@
 .cinematic-plane>.cinematic-video[hidden]{display:none}
 .cinematic-light-event{z-index:3}
 .cinematic-light-beam{aspect-ratio:.65!important}
+/* One mobile viewport around the existing frame, with a paused preparation gate. */
+.cinematic-presentation{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:#000;isolation:isolate}
+.cinematic-presentation>.cinematic-frame.cinematic-board-layer{z-index:0;position:relative;inset:auto;width:min(100vw,calc(100dvh * 16 / 9));height:min(100dvh,calc(100vw * 9 / 16));max-width:100%;max-height:100%;margin:auto}
+.cinematic-presentation>.cinematic-frame>img{object-fit:contain}
+.cinematic-presentation:fullscreen{width:100vw;height:100dvh;background:#000}
+.cinematic-mobile-gate{position:absolute;inset:0;z-index:3;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:#120e0bf7;color:#ece0ca}
+.cinematic-mobile-gate[hidden]{display:none}
+.cinematic-mobile-card{width:min(340px,100%);text-align:center;font:14px/1.6 system-ui}
+.cinematic-mobile-card svg{width:68px;height:68px;fill:none;stroke:#cbb283;stroke-width:2;margin-bottom:12px}
+.cinematic-mobile-card h2{font:500 24px/1.3 Georgia,serif;margin:0 0 14px;letter-spacing:0}
+.cinematic-mobile-card p{font-size:13px;color:#b5a68d;margin:0 0 24px}
+.cinematic-mobile-card button{display:block;width:100%;min-height:48px;border:1px solid #8b735044;border-radius:5px;padding:12px;font:600 14px system-ui;background:#d0b784;color:#21190f;cursor:pointer}
+.cinematic-mobile-card button:disabled{opacity:.45;cursor:wait}
+.cinematic-mobile-card [data-inline]{margin-top:10px;color:#c3b295;background:transparent;font-weight:400;font-size:12px}
+body.cris-cinematic-preparing .cris-cinematic-controls{display:none}
+.cinematic-presentation>.cris-cinematic-controls{position:absolute;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}
+.cinematic-start-error{position:fixed;right:16px;bottom:78px;max-width:min(340px,calc(100vw - 32px));box-sizing:border-box;z-index:110;padding:14px;border:1px solid #8b7350;border-radius:6px;background:#261e18;color:#e5d7bf;font:13px/1.5 system-ui;box-shadow:0 8px 30px #0005}
+.cinematic-start-error button{margin-top:10px;display:block;min-height:40px;color:inherit;background:transparent;border:1px solid #8b735055;padding:8px 14px;border-radius:4px}
+.cinematic-mobile-gate{overflow:auto}.cinematic-mobile-card{max-height:calc(100dvh - 48px);overflow:auto}
+@media(orientation:landscape) and (max-height:500px){.cinematic-mobile-gate{padding:12px}.cinematic-mobile-card{max-height:calc(100dvh - 24px);width:min(420px,100%)}.cinematic-mobile-card svg{width:36px;height:36px;margin:0}.cinematic-mobile-card h2{font-size:20px;margin-bottom:8px}.cinematic-mobile-card p{margin-bottom:10px}.cinematic-mobile-card button{min-height:44px;padding:9px}.cinematic-mobile-card [data-inline]{margin-top:4px;min-height:40px}}

@@ -3,7 +3,7 @@ import {animateTimedFX} from './cinematic-fx.js';
 import {animateDirectorLights} from './cinematic-light-player.js';
 import {cameraTransform} from './cinematic-direction-model.js';
 import {animateDirectionCamera,animateLayerEffects,animateLighting} from './cinematic-direction-player.js';
-import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js';
+import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js?v=live01b2';
 import {checkCinematicImage,cinematicEnding,cinematicFades} from './cinematic-model.js';
 import {cinematicMotion,mountMotionNotice} from './cinematic-motion.js';
 const fadeBuffer=30;
@@ -65,7 +65,7 @@ export class CinematicFrame{
     this.resolveFade?.(false);
     this.resolveFade=null;
   }
-  async show(asset,item,onEnd){
+  async show(asset,item,onEnd,{autoplay=true}={}){
     const generation=++this.generation;
     this.cancelTimers();
     this.warnings.clear();
@@ -76,7 +76,7 @@ export class CinematicFrame{
       const composition=await loadComposition(resources,item,this.element.ownerDocument,{signal:loading.signal,video:true,warn:message=>{if(generation!==this.generation)return;this.warnings.add(message);this.onWarning(message);if(this.item)this.showWarnings();}});
       if(generation!==this.generation){composition.dispose();return false;}
       this.loading=null;
-      this.install(composition.world,item,onEnd,generation,composition);
+      this.install(composition.world,item,onEnd,generation,composition,autoplay);
       return true;
     }
     await checkCinematicImage(asset);
@@ -91,11 +91,11 @@ export class CinematicFrame{
         throw Error('Use uma imagem com até 40 megapixels.');
       }
       this.loading=null;
-      this.install(image,item,onEnd,generation);
+      this.install(image,item,onEnd,generation,null,autoplay);
       return true;
     }finally{URL.revokeObjectURL(url);}
   }
-  install(image,item,onEnd,generation,composition=null){
+  install(image,item,onEnd,generation,composition=null,autoplay=true){
     this.stopEffects();
     this.disposeComposition();
     this.element.replaceChildren(image);
@@ -111,11 +111,22 @@ export class CinematicFrame{
     this.element.style.setProperty('--cinematic-fade',cinematicFades(item).fadeIn*1000+'ms');
     this.element.classList.add('cinematic-visible');
     if(composition)this.removeFit=fitComposition(composition,this.element,{contain:this.fit==='contain'});
-    this.position=0;this.playing=true;this.onEnd=onEnd;this.startedAt=performance.now();
+    this.position=0;this.playing=autoplay;this.onEnd=onEnd;this.startedAt=performance.now();
     this.startEffects();
     this.unsubscribeMotion=this.motion.subscribe(()=>this.startEffects());
     this.scheduleEnd(generation);
     if(composition?.videos.length)this.videoTimer=setInterval(()=>this.syncVideos(),80);
+  }
+  async prepare(asset,item,onEnd){
+    const shown=await this.show(asset,item,onEnd,{autoplay:false});
+    if(!shown)return false;const generation=this.generation;
+    // Mount first: mobile decoders may not load a detached/hidden video. The
+    // presentation gate covers this paused first frame while media becomes ready.
+    await this.composition?.ready?.();return generation===this.generation&&!!this.item;
+  }
+  async startPrepared(){
+    if(!this.item)return false;const generation=this.generation;this.play();
+    await this.syncVideos();return generation===this.generation&&!!this.item;
   }
   time(){return this.item?Math.max(0,(this.position??0)+(this.playing?(performance.now()-this.startedAt)/1000:0)):0;}
   scheduleEnd(generation=this.generation){
@@ -127,7 +138,7 @@ export class CinematicFrame{
       if(generation===this.generation&&await this.clear())callback?.();
     },remaining*1000);
   }
-  syncVideos(force=false){const time=this.time();for(const video of this.composition?.videos??[])video.sync(video.config.window&&this.item?.ending==='loop'?time%sceneSpan(this.item):time,this.playing,this.motionReduced,force);}
+  syncVideos(force=false){const time=this.time();return Promise.all((this.composition?.videos??[]).map(video=>video.sync(video.config.window&&this.item?.ending==='loop'?time%sceneSpan(this.item):time,this.playing,this.motionReduced,force)));}
   pause(){
     if(!this.item||!this.playing)return;
     this.position=this.time();this.playing=false;clearTimeout(this.automaticTimer);

@@ -174,3 +174,16 @@ test('independent scene duration holds until 14 s even when camera movement last
  const {frame,layer}=fakeLayer();let ended=0;await frame.show(image,{...legacy,seconds:4,hold:0,sceneDuration:14,fadeOut:.3},()=>ended++);
  t.mock.timers.tick(4000);assert.equal(layer.classList.contains('cinematic-visible'),true);t.mock.timers.tick(9999);assert.equal(layer.classList.contains('cinematic-visible'),true);t.mock.timers.tick(1);assert.equal(layer.classList.contains('cinematic-visible'),false);t.mock.timers.tick(330);await Promise.resolve();assert.equal(layer.isConnected,false);assert.equal(ended,1);
 });
+test('prepare keeps the existing frame paused without spending the cinematic duration; first start is explicit',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const previous=globalThis.matchMedia;globalThis.matchMedia=()=>({matches:false});t.after(()=>{if(previous)globalThis.matchMedia=previous;else delete globalThis.matchMedia;});
+ const {frame}=fakeLayer();let ended=0;try{
+  assert.equal(await frame.prepare(image,{...legacy,hold:0},()=>ended++),true);assert.equal(frame.playing,false);assert.equal(frame.time(),0);
+  t.mock.timers.tick(30000);assert.equal(ended,0);assert.equal(frame.time(),0);assert.equal(await frame.startPrepared(),true);assert.equal(frame.playing,true);
+ }finally{await frame.clear({immediate:true});}
+});
+test('automatic local ending keeps Director controls until remote completion, with manual stop still available',async()=>{
+ let onEnd,finish;const replies=[],events=[];const receiver=new CinematicReceiver({scope,boardId:'prepared-board',frame:{show:async(a,i,end)=>{onEnd=end;return true;},clear:async()=>true},send:m=>replies.push(m),onPresentation:e=>events.push(e.type),onAutoEnd:()=>new Promise(resolve=>finish=resolve)});
+ const envelope=fields=>cinematicEnvelope(scope,{senderId:'director',requestId:'request',sessionId:'run',boardId:'prepared-board',scene,sequence:1,...fields});
+ await receiver.handle(envelope({type:'start',item:legacy,image}));const pending=onEnd();assert.ok(receiver.active);assert.ok(replies.some(r=>r.type==='local-ended'));assert.equal(events.includes('stop'),false);
+ await receiver.handle(envelope({type:'stop',sequence:2}));finish();await pending;assert.equal(receiver.active,null);assert.equal(events.filter(e=>e==='stop').length,1);assert.equal(replies.filter(r=>r.type==='ended').length,1);
+});
