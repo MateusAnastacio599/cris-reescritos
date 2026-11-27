@@ -1,5 +1,5 @@
-import {cinematicItems} from './cinematic-model.js';
-import {validateCinematicCue} from './cinematic-cues.js';
+import {cinematicItems} from './cinematic-model.js?v=live01b4';
+import {validateCinematicCue} from './cinematic-cues.js?v=live01b4';
 import {uid} from './storage.js';
 import {icon} from './icons.js';
 import {$,$$,esc,openForm,option} from './ui.js';

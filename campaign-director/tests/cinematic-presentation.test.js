@@ -42,3 +42,7 @@ test('optional fullscreen cleanup owns only its root, including a late result',a
 test('replacement waits for owned fullscreen cleanup before restoring mounts',async()=>{
  const f=fixture();await f.begin();await f.presentation.requestMode(f.presentation.current);let exit;f.d.exitFullscreen=()=>new Promise(resolve=>exit=()=>{f.d.fullscreenElement=null;resolve();});const cleanup=f.presentation.end(),second=f.begin();await flush();assert.equal(f.presentation.current,null);exit();await cleanup;await second;assert.equal(f.frame.mount,f.presentation.current.root);await f.presentation.end();assert.equal(f.frame.mount,f.d.body);
 });
+
+test('older AbortSignal without throwIfAborted supports first playback and still cancels',async()=>{
+ const f=fixture(),signal={aborted:false,addEventListener(){},removeEventListener(){}};try{await f.presentation.begin({frame:f.frame,signal});assert.equal(await f.start(),true);await f.presentation.end();signal.aborted=true;await assert.rejects(f.presentation.begin({frame:f.frame,signal}),{name:'AbortError'});assert.equal(f.d.body.classList.contains('cris-cinematic-active'),false);}finally{await f.presentation.close();}
+});

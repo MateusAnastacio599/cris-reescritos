@@ -1,5 +1,5 @@
-import {sceneSpan} from './cinematic-timing.js';
-import {validCamera,validLighting,validLayerDirection} from './cinematic-direction-model.js';
+import {sceneSpan} from './cinematic-timing.js?v=live01b4';
+import {validCamera,validLighting,validLayerDirection} from './cinematic-direction-model.js?v=live01b4';
 export const CINEMATIC_VERSION=1;
 export const CINEMATIC_MAX_ITEMS=12;
 export const CINEMATIC_MAX_LAYERS=12;

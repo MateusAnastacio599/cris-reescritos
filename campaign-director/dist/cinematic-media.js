@@ -1,5 +1,5 @@
-import {checkCinematicVideo} from './cinematic-video.js';
-import {CINEMATIC_MAX_BYTES,CINEMATIC_TYPES,checkCinematicImage,cinematicReferences,cinematicItems,cinematicMediaIds,isCinematicPayload,isCinematicBlob,CINEMATIC_COMPOSITION_PIXELS} from './cinematic-model.js';
+import {checkCinematicVideo} from './cinematic-video.js?v=live01b4';
+import {CINEMATIC_MAX_BYTES,CINEMATIC_TYPES,checkCinematicImage,cinematicReferences,cinematicItems,cinematicMediaIds,isCinematicPayload,isCinematicBlob,CINEMATIC_COMPOSITION_PIXELS} from './cinematic-model.js?v=live01b4';
 
 let pending;
 function database(){

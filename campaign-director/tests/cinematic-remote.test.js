@@ -155,3 +155,16 @@ test('content cache keeps reusable hashes across different presentations within 
 test('play promise latency is included when aligning the receiver timeline',async()=>{
  const f=await fixture();try{f.frame.startPrepared=async()=>{await pause(80);return true;};const run=await f.host.present(item,png);await run.begun;await until(()=>f.host.peers.get(f.a).status==='apresentando');assert.ok(f.frame.time>=.07,'seek must include the time spent awaiting play()');}finally{f.close();}
 });
+
+test('v4 peers retain publication and sanitized browser/PWA diagnostics',async()=>{
+ const f=await fixture();try{f.a._cinematicVersion=4;f.a._cinematicBuild='live01b4';await f.host.present(item,png);await until(()=>f.host.peers.get(f.a).status==='apresentando');const d=f.host.diagnostics();assert.equal(d.build,'live01b4');assert.equal(d.peers[0].version,4);assert.equal(d.peers[0].build,'live01b4');assert.equal(d.peers[0].environment.mode,'browser');assert.equal(d.peers[0].verified,true);assert.ok(d.peers[0].metrics.bytes>0);}finally{f.close();}
+});
+test('old capability is actionable and never receives a manifest or media',async()=>{
+ const f=await fixture();try{f.host.disconnect(f.a);f.a._cinematicVersion=3;f.host.bind(f.a,{role:'host',campaign:'case',code:'ROOMONE'});const before=f.packets.length;await f.host.present(item,png);await pause(20);const peer=f.host.peers.get(f.a);assert.equal(peer.code,'legacy-client');assert.match(peer.error,/Atualize/);assert.equal(f.packets.slice(before).some(p=>p.kind==='prepare'||p.lane==='cinematic'),false);assert.equal(f.host.diagnostics().peers[0].version,3);}finally{f.close();}
+});
+test('failed preparation preserves stage/code; a new attempt succeeds and stale failure cannot overwrite it',async()=>{
+ const f=await fixture();try{f.frame.prepare=async()=>{throw new TypeError('private URL token=secret');};await f.host.present(item,png);await until(()=>f.host.peers.get(f.a).status==='falhou');const old=f.host.active.sid,peer=f.host.peers.get(f.a);assert.equal(peer.code,'media-prepare-failed');assert.equal(peer.failurePhase,'receiver-preparing');assert.equal(peer.errorType,'TypeError');assert.equal(JSON.stringify(f.host.diagnostics()).includes('secret'),false);f.frame.prepare=async()=>true;await f.host.present({...item,id:'second'},png);await until(()=>peer.status==='apresentando');await f.host.handle(peer,{kind:'failure',sid:old,code:'player-start-failed',phase:'player-loading'});assert.equal(peer.status,'apresentando');assert.equal(peer.code,null);assert.equal(peer.failurePhase,null);}finally{f.close();}
+});
+test('rejected start reports its phase instead of a generic load failure',async()=>{
+ const f=await fixture();try{f.frame.show=async()=>{throw new DOMException('decoder','NotSupportedError');};await f.host.present(item,png);await until(()=>f.host.peers.get(f.a).status==='falhou');assert.equal(f.host.peers.get(f.a).code,'player-start-failed');assert.equal(f.host.peers.get(f.a).failurePhase,'player-loading');assert.equal(f.host.peers.get(f.a).errorType,'NotSupportedError');}finally{f.close();}
+});

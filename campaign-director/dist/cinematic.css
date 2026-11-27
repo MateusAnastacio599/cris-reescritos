@@ -1,4 +1,4 @@
-@import url('./cinematic-studio.css');
+@import url('./cinematic-studio.css?v=live01b4');
 .cinematic-frame{position:relative;overflow:hidden;isolation:isolate;background:#100e14;color:#e8dfef;opacity:0;transition:opacity var(--cinematic-fade,300ms) ease-out!important}
 .cinematic-frame.cinematic-visible{opacity:1}
 .cinematic-frame[hidden]{display:none}
@@ -27,6 +27,7 @@
 .cinematic-motion-notice button:focus-visible{outline:2px solid #efcf85;outline-offset:3px}
 .cinematic-board-layer>.cinematic-motion-notice{position:absolute;bottom:20px;left:20px;right:20px;max-width:640px;margin:auto;z-index:1}
 
+.cinematic-frame .cinematic-world{overflow:hidden}
 .cinematic-world{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);isolation:isolate}
 .cinematic-plane{position:absolute;inset:0;transform-origin:center}
 .cinematic-plane[hidden]{display:none}

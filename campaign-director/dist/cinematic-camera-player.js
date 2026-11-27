@@ -1,6 +1,6 @@
-import {sceneSpan,windowRange,timedFrames,temporalAnimation} from './cinematic-timing.js';
-import {cameraPoints} from './cinematic-camera-model.js';
-import {cameraTransform} from './cinematic-direction-model.js';
+import {sceneSpan,windowRange,timedFrames,temporalAnimation} from './cinematic-timing.js?v=live01b4';
+import {cameraPoints} from './cinematic-camera-model.js?v=live01b4';
+import {cameraTransform} from './cinematic-direction-model.js?v=live01b4';
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const smooth=n=>{n=clamp(n,0,1);return n*n*(3-2*n);};
 const smoother=n=>n*n*n*(n*(n*6-15)+10);

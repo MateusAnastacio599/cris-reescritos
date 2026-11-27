@@ -1,6 +1,6 @@
-import {validateCinematicCue} from './cinematic-cues.js';
-import {validateSceneCinematics} from './cinematic-model.js';
-import {cinematicImages,exportCinematicImages,readCinematicBackup} from './cinematic-media.js';
+import {validateCinematicCue} from './cinematic-cues.js?v=live01b4';
+import {validateSceneCinematics} from './cinematic-model.js?v=live01b4';
+import {cinematicImages,exportCinematicImages,readCinematicBackup} from './cinematic-media.js?v=live01b4';
 import {scriptDisplay} from './script-display.js';
 import { originalCampaign } from './campaign-data.js';
 import {applySceneTextUpdate} from './scene-updates.js';

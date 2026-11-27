@@ -1,0 +1,456 @@
+{
+  "master": {
+    "room": "S98D2JKZ79W9",
+    "contextId": "41023271-16ed-4c63-9831-bf3262203440",
+    "camera": {
+      "x": -42,
+      "y": -54,
+      "z": 0.79
+    },
+    "cinematic": {
+      "build": "live01b4",
+      "environment": {
+        "mode": "browser",
+        "browser": "Chrome/156",
+        "secure": true,
+        "crypto": true,
+        "abort": true,
+        "abortCheck": true
+      },
+      "hostReady": true,
+      "hostFailure": null,
+      "active": false,
+      "coordination": {
+        "phase": "encerrado",
+        "startAt": 1795786631327,
+        "local": {
+          "imageMs": 15.599999999976717,
+          "videoMs": 45.90000000002328,
+          "videoFallbacks": 0,
+          "prepareMs": 55,
+          "startSkewMs": 1
+        },
+        "canProceed": false
+      },
+      "peers": [],
+      "events": [
+        {
+          "at": 1795786617366,
+          "phase": "host-key-registered"
+        },
+        {
+          "at": 1795786617902,
+          "phase": "host-proof-signing"
+        },
+        {
+          "at": 1795786617902,
+          "phase": "host-proof-sent"
+        },
+        {
+          "at": 1795786617914,
+          "phase": "host-proof-confirmed"
+        },
+        {
+          "at": 1795786624929,
+          "phase": "manifest-sent"
+        },
+        {
+          "at": 1795786624932,
+          "phase": "media-requested"
+        },
+        {
+          "at": 1795786624982,
+          "phase": "participant-carregando"
+        },
+        {
+          "at": 1795786625142,
+          "phase": "receiver-ready"
+        },
+        {
+          "at": 1795786625951,
+          "phase": "participant-apresentando"
+        },
+        {
+          "at": 1795786630459,
+          "phase": "participant-encerrado"
+        },
+        {
+          "at": 1795786630462,
+          "phase": "manifest-sent"
+        },
+        {
+          "at": 1795786630464,
+          "phase": "media-requested"
+        },
+        {
+          "at": 1795786630483,
+          "phase": "participant-carregando"
+        },
+        {
+          "at": 1795786630527,
+          "phase": "receiver-ready"
+        },
+        {
+          "at": 1795786631329,
+          "phase": "participant-apresentando"
+        },
+        {
+          "at": 1795786638696,
+          "phase": "participant-encerrado"
+        }
+      ]
+    },
+    "roomView": {
+      "state": "waiting",
+      "text": "Mesa aberta · aguardando jogadores"
+    },
+    "transport": {
+      "peerOpen": true,
+      "peerError": null,
+      "identity": "declared-unverified",
+      "connections": [],
+      "recent": [
+        {
+          "candidates": 0,
+          "remoteCandidates": 0,
+          "candidateEvents": 0,
+          "emptyCandidateEvents": 0,
+          "statsLocalCandidates": 0,
+          "statsRemoteCandidates": 0,
+          "candidateTypes": {
+            "host": 0,
+            "srflx": 0,
+            "relay": 0,
+            "prflx": 0
+          },
+          "remoteCandidateTypes": {
+            "host": 0,
+            "srflx": 0,
+            "relay": 0,
+            "prflx": 0
+          },
+          "iceErrorCodes": [],
+          "statsSamples": 0,
+          "statsError": null,
+          "errorType": null,
+          "localSdpCandidates": 0,
+          "remoteSdpCandidates": 0,
+          "elapsedMs": 27772,
+          "connection": null,
+          "ice": null,
+          "gathering": null,
+          "signaling": null,
+          "localDescription": false,
+          "remoteDescription": false,
+          "channelState": "closed",
+          "channelOpen": false,
+          "applied": true,
+          "configuration": {
+            "serverCount": 0,
+            "stun": 0,
+            "turn": 0,
+            "turns": 0,
+            "credentialed": 0,
+            "iceTransportPolicy": "all",
+            "iceCandidatePoolSize": 0
+          },
+          "candidateEvidence": "events + SDP type counts + getStats; remote count is lower bound",
+          "reason": "connection-closed",
+          "stage": "channel-closed"
+        }
+      ],
+      "events": [
+        {
+          "at": "2026-11-27T13:36:57.366Z",
+          "event": "room-stopped"
+        },
+        {
+          "at": "2026-11-27T13:36:57.366Z",
+          "event": "room-open"
+        },
+        {
+          "at": "2026-11-27T13:36:57.432Z",
+          "event": "peer-open"
+        },
+        {
+          "at": "2026-11-27T13:36:57.877Z",
+          "event": "rtc-datachannel-observed",
+          "stage": "sdp-pending",
+          "elapsedMs": 0,
+          "connection": null,
+          "ice": null,
+          "gathering": null,
+          "signaling": null,
+          "channelState": "connecting",
+          "configuration": {
+            "serverCount": 0,
+            "stun": 0,
+            "turn": 0,
+            "turns": 0,
+            "credentialed": 0,
+            "iceTransportPolicy": "all",
+            "iceCandidatePoolSize": 0
+          },
+          "remoteCandidates": 0,
+          "localSdpCandidates": 0,
+          "remoteSdpCandidates": 0,
+          "statsLocalCandidates": 0,
+          "statsRemoteCandidates": 0,
+          "candidateEvents": 0,
+          "emptyCandidateEvents": 0,
+          "errorType": null,
+          "localDescription": false,
+          "remoteDescription": false,
+          "candidates": 0,
+          "iceErrorCodes": []
+        },
+        {
+          "at": "2026-11-27T13:36:57.877Z",
+          "event": "rtc-channel-open",
+          "stage": "loading-board",
+          "elapsedMs": 0,
+          "connection": null,
+          "ice": null,
+          "gathering": null,
+          "signaling": null,
+          "channelState": "open",
+          "configuration": {
+            "serverCount": 0,
+            "stun": 0,
+            "turn": 0,
+            "turns": 0,
+            "credentialed": 0,
+            "iceTransportPolicy": "all",
+            "iceCandidatePoolSize": 0
+          },
+          "remoteCandidates": 0,
+          "localSdpCandidates": 0,
+          "remoteSdpCandidates": 0,
+          "statsLocalCandidates": 0,
+          "statsRemoteCandidates": 0,
+          "candidateEvents": 0,
+          "emptyCandidateEvents": 0,
+          "errorType": null,
+          "localDescription": false,
+          "remoteDescription": false,
+          "candidates": 0,
+          "iceErrorCodes": []
+        },
+        {
+          "at": "2026-11-27T13:36:57.877Z",
+          "event": "connection-open"
+        },
+        {
+          "at": "2026-11-27T13:36:57.911Z",
+          "event": "snapshot-sent"
+        },
+        {
+          "at": "2026-11-27T13:37:25.648Z",
+          "event": "rtc-channel-close",
+          "stage": "channel-closed",
+          "elapsedMs": 27771,
+          "connection": null,
+          "ice": null,
+          "gathering": null,
+          "signaling": null,
+          "channelState": "closed",
+          "configuration": {
+            "serverCount": 0,
+            "stun": 0,
+            "turn": 0,
+            "turns": 0,
+            "credentialed": 0,
+            "iceTransportPolicy": "all",
+            "iceCandidatePoolSize": 0
+          },
+          "remoteCandidates": 0,
+          "localSdpCandidates": 0,
+          "remoteSdpCandidates": 0,
+          "statsLocalCandidates": 0,
+          "statsRemoteCandidates": 0,
+          "candidateEvents": 0,
+          "emptyCandidateEvents": 0,
+          "errorType": null,
+          "localDescription": false,
+          "remoteDescription": false,
+          "candidates": 0,
+          "iceErrorCodes": []
+        },
+        {
+          "at": "2026-11-27T13:37:25.649Z",
+          "event": "connection-closed"
+        }
+      ]
+    },
+    "peerOpen": true,
+    "pending": 0,
+    "ice": [],
+    "participants": [],
+    "items": [
+      {
+        "id": "convite",
+        "type": "note",
+        "x": 260,
+        "y": 260
+      },
+      {
+        "id": "teatro",
+        "type": "note",
+        "x": 630,
+        "y": 410
+      }
+    ],
+    "pins": 2,
+    "strings": 1,
+    "media": 0,
+    "stats": [],
+    "events": [
+      {
+        "at": "2026-11-27T13:36:57.366Z",
+        "event": "room-open"
+      },
+      {
+        "at": "2026-11-27T13:36:57.432Z",
+        "event": "peer-open"
+      },
+      {
+        "at": "2026-11-27T13:36:57.877Z",
+        "event": "rtc-datachannel-observed",
+        "stage": "sdp-pending",
+        "elapsedMs": 0,
+        "connection": null,
+        "ice": null,
+        "gathering": null,
+        "signaling": null,
+        "channelState": "connecting",
+        "configuration": {
+          "serverCount": 0,
+          "stun": 0,
+          "turn": 0,
+          "turns": 0,
+          "credentialed": 0,
+          "iceTransportPolicy": "all",
+          "iceCandidatePoolSize": 0
+        },
+        "remoteCandidates": 0,
+        "localSdpCandidates": 0,
+        "remoteSdpCandidates": 0,
+        "statsLocalCandidates": 0,
+        "statsRemoteCandidates": 0,
+        "candidateEvents": 0,
+        "emptyCandidateEvents": 0,
+        "errorType": null,
+        "localDescription": false,
+        "remoteDescription": false,
+        "candidates": 0,
+        "iceErrorCodes": []
+      },
+      {
+        "at": "2026-11-27T13:36:57.877Z",
+        "event": "rtc-channel-open",
+        "stage": "loading-board",
+        "elapsedMs": 0,
+        "connection": null,
+        "ice": null,
+        "gathering": null,
+        "signaling": null,
+        "channelState": "open",
+        "configuration": {
+          "serverCount": 0,
+          "stun": 0,
+          "turn": 0,
+          "turns": 0,
+          "credentialed": 0,
+          "iceTransportPolicy": "all",
+          "iceCandidatePoolSize": 0
+        },
+        "remoteCandidates": 0,
+        "localSdpCandidates": 0,
+        "remoteSdpCandidates": 0,
+        "statsLocalCandidates": 0,
+        "statsRemoteCandidates": 0,
+        "candidateEvents": 0,
+        "emptyCandidateEvents": 0,
+        "errorType": null,
+        "localDescription": false,
+        "remoteDescription": false,
+        "candidates": 0,
+        "iceErrorCodes": []
+      },
+      {
+        "at": "2026-11-27T13:36:57.877Z",
+        "event": "connection-open"
+      },
+      {
+        "at": "2026-11-27T13:36:57.911Z",
+        "event": "snapshot-sent"
+      },
+      {
+        "at": "2026-11-27T13:37:25.648Z",
+        "event": "rtc-channel-close",
+        "stage": "channel-closed",
+        "elapsedMs": 27771,
+        "connection": null,
+        "ice": null,
+        "gathering": null,
+        "signaling": null,
+        "channelState": "closed",
+        "configuration": {
+          "serverCount": 0,
+          "stun": 0,
+          "turn": 0,
+          "turns": 0,
+          "credentialed": 0,
+          "iceTransportPolicy": "all",
+          "iceCandidatePoolSize": 0
+        },
+        "remoteCandidates": 0,
+        "localSdpCandidates": 0,
+        "remoteSdpCandidates": 0,
+        "statsLocalCandidates": 0,
+        "statsRemoteCandidates": 0,
+        "candidateEvents": 0,
+        "emptyCandidateEvents": 0,
+        "errorType": null,
+        "localDescription": false,
+        "remoteDescription": false,
+        "candidates": 0,
+        "iceErrorCodes": []
+      },
+      {
+        "at": "2026-11-27T13:37:25.649Z",
+        "event": "connection-closed"
+      }
+    ]
+  },
+  "player": {
+    "room": "S98D2JKZ79W9",
+    "contextId": "41023271-16ed-4c63-9831-bf3262203440",
+    "camera": {
+      "x": -60,
+      "y": -40,
+      "z": 0.8
+    },
+    "cinematic": {
+      "build": "live01b4",
+      "environment": {
+        "mode": "browser",
+        "browser": "Chrome/156",
+        "secure": true,
+        "crypto": true,
+        "abort": true,
+        "abortCheck": true
+      },
+      "hostReady": false,
+      "hostFailure": null,
+      "active": false,
+      "coordination": null,
+      "peers": [],
+      "events": []
+    },
+    "items": [],
+    "pins": 0,
+    "strings": 0,
+    "media": 0
+  }
+}

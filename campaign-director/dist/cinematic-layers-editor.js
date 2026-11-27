@@ -1,14 +1,14 @@
-import {layerRows,confirmStudio} from './cinematic-studio-ui.js';
-import {CINEMATIC_ASSETS,FOG_VIDEO_ASSET} from './cinematic-assets.js';
-import {newEffect} from './cinematic-direction-model.js';
-import {defaultWindow} from './cinematic-timing.js';
-import {duplicateCinematicLayer} from './cinematic-layer-operations.js';
-import {cameraPoints,cameraPoint} from './cinematic-camera-model.js';
-import {CINEMATIC_MAX_LAYERS,checkCinematicUpload} from './cinematic-model.js';
-import {cinematicImages,imageKey,cinematicDimensions,loadCinematicMedia} from './cinematic-media.js';
-import {loadComposition,fitComposition,positionCinematicLayer} from './cinematic-composition.js';
-import {ANCHORS,bounded,safeCameraPose} from './cinematic-direction-model.js';
-import {checkCinematicVideo} from './cinematic-video.js';
+import {layerRows,confirmStudio} from './cinematic-studio-ui.js?v=live01b4';
+import {CINEMATIC_ASSETS,FOG_VIDEO_ASSET} from './cinematic-assets.js?v=live01b4';
+import {newEffect} from './cinematic-direction-model.js?v=live01b4';
+import {defaultWindow} from './cinematic-timing.js?v=live01b4';
+import {duplicateCinematicLayer} from './cinematic-layer-operations.js?v=live01b4';
+import {cameraPoints,cameraPoint} from './cinematic-camera-model.js?v=live01b4';
+import {CINEMATIC_MAX_LAYERS,checkCinematicUpload} from './cinematic-model.js?v=live01b4';
+import {cinematicImages,imageKey,cinematicDimensions,loadCinematicMedia} from './cinematic-media.js?v=live01b4';
+import {loadComposition,fitComposition,positionCinematicLayer} from './cinematic-composition.js?v=live01b4';
+import {ANCHORS,bounded,safeCameraPose} from './cinematic-direction-model.js?v=live01b4';
+import {checkCinematicVideo} from './cinematic-video.js?v=live01b4';
 import {$,esc} from './ui.js';
 
 export class CinematicLayersEditor{
@@ -152,7 +152,7 @@ export class CinematicLayersEditor{
   assets(item,background){return loadCinematicMedia(item,cinematicImages,{background,files:this.files});}
   async render(throwErrors=false){
     this.loading?.abort();const controller=new AbortController();this.loading=controller;this.canvas.setAttribute('aria-busy','true');
-    try{const background=await this.background();controller.signal.throwIfAborted();const id=await imageKey(background),item={name:'Composição',imageId:id,layers:this.value(),...(this.lighting?{lighting:this.lighting}:{})};const asset=item.layers.length?await this.assets(item,background):{[id]:background};const composition=await loadComposition(asset,item,this.root.ownerDocument,{signal:controller.signal});if(controller.signal.aborted){composition.dispose();return;}this.loading=null;this.canvas.setAttribute('aria-busy','false');this.disposeView();this.composition=composition;this.applyVisibility();this.canvas.style.aspectRatio=composition.aspect;this.canvas.replaceChildren(composition.world);this.removeFit=fitComposition(composition,this.canvas,{contain:true});this.updateControls();this.applyView();this.drawCamera();$('[data-composer-status]',this.root).textContent='Visualizador estático. Prévia reproduz câmera, efeitos, iluminação e vídeo.';}
+    try{const background=await this.background();if(controller.signal.aborted)throw new DOMException('Composição cancelada.','AbortError');const id=await imageKey(background),item={name:'Composição',imageId:id,layers:this.value(),...(this.lighting?{lighting:this.lighting}:{})};const asset=item.layers.length?await this.assets(item,background):{[id]:background};const composition=await loadComposition(asset,item,this.root.ownerDocument,{signal:controller.signal});if(controller.signal.aborted){composition.dispose();return;}this.loading=null;this.canvas.setAttribute('aria-busy','false');this.disposeView();this.composition=composition;this.applyVisibility();this.canvas.style.aspectRatio=composition.aspect;this.canvas.replaceChildren(composition.world);this.removeFit=fitComposition(composition,this.canvas,{contain:true});this.updateControls();this.applyView();this.drawCamera();$('[data-composer-status]',this.root).textContent='Visualizador estático. Prévia reproduz câmera, efeitos, iluminação e vídeo.';}
     catch(e){if(controller.signal.aborted)return;this.canvas.setAttribute('aria-busy','false');if(throwErrors)throw e;$('[data-composer-status]',this.root).textContent=e.message;}
   }
   disposeView(){this.removeFit?.();this.removeFit=null;this.composition?.dispose();this.composition=null;this.canvas.replaceChildren();}

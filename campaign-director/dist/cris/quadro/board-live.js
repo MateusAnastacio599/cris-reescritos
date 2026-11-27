@@ -1,3 +1,4 @@
+export const LIVE_BUILD='live01b4';
 import {observeLiveConnection,liveConnectionStage,LIVE_STAGE_TEXT} from './board-live-diagnostics.js';
 // LIVE-01A: PeerJS lifecycle and bounded, acknowledged board packets.
 // Account IDs in peer metadata are presence claims, NEVER authorization proofs.
@@ -233,7 +234,7 @@ export class LivePeerSession{
  }
  dial(){
   if(this.role!=='client'||!this.peer?.open||this.dialing||this.links.size)return;
-  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,cinematic:4,assets:Object.fromEntries(this.known)}});
+  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,cinematic:4,cinematicBuild:LIVE_BUILD,assets:Object.fromEntries(this.known)}});
   this.dialing=connection;this.attach(connection,this.generation);
  }
  attach(c,generation){
@@ -250,14 +251,14 @@ export class LivePeerSession{
     const modern=m?.live===2&&m.campaign===this.campaign&&m.room===this.code&&clean(m.userId)&&clean(m.tabId);
     if(!modern&&!this.legacy){this.drop(c,'scope-rejected');return;}
     if(m?.live===2&&!modern){this.drop(c,'scope-rejected');return;}
-    c._syncReady=false;c._cinematicVersion=m?.cinematic||1;c._identity=modern?m.userId:'legacy:'+c.peer;c._legacy=!modern;
+    c._syncReady=false;c._cinematicVersion=m?.cinematic||1;c._cinematicBuild=m?.cinematicBuild;c._identity=modern?m.userId:'legacy:'+c.peer;c._legacy=!modern;
     // Keep the active logical session; a second tab must not trigger takeover/retry ping-pong.
     if(modern&&[...this.links].some(old=>old._identity===c._identity)){
      c.send({live:'busy',campaign:this.campaign,room:this.code,tabId:m.tabId});
      c._openTimer=setTimeout(()=>this.drop(c,'duplicate-tab'),10000);this.log('duplicate-tab');return;
     }
     this.links.add(c);this.pending.delete(c);
-    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion,cinematic:4});}
+    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion,cinematic:4,cinematicBuild:LIVE_BUILD});}
     this.log('connection-open');this.changed();this.onReady(c);
    }
   });
@@ -267,7 +268,7 @@ export class LivePeerSession{
    if(message?.live==='busy'&&this.role==='client'&&this.dialing===c&&message.campaign===this.campaign&&message.room===this.code&&message.tabId===this.tabId){this.stop();this.peerError='duplicate-tab';this.status('Esta conta já está na mesa em outra aba. Feche a outra aba e use Reconectar para continuar aqui.');return;}
    if(message?.live==='welcome'&&this.role==='client'&&this.dialing===c){
     if(message.campaign!==this.campaign||message.room!==this.code||!clean(message.session)){this.drop(c,'scope-rejected');return;}
-    c._syncReady=false;c._cinematicVersion=message.cinematic||1;c._session=message.session;c._identity='host';c._wireVersion=message.wire===3?3:2;this.wire(c);this.links.add(c);this.pending.delete(c);this.dialing=null;clearTimeout(c._openTimer);this.log('connection-open');this.changed();this.onReady(c);return;
+    c._syncReady=false;c._cinematicVersion=message.cinematic||1;c._cinematicBuild=message.cinematicBuild;c._session=message.session;c._identity='host';c._wireVersion=message.wire===3?3:2;this.wire(c);this.links.add(c);this.pending.delete(c);this.dialing=null;clearTimeout(c._openTimer);this.log('connection-open');this.changed();this.onReady(c);return;
    }
    if(message?.live==='ping'){if(c._session&&c._session===message.session){c._lastSeen=this.now();c.send({live:'pong',session:c._session});}return;}
    if(message?.live==='pong'){if(c._session&&c._session===message.session)c._lastSeen=this.now();return;}
