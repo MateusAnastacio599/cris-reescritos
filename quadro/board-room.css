@@ -59,3 +59,14 @@ body.cris-cinematic-controls-open #sharePanel,body.cris-cinematic-controls-open 
 #masterLaunch .master-card{width:min(440px,100%);box-sizing:border-box;padding:28px;background:#261e18;border:1px solid #80684b;box-shadow:0 16px 60px #0007;color:#e6d6b9;font:14px/1.5 system-ui}
 #masterLaunch .master-title{font:500 24px/1.3 Georgia,serif;letter-spacing:.03em;margin-bottom:14px}#masterLaunch .master-actions{display:grid;gap:10px;margin-top:24px}
 #masterLaunch button{min-height:48px;border:1px solid #80684b;border-radius:5px;letter-spacing:0;padding:10px 12px;font:600 13px system-ui;background:transparent;color:#e6d6b9}#masterLaunch #masterStart{background:#d3ba87;color:#261e18}
+
+/* A waiting surface, never a usable but empty board. Stamps are cosmetic only. */
+#crisLoading{overflow:hidden;touch-action:manipulation;background:radial-gradient(ellipse at 50% 10%,#4c3c2938,transparent 70%),#1c1612}
+.cris-loading-card{position:relative;box-sizing:border-box;z-index:1;width:min(390px,calc(100vw - 56px));padding:32px;border:1px solid #b49a663b;border-radius:7px;background:#211b16e8;text-align:center;box-shadow:0 16px 80px #0004}
+.cris-loading-actions{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px}
+.cris-loading-actions[hidden]{display:none}
+.cris-loading-card::before{content:'C.R.I.S. / ARQUIVO DA MESA';display:block;color:#b49a66;font:10px monospace;letter-spacing:2px;margin-bottom:22px}
+.cris-loading-card::after{content:'Toque para carimbar enquanto aguarda';display:block;font:11px system-ui;color:#a99a80;margin-top:22px}
+.cris-loading-stamp{position:absolute;pointer-events:none;translate:-50% -50%;border:2px solid #b49a6670;padding:9px 12px;color:#c5aa7988;font:700 13px monospace;letter-spacing:2px;white-space:nowrap;animation:cris-stamp .18s ease-out both}
+@keyframes cris-stamp{from{scale:1.35;opacity:0}to{scale:1;opacity:1}}
+@media(prefers-reduced-motion:reduce){.cris-loading-stamp{animation:none}}

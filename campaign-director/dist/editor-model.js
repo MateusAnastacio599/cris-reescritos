@@ -1,4 +1,4 @@
-export const BLOCK_TYPES={paragraph:'Texto',h1:'Título 1',h2:'Título 2',h3:'Título 3',list:'Lista com marcadores',numbered:'Lista numerada',todo:'Lista de tarefas',table:'Tabela',quote:'Citação',note:'Nota do mestre',toggle:'Recolhível',clue:'Pista do quadro',cue:'Cue de áudio',divider:'Divisória',richToggle:'Recolhível rico'};
+export const BLOCK_TYPES={paragraph:'Texto',h1:'Título 1',h2:'Título 2',h3:'Título 3',list:'Lista com marcadores',numbered:'Lista numerada',todo:'Lista de tarefas',table:'Tabela',quote:'Citação',note:'Nota do mestre',toggle:'Recolhível',clue:'Pista do quadro',cue:'Cue de áudio / Cinematic',divider:'Divisória',richToggle:'Recolhível rico'};
 export function newBlock(type='paragraph',triggers=[]){
   if(type==='richToggle')return {type:'toggle',title:'',blocks:[newBlock()]};
   if(type==='toggle')return {type,title:'',text:''};

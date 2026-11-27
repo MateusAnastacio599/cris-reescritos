@@ -1,20 +1,21 @@
-import {checkCinematicVideo} from './cinematic-video.js?v=live01b5a';
-import {CINEMATIC_MAX_BYTES,CINEMATIC_TYPES,checkCinematicImage,cinematicReferences,cinematicItems,cinematicMediaIds,isCinematicPayload,isCinematicBlob,CINEMATIC_COMPOSITION_PIXELS} from './cinematic-model.js?v=live01b5a';
+import {checkCinematicVideo} from './cinematic-video.js?v=directorcinematic02';
+import {CINEMATIC_MAX_BYTES,CINEMATIC_TYPES,checkCinematicImage,cinematicReferences,cinematicItems,cinematicMediaIds,isCinematicPayload,isCinematicBlob,CINEMATIC_COMPOSITION_PIXELS} from './cinematic-model.js?v=directorcinematic02';
 
 let pending;
-function database(){
+export function cinematicMediaDatabase(){
   pending??=new Promise((resolve,reject)=>{
-    const request=indexedDB.open('cris-director-cinematic-media',1);
-    request.onupgradeneeded=()=>request.result.createObjectStore('images');
-    request.onsuccess=()=>resolve(request.result);
-    request.onerror=()=>reject(Error('Não foi possível abrir o armazenamento local de imagens.'));
+    let failed=false;const fail=()=>{failed=true;clearTimeout(timer);reject(Error('Não foi possível abrir a mídia local. Feche abas antigas do CRIS e tente novamente.'));},timer=setTimeout(()=>fail(),2500);
+    const request=indexedDB.open('cris-director-cinematic-media',2);
+    request.onupgradeneeded=()=>{for(const name of ['images','remote-cache'])if(!request.result.objectStoreNames.contains(name))request.result.createObjectStore(name);};
+    request.onsuccess=()=>{clearTimeout(timer);if(failed){request.result.close();return;}request.result.onversionchange=()=>{request.result.close();pending=null;};resolve(request.result);};
+    request.onerror=request.onblocked=fail;
   }).catch(error=>{pending=null;throw error;});
   return pending;
 }
 
 export const cinematicImages={
   async get(id){
-    const db=await database();
+    const db=await cinematicMediaDatabase();
     return new Promise((resolve,reject)=>{
       const request=db.transaction('images').objectStore('images').get(id);
       request.onsuccess=()=>resolve(request.result);
@@ -23,7 +24,7 @@ export const cinematicImages={
   },
   async putAll(entries){
     if(!entries.length)return;
-    const db=await database();
+    const db=await cinematicMediaDatabase();
     return new Promise((resolve,reject)=>{
       const transaction=db.transaction('images','readwrite');
       transaction.oncomplete=resolve;

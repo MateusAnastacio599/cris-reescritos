@@ -1,14 +1,14 @@
-import {layerRows,confirmStudio} from './cinematic-studio-ui.js?v=live01b5a';
-import {CINEMATIC_ASSETS,FOG_VIDEO_ASSET} from './cinematic-assets.js?v=live01b5a';
-import {newEffect} from './cinematic-direction-model.js?v=live01b5a';
-import {defaultWindow} from './cinematic-timing.js?v=live01b5a';
-import {duplicateCinematicLayer} from './cinematic-layer-operations.js?v=live01b5a';
-import {cameraPoints,cameraPoint} from './cinematic-camera-model.js?v=live01b5a';
-import {CINEMATIC_MAX_LAYERS,checkCinematicUpload} from './cinematic-model.js?v=live01b5a';
-import {cinematicImages,imageKey,cinematicDimensions,loadCinematicMedia} from './cinematic-media.js?v=live01b5a';
-import {loadComposition,fitComposition,positionCinematicLayer} from './cinematic-composition.js?v=live01b5a';
-import {ANCHORS,bounded,safeCameraPose} from './cinematic-direction-model.js?v=live01b5a';
-import {checkCinematicVideo} from './cinematic-video.js?v=live01b5a';
+import {layerRows,confirmStudio} from './cinematic-studio-ui.js?v=directorcinematic02';
+import {CINEMATIC_ASSETS,FOG_VIDEO_ASSET} from './cinematic-assets.js?v=directorcinematic02';
+import {newEffect} from './cinematic-direction-model.js?v=directorcinematic02';
+import {defaultWindow} from './cinematic-timing.js?v=directorcinematic02';
+import {duplicateCinematicLayer} from './cinematic-layer-operations.js?v=directorcinematic02';
+import {cameraPoints,cameraPoint} from './cinematic-camera-model.js?v=directorcinematic02';
+import {CINEMATIC_MAX_LAYERS,checkCinematicUpload} from './cinematic-model.js?v=directorcinematic02';
+import {cinematicImages,imageKey,cinematicDimensions,loadCinematicMedia} from './cinematic-media.js?v=directorcinematic02';
+import {loadComposition,fitComposition,positionCinematicLayer} from './cinematic-composition.js?v=directorcinematic02';
+import {ANCHORS,bounded,safeCameraPose} from './cinematic-direction-model.js?v=directorcinematic02';
+import {checkCinematicVideo} from './cinematic-video.js?v=directorcinematic02';
 import {$,esc} from './ui.js';
 
 export class CinematicLayersEditor{

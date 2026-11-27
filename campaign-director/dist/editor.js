@@ -1,6 +1,6 @@
 import {recolorRange,scriptColors,toggleBackground,toggleBackgroundAttribute} from './editor-colors.js';
 import {parseBlocks,blocksToMarkdown,inlineHTML,editableToMarkdown,renderTable,isRichToggle,TOGGLE_CHILD_TYPES,escapeHTML as esc} from './markdown.js';
-import {BLOCK_TYPES,newBlock,splitBlocks,EditorHistory} from './editor-model.js';
+import {BLOCK_TYPES,newBlock,splitBlocks,EditorHistory} from './editor-model.js?v=directorcinematic02';
 import {clipboardBlocks,readClipboardBlocks,writeTextBlocks} from './editor-clipboard.js';
 import {formatTextFields,preservesMarkdownBlock} from './editor-inline-format.js';
 import {icon} from './icons.js';
@@ -585,6 +585,7 @@ export class BlockEditor {
     this.changed();this.captureSelection();
   }
   setClueBlock(index,block){this.syncDOM();this.blocks[index]=block;this.active=index;this.activeChild=null;this.changed();this.render({index});}
+  insertCueBlock(block){this.insertClueBlock(block);}
   insertClueBlock(block){
     if(this.columnEditor){
       const index=this.active+1;
@@ -770,10 +771,12 @@ export class BlockEditor {
         if(results.firstElementChild)results.firstElementChild.insertAdjacentHTML('afterend',choice);
         else results.insertAdjacentHTML('beforeend',choice);
       }
+      if(!childMenu&&this.options.onRequestCinematic&&'cinematic cinematica cinemática'.includes(search.value.toLocaleLowerCase().trim()))results.insertAdjacentHTML('beforeend','<button type="button" data-cinematic-cue><b>▶</b>Cinematic da cena</button>');
       if(!results.children.length)results.innerHTML='<p>Nenhum bloco encontrado.</p>';
     };update();search.oninput=update;}
     const rect=anchor.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(rect.left,innerWidth-250))+'px';menu.style.top=Math.max(8,Math.min(rect.bottom+6,innerHeight-430))+'px';
     menu.onclick=e=>{const button=e.target.closest('button');if(!button)return;const type=button.dataset.type;
+      if(button.hasAttribute('data-cinematic-cue')){this.captureSelection();menu.remove();this.options.onRequestCinematic();return;}
       if(button.hasAttribute('data-column-layout-choice')){
         results.innerHTML='<button type="button" data-layout-count="2">Duas colunas</button><button type="button" data-layout-count="3">Três colunas</button>';
         results.querySelector('button').focus();return;

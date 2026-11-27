@@ -4,7 +4,7 @@ import {icon} from './icons.js';
 import {fadeFields,readFades} from './fade-ui.js';
 import {$,$$,esc,openForm,field,option,confirmAction,toast} from './ui.js';
 import {formatTime} from './audio-engine.js';
-import {editCue} from './cue-editor.js';
+import {editCue} from './cue-editor.js?v=directorcinematic02';
 import {openSceneMusic,musicSummary} from './music-ui.js';
 
 /** CRUD de direção sonora, sem acoplar o editor ou a navegação ao AudioEngine. */

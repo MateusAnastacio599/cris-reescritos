@@ -1,5 +1,5 @@
-import {sceneSpan} from './cinematic-timing.js?v=live01b5a';
-import {validCamera,validLighting,validLayerDirection} from './cinematic-direction-model.js?v=live01b5a';
+import {sceneSpan} from './cinematic-timing.js?v=directorcinematic02';
+import {validCamera,validLighting,validLayerDirection} from './cinematic-direction-model.js?v=directorcinematic02';
 export const CINEMATIC_VERSION=1;
 export const CINEMATIC_MAX_ITEMS=12;
 export const CINEMATIC_MAX_LAYERS=12;
@@ -46,7 +46,9 @@ export function isCinematic(item){
 }
 export function validateSceneCinematics(value){
   if(value===undefined)return;
-  if(!value||Object.keys(value).some(key=>key!=='version'&&key!=='items')||value.version!==CINEMATIC_VERSION||!Array.isArray(value.items)||
+  if(!value||Object.keys(value).some(key=>!['version','items','primaryId','remotePrewarmIds'].includes(key))||value.version!==CINEMATIC_VERSION||!Array.isArray(value.items)||
+    (value.primaryId!==undefined&&(!isCinematicKey(value.primaryId)||!value.items.some(i=>i.id===value.primaryId)))||
+    (value.remotePrewarmIds!==undefined&&(!Array.isArray(value.remotePrewarmIds)||value.remotePrewarmIds.length>CINEMATIC_MAX_ITEMS||new Set(value.remotePrewarmIds).size!==value.remotePrewarmIds.length||value.remotePrewarmIds.some(id=>!value.items.some(i=>i.id===id))))||
     value.items.length>CINEMATIC_MAX_ITEMS||!value.items.every(isCinematic)||new Set(value.items.map(item=>item.id)).size!==value.items.length){
     throw Error('Configuração cinematográfica inválida na cena.');
   }
@@ -56,6 +58,9 @@ export function withCinematic(scene,item){
   const items=cinematicItems(scene);
   const existing=items.some(entry=>entry.id===item.id);
   const result={version:CINEMATIC_VERSION,items:existing?items.map(entry=>entry.id===item.id?item:entry):[...items,item]};
+  if(scene.cinematic?.primaryId)result.primaryId=scene.cinematic.primaryId;
+  const changed=items.find(entry=>entry.id===item.id);
+  if(scene.cinematic?.remotePrewarmIds)result.remotePrewarmIds=scene.cinematic.remotePrewarmIds.filter(id=>id!==item.id||JSON.stringify(changed)===JSON.stringify(item));
   validateSceneCinematics(result);
   return result;
 }
@@ -107,3 +112,6 @@ export async function checkCinematicUpload(image){
   }[image.type]?.test(image.name)))throw Error('A extensão do arquivo deve corresponder ao formato PNG, JPEG ou WebP.');
   return image;
 }
+
+export const cinematicPrimary=scene=>cinematicItems(scene).find(item=>item.id===scene?.cinematic?.primaryId)??(cinematicItems(scene).length===1?cinematicItems(scene)[0]:null);
+export const remotePrewarmAllowed=(scene,item)=>!!item&&scene?.cinematic?.remotePrewarmIds?.includes(item.id)===true;

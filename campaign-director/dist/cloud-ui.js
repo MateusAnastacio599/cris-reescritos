@@ -1,7 +1,7 @@
 import {$,esc,openForm,field,toast} from './ui.js';
 import {icon} from './icons.js';
 import {DirectorAccount,accountError} from './cloud-account.js';
-import {WorkspaceSync} from './workspace-sync.js';
+import {WorkspaceSync} from './workspace-sync.js?v=directorcinematic02';
 import {crisHome} from './hub-links.js';
 
 export class CloudUI{

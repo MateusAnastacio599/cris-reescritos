@@ -1,5 +1,5 @@
 import {CINEMATIC_CHANNEL,CINEMATIC_LEASE,cinematicEnvelope,sameBoard,sameCinematicScene,
-  sameCinematicSession,validBoard,validCinematicMessage} from './cinematic-protocol.js?v=live01b5a';
+  sameCinematicSession,validBoard,validCinematicMessage} from './cinematic-protocol.js?v=directorcinematic02';
 
 export class CinematicLink{
   constructor(){
@@ -27,6 +27,7 @@ export class CinematicLink{
       const reply=event.data,request=this.requests.get(reply?.requestId);
       if(reply?.senderId!==this.senderId)return;
       if(request&&validCinematicMessage(reply,request.scope)){if(request.consider)request.consider(reply);else if(request.matches(reply))request.finish(null,reply);}
+      if(this.warm&&reply.type==='warm-status'&&validCinematicMessage(reply,this.warm.scope)&&sameCinematicSession(this.warm,reply)){this.prewarmState={...reply,itemKey:this.warm.itemKey};this.notify(this.message);}
       const active=this.active;
       if(!active||!validCinematicMessage(reply,active.scope)||!sameCinematicSession(active,reply))return;
       if(reply.type==='closed')this.reset('A janela do quadro foi fechada ou recarregada.');
@@ -42,7 +43,7 @@ export class CinematicLink{
       if(reply.type==='alive')active.lastSeen=Date.now();
     };
   }
-  request(scope,fields,matches,timeout,errorMessage,{collect=false}={}){
+  request(scope,fields,matches,timeout,errorMessage,{collect=false,background=false}={}){
     return new Promise((resolve,reject)=>{
       const requestId=crypto.randomUUID();let choiceTimer;const choices=[];
       const finish=(error,result)=>{
@@ -51,7 +52,7 @@ export class CinematicLink{
         if(error)reject(error);else resolve(result);
       };
       const timer=setTimeout(()=>finish(Error(errorMessage)),timeout);
-      this.requests.set(requestId,{scope,finish,matches,consider:collect?reply=>{if(!matches(reply)||choices.length>=64)return;choices.push(reply);choiceTimer??=setTimeout(()=>finish(null,choices.sort((a,b)=>(b.priority||0)-(a.priority||0))[0]),120);}:null});
+      this.requests.set(requestId,{scope,finish,background,matches,consider:collect?reply=>{if(!matches(reply)||choices.length>=64)return;choices.push(reply);choiceTimer??=setTimeout(()=>finish(null,choices.sort((a,b)=>(b.priority||0)-(a.priority||0))[0]),120);}:null});
       try{this.channel.postMessage(cinematicEnvelope(scope,{...fields,senderId:this.senderId,requestId}));}
       catch(error){finish(error);}
     });
@@ -81,7 +82,7 @@ export class CinematicLink{
       const boardId=prior?.boardId??(await this.request(scope,{type:'discover'},reply=>reply.type==='ready',1800,
         'Quadro indisponível. Abra o quadro ao vivo da campanha e deixe a mesa pronta nesta conta e navegador.',{collect:true})).boardId;
       if(this.operation!==operation)return;
-      const active=this.active={scope,senderId:this.senderId,boardId,sessionId:crypto.randomUUID(),scene,name:item.name,fadeOut:item.fadeOut??.3,lastSeen:Date.now()};
+      const active=this.active={scope,senderId:this.senderId,boardId,sessionId:crypto.randomUUID(),scene,itemKey:JSON.stringify(item),name:item.name,fadeOut:item.fadeOut??.3,lastSeen:Date.now()};
       const reply=await this.request(scope,{type:'start',boardId,sessionId:active.sessionId,scene,item,image,sequence:++this.sequence},
         result=>['accepted','started'].includes(result.type)&&sameCinematicSession(active,result),6500,'O quadro não confirmou a abertura da imagem.');
       if(this.operation!==operation)return;
@@ -130,10 +131,27 @@ export class CinematicLink{
     this.active=null;
     clearTimeout(this.stopTimer);
     clearInterval(this.heartbeat);
-    for(const request of this.requests.values())request.finish(Error('Apresentação encerrada.'));
+    for(const request of this.requests.values())if(!request.background)request.finish(Error('Apresentação encerrada.'));
     this.notify(message);
   }
+  async prewarm(scope,scene,item,image){
+    this.cancelPrewarm();if(!validBoard(scope))return false;this.connect();const ticket=++this.warmTicket;
+    const boardId=(await this.request(scope,{type:'discover'},reply=>reply.type==='ready'&&reply.prewarm===1,1800,'Abra o quadro ao vivo atualizado para preparar os jogadores.',{collect:true,background:true})).boardId;
+    if(this.warmTicket!==ticket)return false;
+    const warm=this.warm={scope,scene,senderId:this.senderId,boardId,sessionId:crypto.randomUUID(),itemKey:JSON.stringify(item)};
+    this.prewarmState={itemKey:warm.itemKey,status:'preparing',participants:[]};this.notify(this.message);
+    this.send(warm,'prewarm',{item,image,authorized:true});this.warmTimer=setInterval(()=>this.send(warm,'warm-ping'),15000);return true;
+  }
+  cancelPrewarm(){
+    this.warmTicket=(this.warmTicket||0)+1;clearInterval(this.warmTimer);if(this.warm)this.send(this.warm,'warm-cancel');this.warm=null;this.prewarmState=null;
+    for(const request of this.requests.values())if(request.background)request.finish(new DOMException('Preload cancelado.','AbortError'));
+  }
+  async prewarmReceiverChanged(){
+    const warm=this.warm;if(!warm)return false;if(this.warmProbe)return this.warmProbe;
+    this.warmProbe=(async()=>{try{const reply=await this.request(warm.scope,{type:'discover'},r=>r.type==='ready'&&r.prewarm===1,1800,'Quadro indisponível.',{collect:true,background:true});return this.warm===warm&&reply.boardId!==warm.boardId;}catch{return this.warm===warm;}})().finally(()=>{this.warmProbe=null;});return this.warmProbe;
+  }
   close(){
+    this.cancelPrewarm();
     this.stop('Apresentação encerrada.');
     this.channel?.close();
     this.channel=null;
