@@ -1,13 +1,13 @@
-import {ownsStudio,releaseStudio,numericInvalid,captureContext,restoreContext,arrangeStudio,renderTemporalDock,confirmStudio} from './cinematic-studio-ui.js?v=live01b4';
-import {sceneSpan} from './cinematic-timing.js?v=live01b4';
+import {ownsStudio,releaseStudio,numericInvalid,captureContext,restoreContext,arrangeStudio,renderTemporalDock,confirmStudio} from './cinematic-studio-ui.js?v=live01b5a';
+import {sceneSpan} from './cinematic-timing.js?v=live01b5a';
 const DIRECTION_KEYS=['camera','lighting','sceneDuration','backgroundVideo'];
-import {StudioProperties} from './cinematic-studio-properties.js?v=live01b4';
-import {StudioHistory} from './cinematic-studio-history.js?v=live01b4';
-import {CinematicLayersEditor} from './cinematic-layers-editor.js?v=live01b4';
-import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,cinematicFades,cinematicTotal,checkCinematicImage,checkCinematicUpload,withCinematic,duplicateCinematic} from './cinematic-model.js?v=live01b4';
-import {cinematicImages,imageKey,loadCinematicMedia,validateCompositionMedia} from './cinematic-media.js?v=live01b4';
-import {mountMotionNotice} from './cinematic-motion.js?v=live01b4';
-import {CinematicFrame} from './cinematic-frame.js?v=live01b4';
+import {StudioProperties} from './cinematic-studio-properties.js?v=live01b5a';
+import {StudioHistory} from './cinematic-studio-history.js?v=live01b5a';
+import {CinematicLayersEditor} from './cinematic-layers-editor.js?v=live01b5a';
+import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,cinematicFades,cinematicTotal,checkCinematicImage,checkCinematicUpload,withCinematic,duplicateCinematic} from './cinematic-model.js?v=live01b5a';
+import {cinematicImages,imageKey,loadCinematicMedia,validateCompositionMedia} from './cinematic-media.js?v=live01b5a';
+import {mountMotionNotice} from './cinematic-motion.js?v=live01b5a';
+import {CinematicFrame} from './cinematic-frame.js?v=live01b5a';
 import {$,esc,field,openForm,option} from './ui.js';
 
 export function openCinematic({scene,save,present,stop,subscribe}){

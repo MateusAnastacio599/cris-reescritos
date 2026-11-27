@@ -1,4 +1,4 @@
-import {validWindow} from './cinematic-timing.js?v=live01b4';
+import {validWindow} from './cinematic-timing.js?v=live01b5a';
 // Optional camera extensions; endpoints and legacy shake retain their original contract.
 export const CAMERA_EASINGS=Object.freeze(['linear','ease','ease-in','ease-out','ease-in-out']);
 export const CAMERA_MAX_POINTS=6;

@@ -7,13 +7,13 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
         <title>Quadro Investigativo</title>
-        <link rel="preload" href="quadro-cris-v7.js?v=live01b4" as="script">
+        <link rel="preload" href="quadro-cris-v7.js?v=live01b5a" as="script">
         <style>body.cris-loading>:not(#crisLoading):not(.cris-board-toolbar):not(dialog[open]){visibility:hidden!important}#crisLoading{position:fixed;inset:0;display:grid;place-items:center;background:#1c1612;color:#e6d5b1;font:16px system-ui;z-index:70}body:not(.cris-loading)>#crisLoading{display:none}</style>
-        <link rel="stylesheet" href="base.css?v=live01b4">
-        <link rel="stylesheet" href="Halloween2026-1.css?v=live01b4">
-        <link rel="stylesheet" href="Halloween2026-2.css?v=live01b4">
-<link rel="stylesheet" href="board-integration.css?v=337"><link rel="stylesheet" href="board-polish.css?v=live01b4"><link rel="stylesheet" href="board-room.css?v=live01b4">
-<link rel="stylesheet" href="../campaign-director/dist/cinematic.css?v=live01b4">
+        <link rel="stylesheet" href="base.css?v=live01b5a">
+        <link rel="stylesheet" href="Halloween2026-1.css?v=live01b5a">
+        <link rel="stylesheet" href="Halloween2026-2.css?v=live01b5a">
+<link rel="stylesheet" href="board-integration.css?v=337"><link rel="stylesheet" href="board-polish.css?v=live01b5a"><link rel="stylesheet" href="board-room.css?v=live01b5a">
+<link rel="stylesheet" href="../campaign-director/dist/cinematic.css?v=live01b5a">
     </head>
     <body class="ui cris-loading">
         <div id="crisLoading"><div class="cris-loading-card"><p role="status">Abrindo quadro…</p><div class="cris-loading-actions" hidden><button type="button">Tentar novamente</button><a href="../#quadro">Voltar ao CRIS</a></div></div></div>
@@ -445,17 +445,17 @@
         import {sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard} from './board-rules.js?v=328';
         window.CRIS_BOARD_RULES={sceneEffects,ownsBoardItem,nearestPin,personalBoardLayer,mergePersonalBoard};
         import {CRISBridge} from '../integration-bridge.js?v=328';
-        import {mountBoardSession} from './board-session.js?v=live01b4';
+        import {mountBoardSession} from './board-session.js?v=live01b5a';
         import {mountCluePanel} from './board-clue-panel.js?v=332';
         window.CRISMOUNT_CLUE_PANEL=mountCluePanel;
-        import * as liveBoard from './board-live.js?v=live01b4';
-        import * as roomUI from './board-room-ui.js?v=live01b4';window.CRIS_ROOM_UI=roomUI;
+        import * as liveBoard from './board-live.js?v=live01b5a';
+        import * as roomUI from './board-room-ui.js?v=live01b5a';window.CRIS_ROOM_UI=roomUI;
         import {prepareRoomEntry} from './board-entry.js';
         window.CRIS_BOARD_LIVE=liveBoard;
         window.CRISBridge=CRISBridge;
         try{const identity=await CRISBridge.requireIdentity();if(identity){window.CRIS_IDENTITY=identity;window.CRIS_BOARD_ENTRY=await prepareRoomEntry({identity,bridge:CRISBridge});document.body.classList.toggle('player',!identity.isMaster);document.body.classList.toggle('cris-archive-reader',!!CRISBridge.archiveId&&!identity.isMaster);await mountBoardSession(identity);
-        const script=document.createElement('script');script.src='quadro-cris-v7.js?v=live01b4';script.onerror=()=>window.CRIS_BOARD_BOOT.fail('O motor do quadro não carregou. Tente novamente.');document.body.append(script);
-        if(!CRISBridge.archiveId)window.CRIS_CINEMATIC_READY=import('./board-cinematic.js?v=live01b4').then(({mountBoardCinematic})=>{
+        const script=document.createElement('script');script.src='quadro-cris-v7.js?v=live01b5a';script.onerror=()=>window.CRIS_BOARD_BOOT.fail('O motor do quadro não carregou. Tente novamente.');document.body.append(script);
+        if(!CRISBridge.archiveId)window.CRIS_CINEMATIC_READY=import('./board-cinematic.js?v=live01b5a').then(({mountBoardCinematic})=>{
           mountBoardCinematic({userId:identity.userId,boardCampaignId:CRISBridge.campaignId,isMaster:identity.isMaster&&!window.CRIS_BOARD_ENTRY?.current,
             archiveId:CRISBridge.archiveId,ready:()=>!document.body.classList.contains('cris-loading')&&
               !document.querySelector('dialog:modal')&&CRISBridge.identity?.userId===identity.userId});

@@ -1,0 +1,12 @@
+// Disposable UI QA: production board/CinematicFrame, fake accounts, simulated network.
+import {spawnSync} from 'node:child_process';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {join,resolve} from 'node:path';
+const dest=resolve(process.argv[2]||'');if(!process.argv[2])throw Error('Informe um diretório novo.');
+const result=spawnSync(process.execPath,[new URL('./live-visual-compat-demo.mjs',import.meta.url).pathname,dest],{encoding:'utf8'});if(result.status)throw Error(result.stderr);
+const web=join(dest,'public'),release='live01b5a',board=join(web,'quadro/index.html');writeFileSync(board,readFileSync(board,'utf8').replaceAll('cinematic-frame.js?v=live01b3','cinematic-frame.js?v='+release));
+let qa=readFileSync(join(web,'live-board-qa.js'),'utf8').replaceAll('v=live01b3','v='+release).replaceAll('v=live01b4','v='+release);
+qa+=`\nconst ux=document.createElement('button');ux.id='qaUX';ux.textContent='Medir apresentação';ux.onclick=()=>{const d=document,root=d.querySelector('.cinematic-presentation'),frame=d.querySelector('.cinematic-frame'),world=frame?.querySelector('.cinematic-world');const rect=e=>e?.getBoundingClientRect().toJSON();document.querySelector('#qaReport').textContent=JSON.stringify({viewport:{width:innerWidth,height:innerHeight},root:rect(root),frame:rect(frame),world:rect(world),clipping:world&&getComputedStyle(world).overflow,fit:window.demoBoardFrame?.fit,playing:!!window.demoBoardFrame?.playing,time:window.demoBoardFrame?.time(),countdown:d.querySelector('.cinematic-countdown')?.textContent,preroll:root?.classList.contains('cinematic-preroll'),gateHidden:d.querySelector('.cinematic-mobile-gate')?.hidden,body:d.body.className,video:[...d.querySelectorAll('video')].map(v=>({ready:v.readyState,playing:!v.paused,width:v.videoWidth,height:v.videoHeight,error:v.error?.code||null})),cinematic:window.CRIS_REMOTE_CINEMATICS?.diagnostics()},null,2);};document.querySelector('#qaTools').append(ux);\n`;
+writeFileSync(join(web,'live-board-qa.js'),qa);
+let page=readFileSync(join(web,'room-qa.html'),'utf8');page=page.replace('<button data-action="qaCinematic">','<button data-action="qaLight">Câmera e luz</button><button data-action="qaUX">Medir apresentação</button><button data-action="qaCinematic">');page=page.replace('LIVE-01B.1 · interface real em teste','LIVE-01B.5A · cover e pré-roll');writeFileSync(join(web,'room-qa.html'),page);
+console.log(dest);

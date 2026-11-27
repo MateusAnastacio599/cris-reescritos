@@ -1,4 +1,4 @@
-export const LIVE_BUILD='live01b4';
+export const LIVE_BUILD='live01b5a';
 import {observeLiveConnection,liveConnectionStage,LIVE_STAGE_TEXT} from './board-live-diagnostics.js';
 // LIVE-01A: PeerJS lifecycle and bounded, acknowledged board packets.
 // Account IDs in peer metadata are presence claims, NEVER authorization proofs.

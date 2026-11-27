@@ -1,8 +1,8 @@
-import {captureContext,restoreContext,numericInvalid} from './cinematic-studio-ui.js?v=live01b4';
+import {captureContext,restoreContext,numericInvalid} from './cinematic-studio-ui.js?v=live01b5a';
 import {$,esc,option} from './ui.js';
-import {sceneSpan,defaultWindow,validWindow,windowRange} from './cinematic-timing.js?v=live01b4';
-import {defaultCamera,lightingProfile,validLighting,LIGHT_PROFILES} from './cinematic-direction-model.js?v=live01b4';
-import {lightEvent} from './cinematic-light-model.js?v=live01b4';
+import {sceneSpan,defaultWindow,validWindow,windowRange} from './cinematic-timing.js?v=live01b5a';
+import {defaultCamera,lightingProfile,validLighting,LIGHT_PROFILES} from './cinematic-direction-model.js?v=live01b5a';
+import {lightEvent} from './cinematic-light-model.js?v=live01b5a';
 export const num=(label,key,value,min,max,step='any')=>`<label class="field"><span>${label}</span><input data-direction-value="${key}" type="number" required value="${Number(value.toFixed(6))}" min="${min}" max="${max}" step="${step}"></label>`;
 const check=(label,key,value)=>`<label class="check-field"><input data-direction-value="${key}" type="checkbox" ${value?'checked':''}>${label}</label>`;
 function report(root,change,state,message){root.dataset.directionInvalid='true';$('[data-direction-error]',root).textContent=message;change(state);}

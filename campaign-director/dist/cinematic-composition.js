@@ -1,7 +1,7 @@
-import {mountDirectorLights} from './cinematic-light-player.js?v=live01b4';
-import {CinematicVideoLayer} from './cinematic-video.js?v=live01b4';
-import {mountLighting} from './cinematic-direction-player.js?v=live01b4';
-import {validateCompositionMedia,matchesCinematicDimensions} from './cinematic-media.js?v=live01b4';
+import {mountDirectorLights} from './cinematic-light-player.js?v=live01b5a';
+import {CinematicVideoLayer} from './cinematic-video.js?v=live01b5a';
+import {mountLighting} from './cinematic-direction-player.js?v=live01b5a';
+import {validateCompositionMedia,matchesCinematicDimensions} from './cinematic-media.js?v=live01b5a';
 
 export function compositionSize(width,height,aspect){
   const w=Math.max(width,height*aspect);

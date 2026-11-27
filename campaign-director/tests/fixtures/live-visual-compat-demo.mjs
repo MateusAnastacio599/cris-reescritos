@@ -4,7 +4,7 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {join,resolve} from 'node:path';
 const dest=resolve(process.argv[2]||''),root=resolve(process.argv[3]||new URL('../../..',import.meta.url).pathname);if(!process.argv[2])throw Error('Diretório novo obrigatório');
 const r=spawnSync(process.execPath,[join(root,'campaign-director/tests/fixtures/live-sync-focus-demo.mjs'),dest,root],{encoding:'utf8'});if(r.status)throw Error(r.stderr);
-const web=join(dest,'public'),html=readFileSync(join(web,'quadro/index.html'),'utf8'),release=html.includes('live01b4')?'live01b4':'live01b3';
+const web=join(dest,'public'),html=readFileSync(join(web,'quadro/index.html'),'utf8'),release=html.match(/board-cinematic\.js\?v=([a-z0-9]+)/)?.[1]||'live01b3';
 const input=`import {defaultCamera,lightingProfile} from './campaign-director/dist/cinematic-direction-model.js?v=${release}';
 async function lightInput(){const blob=new Blob([await(await fetch('./qa-media/palco.png')).arrayBuffer()],{type:'image/png'}),imageId=await imageKey(blob),camera=defaultCamera(),lighting=lightingProfile();camera.from.zoom=camera.to.zoom=1.24;Object.assign(lighting,{enabled:true,intensity:.18,darkness:.30,vignette:.65,spots:[]});return {blob,item:{id:'parity',name:'Luz de teste',imageId,motion:'breath',seconds:12,intensity:20,ending:'loop',hold:0,fadeIn:0,fadeOut:0,camera,lighting}};}`;
 // Relative requests in the board use ../qa-media; Studio renderer uses ./qa-media.

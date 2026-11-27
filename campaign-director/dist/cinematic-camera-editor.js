@@ -1,6 +1,6 @@
 import {$,esc,option} from './ui.js';
-import {defaultCamera,validCamera} from './cinematic-direction-model.js?v=live01b4';
-import {cameraPoints,cameraPoint,addCameraPoint,updateCameraPoint,reorderCameraPoint,instabilityPreset,INSTABILITY_PRESETS,CAMERA_MOVE_PRESETS,cameraMovePreset,CAMERA_EASINGS} from './cinematic-camera-model.js?v=live01b4';
+import {defaultCamera,validCamera} from './cinematic-direction-model.js?v=live01b5a';
+import {cameraPoints,cameraPoint,addCameraPoint,updateCameraPoint,reorderCameraPoint,instabilityPreset,INSTABILITY_PRESETS,CAMERA_MOVE_PRESETS,cameraMovePreset,CAMERA_EASINGS} from './cinematic-camera-model.js?v=live01b5a';
 const number=(label,name,value,min,max,step='any')=>`<label class="field"><span>${label}</span><input data-camera-field="${name}" type="number" required value="${Number(value.toFixed(6))}" min="${min}" max="${max}" step="${step}"></label>`;
 const checkbox=(label,name,value)=>`<label class="check-field"><input data-camera-field="${name}" type="checkbox" ${value?'checked':''}>${label}</label>`;
 export class CinematicCameraEditor{

@@ -2,20 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {CinematicPresentation,mobilePresentation} from '../dist/cinematic-presentation.js';
 const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
-function fixture({fullscreen='supported',lock='supported',existing=false}={}){
+function fixture({fullscreen='supported',lock='supported',existing=false,now=Date.now}={}){
  const calls={play:0,full:0,exit:0,lock:0,unlock:0},phases=[];let view={width:390,height:844,coarse:false};
  class Node extends EventTarget{
   constructor(tag){super();this.tag=tag;this.children=[];this.hidden=false;this.disabled=false;const classes=new Set();this.classList={add:(...v)=>v.forEach(x=>classes.add(x)),remove:(...v)=>v.forEach(x=>classes.delete(x)),contains:v=>classes.has(v)};if(tag==='section'&&fullscreen!=='unsupported')this.requestFullscreen=()=>{calls.full++;if(fullscreen==='denied')return Promise.reject(Error('denied'));if(typeof fullscreen==='function')return fullscreen(this,d);d.fullscreenElement=this;return Promise.resolve();};}
   append(...nodes){for(const node of nodes){node.remove();node.parent=this;this.children.push(node);}}
   remove(){if(this.parent){this.parent.children=this.parent.children.filter(x=>x!==this);this.parent=null;}}
-  setAttribute(){}focus(){this.focused=true;}
+  setAttribute(k,v){this.attrs??={};this.attrs[k]=v;}focus(){this.focused=true;}
   set innerHTML(value){this.html=value;this.nodes=new Map(['h2','p','.cinematic-mobile-card'].map(key=>[key,new Node('child')]));for(const n of this.nodes.values())n.disabled=true;}
   querySelector(key){return this.nodes.get(key);}
  }
  const d={body:new Node('body'),defaultView:new EventTarget(),fullscreenElement:existing?new Node('foreign'):null,createElement:tag=>new Node(tag),exitFullscreen:async()=>{calls.exit++;d.fullscreenElement=null;}};
  const screen={orientation:{lock:async()=>{calls.lock++;if(lock==='denied')throw Error('not supported');},unlock:()=>calls.unlock++}};if(lock==='unsupported')delete screen.orientation.lock;
  const controls=new Node('button');d.body.append(controls);const frame={mount:d.body,fit:'cover'};
- const presentation=new CinematicPresentation({document:d,screen,controls,viewport:()=>view,status:s=>phases.push(s)}),abort=new AbortController();
+ const presentation=new CinematicPresentation({document:d,screen,controls,now,viewport:()=>view,status:s=>phases.push(s)}),abort=new AbortController();
  return {d,screen,frame,presentation,controls,abort,calls,phases,begin:()=>presentation.begin({frame,signal:abort.signal}),start:()=>presentation.start(()=>{calls.play++;return true;},{signal:abort.signal}),resize:v=>{view=v;d.defaultView.dispatchEvent(new Event('resize'));}};
 }
 test('mobile detection preserves regular desktop and supports portrait/landscape phones',()=>{
@@ -28,7 +28,7 @@ test('unsupported fullscreen or rejected orientation do not affect automatic pla
  for(const options of [{fullscreen:'unsupported'},{fullscreen:'denied'},{lock:'denied'},{lock:'unsupported'}]){const f=fixture(options);try{await f.begin();assert.equal(await f.start(),true);assert.equal(f.calls.play,1);assert.equal(f.calls.full,0);}finally{await f.presentation.close();}}
 });
 test('a recovery control exists only after an actual NotAllowedError',async()=>{
- const f=fixture();try{await f.begin();const r=f.presentation.current;let attempts=0;const play=f.presentation.start(()=>{attempts++;if(attempts===1)throw new DOMException('blocked','NotAllowedError');return true;},{signal:f.abort.signal});await flush();assert.ok(f.phases.includes('autoplay-blocked'));assert.equal(r.gate.hidden,false);const card=r.gate.querySelector('.cinematic-mobile-card');assert.equal(card.children.length,1);card.children[0].onclick();assert.equal(await play,true);assert.equal(attempts,2);assert.equal(r.gate.hidden,true);}finally{await f.presentation.close();}
+ const f=fixture();try{await f.begin();const r=f.presentation.current;let attempts=0;const play=f.presentation.start(()=>{attempts++;if(attempts===1)throw new DOMException('blocked','NotAllowedError');return true;},{signal:f.abort.signal});await flush();assert.ok(f.phases.includes('autoplay-blocked'));assert.equal(r.gate.hidden,false);const card=r.gate.querySelector('.cinematic-mobile-card');const buttons=card.children.filter(n=>n.tag==='button');assert.equal(buttons.length,1);buttons[0].onclick();assert.equal(await play,true);assert.equal(attempts,2);assert.equal(r.gate.hidden,true);}finally{await f.presentation.close();}
 });
 test('stop during blocked recovery rejects its promise and restores UI',async()=>{
  const f=fixture();await f.begin();const play=f.presentation.start(()=>Promise.reject(new DOMException('blocked','NotAllowedError')),{signal:f.abort.signal});const rejected=assert.rejects(play,{name:'AbortError'});await flush();f.abort.abort();await f.presentation.end();await rejected;assert.equal(f.calls.play,0);assert.equal(f.frame.mount,f.d.body);assert.equal(f.controls.parent,f.d.body);
@@ -45,4 +45,22 @@ test('replacement waits for owned fullscreen cleanup before restoring mounts',as
 
 test('older AbortSignal without throwIfAborted supports first playback and still cancels',async()=>{
  const f=fixture(),signal={aborted:false,addEventListener(){},removeEventListener(){}};try{await f.presentation.begin({frame:f.frame,signal});assert.equal(await f.start(),true);await f.presentation.end();signal.aborted=true;await assert.rejects(f.presentation.begin({frame:f.frame,signal}),{name:'AbortError'});assert.equal(f.d.body.classList.contains('cris-cinematic-active'),false);}finally{await f.presentation.close();}
+});
+
+test('host countdown renders the shared deadline and never starts playback by itself',async t=>{
+ t.mock.timers.enable({apis:['setInterval']});let now=0;const f=fixture({now:()=>now});try{
+  await f.presentation.begin({frame:f.frame,signal:f.abort.signal,host:true});const r=f.presentation.current;f.presentation.countdown(1800);assert.equal(r.count.textContent,'1.8');assert.equal(r.count.hidden,false);assert.equal(f.calls.play,0);assert.ok(f.phases.includes('preroll'));
+  now=500;t.mock.timers.tick(500);assert.equal(r.count.textContent,'1.3');now=1300;t.mock.timers.tick(800);assert.equal(r.count.textContent,'0.5');assert.equal(r.root.attrs['data-imminent'],'true');now=1800;t.mock.timers.tick(500);assert.equal(r.count.textContent,'0.0');assert.equal(r.gate.querySelector('h2').textContent,'Iniciando');assert.equal(f.calls.play,0);
+  assert.equal(await f.start(),true);assert.equal(r.gate.hidden,true);assert.equal(r.root.classList.contains('cinematic-preroll'),false);assert.ok(f.phases.includes('presenting'));await f.presentation.end();assert.equal(f.d.body.classList.contains('cris-cinematic-preparing'),false);
+ }finally{await f.presentation.close();}
+});
+test('portrait and landscape share cover; desktop participants also receive the automatic cue',async()=>{
+ for(const view of [{width:390,height:844},{width:844,height:390,coarse:true},{width:1440,height:900}]){
+  const f=fixture();try{f.resize(view);f.frame.fit='contain';await f.begin();const r=f.presentation.current;assert.equal(f.frame.fit,'cover');f.presentation.countdown(1800);assert.equal(r.count.hidden,true);assert.equal(r.gate.querySelector('.cinematic-mobile-card').children.filter(n=>n.tag==='button').length,0);await f.start();assert.equal(f.calls.play,1);assert.equal(r.gate.hidden,true);await f.presentation.end();assert.equal(f.frame.fit,'contain');}finally{await f.presentation.close();}
+ }
+});
+test('cancellation and replacement release countdown updates; late join does not invent another pre-roll',async t=>{
+ t.mock.timers.enable({apis:['setInterval']});let now=0;const f=fixture({now:()=>now});try{
+  await f.begin();const old=f.presentation.current;f.presentation.countdown(1800);await f.begin();now=1000;t.mock.timers.tick(1000);assert.equal(old.count.textContent,'1.8');assert.equal(old.root.parent,null);const fresh=f.presentation.current;f.presentation.countdown(0);assert.equal(fresh.root.classList.contains('cinematic-preroll'),false);assert.equal(await f.start(),true);await f.presentation.end();assert.equal(f.d.body.classList.contains('cris-cinematic-active'),false);assert.equal(f.d.body.classList.contains('cris-cinematic-preparing'),false);
+ }finally{await f.presentation.close();}
 });
