@@ -18,6 +18,7 @@ Foi identificada e corrigida uma incompatibilidade independente: o primeiro prep
 - Falhas de preparação do receiver, preparo da mídia e início do player têm códigos distintos. O tipo de erro é limitado a uma lista. Falhas de uma sessão anterior com `sid` não sobrescrevem a atual. Uma nova oferta limpa o erro anterior.
 - Cliente anterior à v4 recebe orientação de atualizar/reabrir, conservando os dados. O jogador tem a ação **Atualizar CRIS** no aviso existente; não há limpeza de storage. O Director agora mostra o motivo curto além de “Falhou”.
 - Entradas do quadro, CSS da sala/paleta, CSS Cinematic, entrada do Director e imports transitivos Cinematic usam o mesmo sufixo de publicação. Os módulos centrais expõem a publicação; mistura de versões falha com a orientação existente de atualizar, antes de montar o receiver.
+- O verificador de shell reconhece a entrada `app.js` com versão e confere a existência dos assets pelo caminho sem query, como já fazia com imports JavaScript.
 - `board-room.css?v=live01b1` foi atualizado. O sincronizador inclui também `Halloween2026-1.css`; fontes, `integration-main` e `dist/cris` permanecem equivalentes, com os ajustes de caminhos já previstos.
 - Um cliente v4 de outro build não é bloqueado apenas pelo número da publicação. Builds desconhecidos são identificados como `unknown`; a capacidade, a prova criptográfica e o escopo continuam obrigatórios.
 
