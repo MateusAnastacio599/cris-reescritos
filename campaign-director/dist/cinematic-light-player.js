@@ -1,4 +1,4 @@
-import {sceneSpan,windowEnvelope,timedFrames,temporalAnimation} from './cinematic-timing.js?v=live01b4';
+import {sceneSpan,windowEnvelope,timedFrames,temporalAnimation} from './cinematic-timing.js?v=live01b5a';
 export function lightIntensity(light,time,span,reduced=false){
   let value=light.intensity??1;
   if(!reduced){

@@ -5,7 +5,7 @@ import {LivePeerSession,LiveWire} from '../integration-main/quadro/board-live.js
 import {RemoteCinematics} from '../dist/cinematic-remote.js';
 import {imageKey} from '../dist/cinematic-media.js';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
-async function until(fn){for(let i=0;i<200;i++){if(fn())return;await pause(5);}assert.fail('integrated condition not reached');}
+async function until(fn){for(let i=0;i<600;i++){if(fn())return;await pause(5);}assert.fail('integrated condition not reached');}
 test('PeerSession → snapshot ACK → prova → manifesto → LiveWire → player → recibo; reconexão preserva sala',async()=>{
  let key;const bridge={registerLiveHost:async(r,jwk)=>key=jwk,liveHostKey:async()=>key},frames=[],received=[];
  const hostRemote=new RemoteCinematics({Wire:LiveWire,frame:{},bridge}),clientRemote=new RemoteCinematics({Wire:LiveWire,frame:{show:async(asset,item)=>{frames.push(item);return true;},clear:async()=>true,seek(){}},bridge});

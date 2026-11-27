@@ -1,6 +1,6 @@
 // Publication identity is separate from protocol capability. Compatible v4 peers
 // may have different builds; diagnostics retain both without exposing user data.
-export const CINEMATIC_BUILD='live01b4';
+export const CINEMATIC_BUILD='live01b5a';
 const environments=new Set(['browser','standalone']);
 export function cinematicEnvironment(env=globalThis){
  const ua=env.navigator?.userAgent||'',browser=ua.match(/(Firefox|Edg|Chrome|Version)\/(\d{1,3})/);

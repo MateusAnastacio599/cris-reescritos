@@ -157,7 +157,7 @@ test('play promise latency is included when aligning the receiver timeline',asyn
 });
 
 test('v4 peers retain publication and sanitized browser/PWA diagnostics',async()=>{
- const f=await fixture();try{f.a._cinematicVersion=4;f.a._cinematicBuild='live01b4';await f.host.present(item,png);await until(()=>f.host.peers.get(f.a).status==='apresentando');const d=f.host.diagnostics();assert.equal(d.build,'live01b4');assert.equal(d.peers[0].version,4);assert.equal(d.peers[0].build,'live01b4');assert.equal(d.peers[0].environment.mode,'browser');assert.equal(d.peers[0].verified,true);assert.ok(d.peers[0].metrics.bytes>0);}finally{f.close();}
+ const f=await fixture();try{f.a._cinematicVersion=4;f.a._cinematicBuild='live01b5a';await f.host.present(item,png);await until(()=>f.host.peers.get(f.a).status==='apresentando');const d=f.host.diagnostics();assert.equal(d.build,'live01b5a');assert.equal(d.peers[0].version,4);assert.equal(d.peers[0].build,'live01b5a');assert.equal(d.peers[0].environment.mode,'browser');assert.equal(d.peers[0].verified,true);assert.ok(d.peers[0].metrics.bytes>0);}finally{f.close();}
 });
 test('old capability is actionable and never receives a manifest or media',async()=>{
  const f=await fixture();try{f.host.disconnect(f.a);f.a._cinematicVersion=3;f.host.bind(f.a,{role:'host',campaign:'case',code:'ROOMONE'});const before=f.packets.length;await f.host.present(item,png);await pause(20);const peer=f.host.peers.get(f.a);assert.equal(peer.code,'legacy-client');assert.match(peer.error,/Atualize/);assert.equal(f.packets.slice(before).some(p=>p.kind==='prepare'||p.lane==='cinematic'),false);assert.equal(f.host.diagnostics().peers[0].version,3);}finally{f.close();}

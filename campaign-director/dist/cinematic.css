@@ -1,4 +1,4 @@
-@import url('./cinematic-studio.css?v=live01b4');
+@import url('./cinematic-studio.css?v=live01b5a');
 .cinematic-frame{position:relative;overflow:hidden;isolation:isolate;background:#100e14;color:#e8dfef;opacity:0;transition:opacity var(--cinematic-fade,300ms) ease-out!important}
 .cinematic-frame.cinematic-visible{opacity:1}
 .cinematic-frame[hidden]{display:none}
@@ -71,17 +71,17 @@
 .cinematic-plane>.cinematic-video[hidden]{display:none}
 .cinematic-light-event{z-index:3}
 .cinematic-light-beam{aspect-ratio:.65!important}
-/* One mobile viewport around the existing frame, with a paused preparation gate. */
-.cinematic-presentation{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:#000;isolation:isolate}
-.cinematic-presentation>.cinematic-frame.cinematic-board-layer{z-index:0;position:relative;inset:auto;width:min(100vw,calc(100dvh * 16 / 9));height:min(100dvh,calc(100vw * 9 / 16));max-width:100%;max-height:100%;margin:auto}
-.cinematic-presentation>.cinematic-frame>img{object-fit:contain}
+/* Full viewport cover around the existing frame. The prepared first frame stays paused. */
+.cinematic-presentation{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;background:#100e14;isolation:isolate}
+.cinematic-presentation>.cinematic-frame.cinematic-board-layer{z-index:0;position:relative;inset:auto;width:100%;height:100%;max-width:100%;max-height:100%;margin:auto}
+.cinematic-presentation>.cinematic-frame>img{object-fit:cover}
 .cinematic-presentation:fullscreen{width:100vw;height:100dvh;background:#000}
-.cinematic-mobile-gate{position:absolute;inset:0;z-index:3;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:#120e0bf7;color:#ece0ca}
+.cinematic-mobile-gate{position:absolute;inset:0;z-index:3;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:radial-gradient(ellipse at 50% 5%,#cfaa4e1a,transparent 65%),linear-gradient(180deg,#100e1466,#1e180f99);color:#f4e7c7}
 .cinematic-mobile-gate[hidden]{display:none}
-.cinematic-mobile-card{width:min(340px,100%);text-align:center;font:14px/1.6 system-ui}
+.cinematic-mobile-card{width:min(380px,100%);text-align:center;font:14px/1.6 system-ui;text-shadow:0 2px 16px #000}
 .cinematic-mobile-card svg{width:68px;height:68px;fill:none;stroke:#cbb283;stroke-width:2;margin-bottom:12px}
-.cinematic-mobile-card h2{font:500 24px/1.3 Georgia,serif;margin:0 0 14px;letter-spacing:0}
-.cinematic-mobile-card p{font-size:13px;color:#b5a68d;margin:0 0 24px}
+.cinematic-mobile-card h2{font:500 clamp(26px,4vw,38px)/1.2 Georgia,serif;margin:0 0 14px;letter-spacing:.02em}
+.cinematic-mobile-card p{font-size:13px;color:#d1c09d;margin:0 0 20px}
 .cinematic-mobile-card button{display:block;width:100%;min-height:48px;border:1px solid #8b735044;border-radius:5px;padding:12px;font:600 14px system-ui;background:#d0b784;color:#21190f;cursor:pointer}
 .cinematic-mobile-card button:disabled{opacity:.45;cursor:wait}
 .cinematic-mobile-card [data-inline]{margin-top:10px;color:#c3b295;background:transparent;font-weight:400;font-size:12px}
@@ -94,5 +94,19 @@ body.cris-cinematic-preparing .cris-cinematic-controls{display:none}
 /* Preparation stays mounted for decoding without covering the board. */
 .cinematic-frame.cinematic-prepared{opacity:0!important;pointer-events:none}
 .cinematic-presentation.cinematic-staging{opacity:0;pointer-events:none}
-.cinematic-presentation .cinematic-mobile-card{pointer-events:auto}
+.cinematic-presentation:not(.cinematic-staging) .cinematic-mobile-card{pointer-events:auto}
 .cinematic-presentation:not(.cinematic-staging) .cinematic-mobile-gate{z-index:3}
+
+/* A quiet gold cue over the real paused scene, removed at the shared start. */
+.cinematic-presentation.cinematic-preroll>.cinematic-frame.cinematic-prepared{opacity:1!important;filter:blur(5px) brightness(.82)}
+.cinematic-preroll .cinematic-mobile-gate::before{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 70px 8px #d9ad4930;border:1px solid #dfbf6955;animation:cinematic-preroll-glow 1.8s ease-in-out both}
+.cinematic-mobile-gate:not([data-rotation=true]) svg{display:none}
+.cinematic-preroll [data-rotation=true] svg{animation:cinematic-rotate-hint 1.8s ease-in-out both}
+.cinematic-countdown{display:block;font:400 clamp(34px,6vw,56px)/1.15 Georgia,serif;font-variant-numeric:tabular-nums;color:#f1d898;letter-spacing:.04em;margin-top:14px}
+.cinematic-countdown[hidden]{display:none}
+.cinematic-preroll[data-imminent=true] .cinematic-countdown{color:#fff3cd;text-shadow:0 0 20px #dfbd6a80}
+@keyframes cinematic-preroll-glow{0%{opacity:.2}55%{opacity:1}100%{opacity:.4}}
+@keyframes cinematic-rotate-hint{0%,100%{transform:rotate(0)}45%,75%{transform:rotate(18deg)}}
+@media(prefers-reduced-motion:reduce){.cinematic-preroll .cinematic-mobile-gate::before,.cinematic-preroll [data-rotation=true] svg{animation:none}}
+
+.cinematic-preroll[data-reduced-motion=true] .cinematic-mobile-gate::before,.cinematic-preroll[data-reduced-motion=true] [data-rotation=true] svg{animation:none}

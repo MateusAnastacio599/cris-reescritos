@@ -1,0 +1,241 @@
+{
+  "network": "SIMULATED DataConnection; real board, renderer, Wire, integrity and orchestration",
+  "starts": {
+    "portrait": {
+      "coordination": {
+        "phase": "apresentando",
+        "startAt": 1795791808047,
+        "local": {
+          "imageMs": 13,
+          "videoMs": 0,
+          "videoFallbacks": 0,
+          "prepareMs": 14,
+          "startSkewMs": 0
+        },
+        "canProceed": false
+      },
+      "participants": [
+        {
+          "id": "live-fixture-room-b5a-final",
+          "phase": "participant-apresentando",
+          "failurePhase": null,
+          "errorType": null,
+          "build": "live01b5a",
+          "environment": {
+            "mode": "browser",
+            "browser": "Chrome/156",
+            "secure": true,
+            "crypto": true,
+            "abort": true,
+            "abortCheck": true
+          },
+          "status": "apresentando",
+          "code": null,
+          "verified": true,
+          "boardSynced": true,
+          "metrics": {
+            "offeredAt": 1795791806177,
+            "totalBytes": 12179,
+            "bytes": 12179,
+            "reused": 0,
+            "base64Ms": 1,
+            "transferMs": 37,
+            "applicationChars": 16417,
+            "maxInFlight": 2,
+            "commandMs": 1,
+            "decodeBase64Ms": 1,
+            "integrityMs": 30,
+            "prepareMs": 21,
+            "firstFrameMs": 58,
+            "imageMs": 11.5,
+            "videoMs": 0,
+            "videoFallbacks": 0,
+            "readyAt": 1795791806247,
+            "readyToPlayMs": 1811,
+            "startSkewMs": 1
+          },
+          "version": 4
+        }
+      ]
+    },
+    "landscape": {
+      "coordination": {
+        "phase": "apresentando",
+        "startAt": 1795791826310,
+        "local": {
+          "imageMs": 17.399999999906868,
+          "videoMs": 29.20000000006985,
+          "videoFallbacks": 0,
+          "prepareMs": 37,
+          "startSkewMs": 1
+        },
+        "canProceed": false
+      },
+      "participants": [
+        {
+          "id": "live-fixture-room-b5a-final",
+          "phase": "participant-apresentando",
+          "failurePhase": null,
+          "errorType": null,
+          "build": "live01b5a",
+          "environment": {
+            "mode": "browser",
+            "browser": "Chrome/156",
+            "secure": true,
+            "crypto": true,
+            "abort": true,
+            "abortCheck": true
+          },
+          "status": "apresentando",
+          "code": null,
+          "verified": true,
+          "boardSynced": true,
+          "metrics": {
+            "offeredAt": 1795791824462,
+            "totalBytes": 21106,
+            "bytes": 8927,
+            "reused": 1,
+            "base64Ms": 1,
+            "transferMs": 17,
+            "applicationChars": 12259,
+            "maxInFlight": 1,
+            "commandMs": 1,
+            "decodeBase64Ms": 0,
+            "integrityMs": 2,
+            "prepareMs": 28,
+            "firstFrameMs": 45,
+            "imageMs": 15.2,
+            "videoMs": 19.1,
+            "videoFallbacks": 0,
+            "readyAt": 1795791824510,
+            "readyToPlayMs": 1803,
+            "startSkewMs": 2
+          },
+          "version": 4
+        }
+      ]
+    },
+    "desktop": {
+      "coordination": {
+        "phase": "apresentando",
+        "startAt": 1795791851707,
+        "local": {
+          "imageMs": 15.699999999953434,
+          "videoMs": 0,
+          "videoFallbacks": 0,
+          "prepareMs": 16,
+          "startSkewMs": 0
+        },
+        "canProceed": false
+      },
+      "participants": [
+        {
+          "id": "live-fixture-room-b5a-final",
+          "phase": "participant-apresentando",
+          "failurePhase": null,
+          "errorType": null,
+          "build": "live01b5a",
+          "environment": {
+            "mode": "browser",
+            "browser": "Chrome/156",
+            "secure": true,
+            "crypto": true,
+            "abort": true,
+            "abortCheck": true
+          },
+          "status": "apresentando",
+          "code": null,
+          "verified": true,
+          "boardSynced": true,
+          "metrics": {
+            "offeredAt": 1795791849874,
+            "totalBytes": 12179,
+            "bytes": 0,
+            "reused": 1,
+            "base64Ms": 0,
+            "transferMs": 2,
+            "applicationChars": 0,
+            "maxInFlight": 0,
+            "commandMs": 1,
+            "integrityMs": 0,
+            "prepareMs": 29,
+            "firstFrameMs": 31,
+            "imageMs": 27.5,
+            "videoMs": 0,
+            "videoFallbacks": 0,
+            "readyAt": 1795791849907,
+            "readyToPlayMs": 1801,
+            "startSkewMs": 1
+          },
+          "version": 4
+        }
+      ]
+    }
+  },
+  "portraitGeometry": {
+    "filter": "none",
+    "frame": {
+      "bottom": 844,
+      "height": 844,
+      "left": 0,
+      "right": 390,
+      "top": 0,
+      "width": 390,
+      "x": 0,
+      "y": 0
+    },
+    "video": [
+      {
+        "error": null,
+        "playing": true,
+        "ready": 4
+      }
+    ],
+    "world": {
+      "bottom": 844,
+      "height": 844,
+      "left": -555.21875,
+      "right": 945.21875,
+      "top": 0,
+      "width": 1500.4375,
+      "x": -555.21875,
+      "y": 0
+    }
+  },
+  "landscapeGeometry": {
+    "filter": "none",
+    "frame": {
+      "bottom": 390,
+      "height": 390,
+      "left": 0,
+      "right": 844.2857055664062,
+      "top": 0,
+      "width": 844.2857055664062,
+      "x": 0,
+      "y": 0
+    },
+    "video": [
+      {
+        "error": null,
+        "playing": true,
+        "ready": 4
+      }
+    ],
+    "world": {
+      "bottom": 432.455379486084,
+      "height": 474.9107360839844,
+      "left": 0,
+      "right": 844.2857055664062,
+      "top": -42.45535659790039,
+      "width": 844.2857055664062,
+      "x": 0,
+      "y": -42.45535659790039
+    }
+  },
+  "cancelled": {
+    "active": false,
+    "frames": 0,
+    "overlays": 0,
+    "preparing": false
+  }
+}

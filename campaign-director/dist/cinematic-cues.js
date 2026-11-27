@@ -1,6 +1,6 @@
-import {loadCinematicMedia} from './cinematic-media.js?v=live01b4';
-import {cinematicItems,isCinematicKey} from './cinematic-model.js?v=live01b4';
-import {sameBoard,sameCinematicScene} from './cinematic-protocol.js?v=live01b4';
+import {loadCinematicMedia} from './cinematic-media.js?v=live01b5a';
+import {cinematicItems,isCinematicKey} from './cinematic-model.js?v=live01b5a';
+import {sameBoard,sameCinematicScene} from './cinematic-protocol.js?v=live01b5a';
 
 export function validateCinematicCue(action){
   if(action.type==='cinematic-start'&&(!isCinematicKey(action.cinematicId)||action.replace!==undefined&&typeof action.replace!=='boolean')){

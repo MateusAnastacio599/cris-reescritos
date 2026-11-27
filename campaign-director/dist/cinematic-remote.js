@@ -1,8 +1,8 @@
-import {CINEMATIC_BUILD,cinematicEnvironment,safeEnvironment,safeBuild,cinematicFailure,safeErrorType} from './cinematic-compat.js?v=live01b4';
-export const CINEMATIC_REMOTE_BUILD='live01b4';
-import {isCinematic,cinematicMediaIds,CINEMATIC_COMPOSITION_BYTES,cinematicTotal} from './cinematic-model.js?v=live01b4';
-import {sceneSpan} from './cinematic-timing.js?v=live01b4';
-import {imageKey,validateCompositionMedia} from './cinematic-media.js?v=live01b4';
+import {CINEMATIC_BUILD,cinematicEnvironment,safeEnvironment,safeBuild,cinematicFailure,safeErrorType} from './cinematic-compat.js?v=live01b5a';
+export const CINEMATIC_REMOTE_BUILD='live01b5a';
+import {isCinematic,cinematicMediaIds,CINEMATIC_COMPOSITION_BYTES,cinematicTotal} from './cinematic-model.js?v=live01b5a';
+import {sceneSpan} from './cinematic-timing.js?v=live01b5a';
+import {imageKey,validateCompositionMedia} from './cinematic-media.js?v=live01b5a';
 const key=v=>typeof v==='string'&&/^[\w-]{1,128}$/.test(v);
 const statuses=new Set(['preparando','aguardando','pronto','fullscreen','lento','bloqueado','conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado']);
 const mime=new Set(['image/png','image/jpeg','image/webp','video/webm']);
@@ -24,8 +24,9 @@ export function validateManifest(message){
  const ids=cinematicMediaIds(message.item);
  return ids.length===message.assets.length&&new Set(message.assets.map(a=>a.id)).size===ids.length&&message.assets.every(a=>ids.includes(a.id)&&mime.has(a.type)&&Number.isInteger(a.size)&&a.size>0&&a.size<=(a.type==='video/webm'?8:12)*1024*1024)&&message.assets.reduce((sum,a)=>sum+a.size,0)<=CINEMATIC_COMPOSITION_BYTES&&!(message.item.layers||[]).some(l=>!l.visible);
 }
+export const CINEMATIC_PREROLL_MS=1800;
 export class RemoteCinematics{
- constructor({Wire,frame,bridge,changed=()=>{},now=Date.now,presentation=null,lead=800,prepareTimeout=20000}){
+ constructor({Wire,frame,bridge,changed=()=>{},now=Date.now,presentation=null,lead=CINEMATIC_PREROLL_MS,prepareTimeout=20000}){
   Object.assign(this,{Wire,frame,bridge,changed,now,presentation,lead,prepareTimeout});this.peers=new Map();this.cache=new Map();this.revision=0;this.watermark=0;this.generation=0;
   this.events=[];this.hostFailure=null;
   this.lease=setInterval(()=>{if(this.pending&&this.now()-this.pending.lastSeen>45000)void this.endClient('expired',true);},5000);
@@ -154,10 +155,11 @@ export class RemoteCinematics{
   const run=this.active;if(!run||run.startAt||!run.localReady)return;
   const peers=[...this.peers.values()].filter(p=>p.live.role==='host'&&p.expected===run.sid);
   if(!run.proceed&&peers.some(p=>!p.ready&&!['falhou','encerrado'].includes(p.status)))return;
-  const rtt=Math.max(0,...peers.map(p=>p.rtt||0));run.startAt=this.now()+Math.max(this.lead,Math.min(2000,rtt*1.5+100));run.startedAt=run.startAt;run.phase='agendado';run.canProceed=false;clearTimeout(run.timeout);
+  const rtt=Math.max(0,...peers.map(p=>p.rtt||0));run.startAt=this.now()+Math.max(this.lead,Math.min(2000,rtt*1.5+100));run.startedAt=run.startAt;run.phase='avisando';run.canProceed=false;clearTimeout(run.timeout);
   for(const peer of peers)if(peer.ready)this.playPeer(peer,run);
   run.countdownLocal(Math.max(0,run.startAt-this.now()));this.notify();run.startTimer=setTimeout(async()=>{
    if(this.active!==run)return;
+   run.phase='iniciando';this.notify();
    try{const shown=await run.startLocal(Math.max(0,(this.now()-run.startAt)/1000));if(this.active!==run)return;if(!shown)throw Error('Local play failed');run.metrics.startSkewMs=this.now()-run.startAt;run.phase='apresentando';run.resolve(true);this.notify();}catch{if(this.active===run){run.phase='falhou';run.resolve(false);this.hostError='Não foi possível iniciar a apresentação local.';this.stop(true);this.notify();}}
   },Math.max(0,run.startAt-this.now()));
  }

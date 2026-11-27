@@ -16,8 +16,8 @@ test('published module graph and both copies use one release, retaining v4 capab
   const html=read(dir+'index.html');assert.ok(html.includes('board-room.css?v='+CINEMATIC_BUILD));assert.ok(html.includes('Halloween2026-1.css?v='+CINEMATIC_BUILD));assert.ok(html.includes('cinematic.css?v='+CINEMATIC_BUILD));assert.ok(!html.includes('live01b3'));
  }
  assert.match(read('../../quadro/board-live.js'),/cinematic:4,cinematicBuild:LIVE_BUILD/);
- assert.match(read('../dist/index.html'),/app.js\?v=live01b4/);
- assert.match(read('../dist/cinematic.css'),/cinematic-studio.css\?v=live01b4/);
+ assert.match(read('../dist/index.html'),/app.js\?v=live01b5a/);
+ assert.match(read('../dist/cinematic.css'),/cinematic-studio.css\?v=live01b5a/);
  // No new service worker asset cache or data purge is needed to update modules.
  assert.doesNotMatch(read('../../sw.js'),/caches\.|addEventListener\(['"]fetch/);
 });

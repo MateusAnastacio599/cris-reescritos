@@ -1,4 +1,4 @@
-import {windowRange,windowEnvelope} from './cinematic-timing.js?v=live01b4';
+import {windowRange,windowEnvelope} from './cinematic-timing.js?v=live01b5a';
 // Video decoding is deliberately isolated from camera, protocol and Audio Engine.
 export const VIDEO_LIMITS=Object.freeze({bytes:8*1024*1024,seconds:12,side:1280,pixels:1280*720,fps:30,count:2});
 const containers=new Set([0x18538067,0x1549a966,0x1654ae6b,0xae,0xe0]);
