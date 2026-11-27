@@ -1,5 +1,5 @@
 import {CINEMATIC_CHANNEL,CINEMATIC_LEASE,cinematicEnvelope,sameBoard,sameCinematicScene,
-  sameCinematicSession,validBoard,validCinematicMessage} from './cinematic-protocol.js?v=live01b3';
+  sameCinematicSession,validBoard,validCinematicMessage} from './cinematic-protocol.js?v=live01b4';
 
 export class CinematicLink{
   constructor(){
@@ -58,7 +58,7 @@ export class CinematicLink{
   }
   activeMessage(){
     return (this.active.phase==='preparando'?'Preparando a apresentação com os participantes…':this.active.localEnded?'Apresentação local concluída; aguardando os participantes.':`Apresentação “${this.active.name}” ativa no quadro deste navegador.`)+(this.active.motionReduced
-      ?' Movimentos reduzidos no quadro. Use Permitir movimentos nesta ferramenta na janela do quadro para ativá-los.':'')+(this.active.remote?.length?' Remotos: '+this.active.remote.map(p=>p.name+' · '+(p.label||p.status)).join('; '):'');
+      ?' Movimentos reduzidos no quadro. Use Permitir movimentos nesta ferramenta na janela do quadro para ativá-los.':'')+(this.active.remote?.length?' Remotos: '+this.active.remote.map(p=>p.name+' · '+(p.label||p.status)+(p.error?' · '+p.error:'')).join('; '):'');
   }
   send(active,type,fields={}){
     const {scope,senderId,boardId,sessionId,scene}=active;

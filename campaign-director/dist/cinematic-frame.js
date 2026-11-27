@@ -1,11 +1,11 @@
-import {sceneSpan} from './cinematic-timing.js';
-import {animateTimedFX} from './cinematic-fx.js';
-import {animateDirectorLights} from './cinematic-light-player.js';
-import {cameraTransform} from './cinematic-direction-model.js';
-import {animateDirectionCamera,animateLayerEffects,animateLighting} from './cinematic-direction-player.js';
-import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js?v=live01b3';
-import {checkCinematicImage,cinematicEnding,cinematicFades} from './cinematic-model.js';
-import {cinematicMotion,mountMotionNotice} from './cinematic-motion.js';
+import {sceneSpan} from './cinematic-timing.js?v=live01b4';
+import {animateTimedFX} from './cinematic-fx.js?v=live01b4';
+import {animateDirectorLights} from './cinematic-light-player.js?v=live01b4';
+import {cameraTransform} from './cinematic-direction-model.js?v=live01b4';
+import {animateDirectionCamera,animateLayerEffects,animateLighting} from './cinematic-direction-player.js?v=live01b4';
+import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js?v=live01b4';
+import {checkCinematicImage,cinematicEnding,cinematicFades} from './cinematic-model.js?v=live01b4';
+import {cinematicMotion,mountMotionNotice} from './cinematic-motion.js?v=live01b4';
 const fadeBuffer=30;
 export const CINEMATIC_FADE_MS=300;
 
@@ -49,6 +49,7 @@ function atmosphere(motion,intensity){
   return null;
 }
 
+export const CINEMATIC_FRAME_BUILD='live01b4';
 export class CinematicFrame{
   constructor(element,{mount=null,motion=cinematicMotion(),onMotion=()=>{},onWarning=()=>{},fit='cover'}={}){
     this.element=element;this.fit=fit;
@@ -163,6 +164,7 @@ export class CinematicFrame{
     this.composition?.dispose();this.composition=null;
   }
   stopEffects(){
+    this.atmosphereNode?.remove();this.atmosphereNode=null;
     this.unsubscribeMotion?.();
     this.unsubscribeMotion=null;
     this.removeNotice?.();
@@ -171,6 +173,7 @@ export class CinematicFrame{
     this.animations=[];
   }
   startEffects(){
+    this.atmosphereNode?.remove();this.atmosphereNode=null;
     this.animations.forEach(animation=>animation.cancel());
     this.animations=[];
     this.removeNotice?.();
@@ -202,7 +205,7 @@ export class CinematicFrame{
         const shade=this.element.ownerDocument.createElement('span');
         shade.className='cinematic-atmosphere'+(['reveal','apparition'].includes(item.motion)?' cinematic-shade':'');
         shade.setAttribute('aria-hidden','true');
-        this.element.append(shade);
+        (this.composition?.world||this.element).append(shade);this.atmosphereNode=shade;
         const light=shade.animate(effect.map(frame=>({...frame,easing:'ease-in-out'})),timing);
         light.currentTime=currentTime;
         this.animations.push(light);

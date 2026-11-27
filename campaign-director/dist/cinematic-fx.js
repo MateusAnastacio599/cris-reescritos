@@ -1,4 +1,4 @@
-import {sceneSpan,validWindow,windowRange,windowEnvelope,timedFrames,temporalAnimation} from './cinematic-timing.js';
+import {sceneSpan,validWindow,windowRange,windowEnvelope,timedFrames,temporalAnimation} from './cinematic-timing.js?v=live01b4';
 export const NEW_FX={flicker:'Flicker suave',pulse:'Pulso',drift:'Deslocamento sutil',reveal:'Aparecer'};
 // CSS timing curves sampled in model time, so seeking and the board stay identical.
 function eased(name,u){

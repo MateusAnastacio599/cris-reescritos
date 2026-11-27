@@ -1,0 +1,77 @@
+{
+  "at": 2,
+  "frames": [
+    {
+      "time": 2,
+      "motion": "breath",
+      "intensity": 20,
+      "lighting": {
+        "enabled": true,
+        "color": "#ffcc72",
+        "intensity": 0.18,
+        "darkness": 0.3,
+        "vignette": 0.65,
+        "spots": []
+      },
+      "world": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 720,
+        "top": 0,
+        "right": 1280,
+        "bottom": 720,
+        "left": 0
+      },
+      "atmosphere": 1
+    },
+    {
+      "time": 2,
+      "motion": "breath",
+      "intensity": 20,
+      "lighting": {
+        "enabled": true,
+        "color": "#ffcc72",
+        "intensity": 0.18,
+        "darkness": 0.3,
+        "vignette": 0.65,
+        "spots": []
+      },
+      "world": {
+        "x": 87.171875,
+        "y": 0,
+        "width": 1690.65625,
+        "height": 951,
+        "top": 0,
+        "right": 1777.828125,
+        "bottom": 951,
+        "left": 87.171875
+      },
+      "atmosphere": 1
+    },
+    {
+      "time": 2,
+      "motion": "breath",
+      "intensity": 20,
+      "lighting": {
+        "enabled": true,
+        "color": "#ffcc72",
+        "intensity": 0.18,
+        "darkness": 0.3,
+        "vignette": 0.65,
+        "spots": []
+      },
+      "world": {
+        "x": 87.171875,
+        "y": 0,
+        "width": 1690.65625,
+        "height": 951,
+        "top": 0,
+        "right": 1777.828125,
+        "bottom": 951,
+        "left": 87.171875
+      },
+      "atmosphere": 1
+    }
+  ]
+}

@@ -1,7 +1,7 @@
-import {validLightExtensions,validLightEvent} from './cinematic-light-model.js';
-import {validWindow} from './cinematic-timing.js';
-import {NEW_FX,validExtendedFX,validFXWindow} from './cinematic-fx.js';
-import {CAMERA_EASINGS,cameraPoseValid,validCameraExtensions} from './cinematic-camera-model.js';
+import {validLightExtensions,validLightEvent} from './cinematic-light-model.js?v=live01b4';
+import {validWindow} from './cinematic-timing.js?v=live01b4';
+import {NEW_FX,validExtendedFX,validFXWindow} from './cinematic-fx.js?v=live01b4';
+import {CAMERA_EASINGS,cameraPoseValid,validCameraExtensions} from './cinematic-camera-model.js?v=live01b4';
 // Optional, additive direction metadata. Old presentations are never migrated on read.
 export const STUDIO_VERSION=1;
 export const EFFECT_TYPES={breath:'Respiração',sway:'Balanço',shake:'Instabilidade',opacity:'Opacidade',move:'Movimento',...NEW_FX};

@@ -12,9 +12,9 @@ for(const file of readdirSync(dist).filter(f=>f.endsWith('.js'))){
 const html=readFileSync(join(dist,'index.html'),'utf8');
 const ids=[...html.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
 if(new Set(ids).size!==ids.length)throw new Error('IDs duplicados no shell.');
-if(!html.includes('type="module" src="app.js"'))throw new Error('Entrada da aplicação ausente.');
+if(!/type="module"\s+src="app\.js(?:\?[^"]*)?"/.test(html))throw new Error('Entrada da aplicação ausente.');
 if(html.includes('codex-preview'))throw new Error('Metadado temporário de preview encontrado.');
-for(const match of html.matchAll(/(?:src|href)="([^"#]+)"/g))if(!/^(https?:|data:)/.test(match[1])&&!existsSync(join(dist,match[1])))throw new Error(`Arquivo ausente: ${match[1]}`);
+for(const match of html.matchAll(/(?:src|href)="([^"#]+)"/g))if(!/^(https?:|data:)/.test(match[1])&&!existsSync(join(dist,match[1].split(/[?#]/)[0])))throw new Error(`Arquivo ausente: ${match[1]}`);
 for(const name of readdirSync(join(dist,'assets/audio'))){const data=readFileSync(join(dist,'assets/audio',name));if(data.length<44||data.toString('ascii',0,4)!=='RIFF')throw new Error(`Áudio inválido: ${name}`);}
 for(const name of readdirSync(dist).filter(name=>name.endsWith('.css'))){
   const input=readFileSync(join(dist,name),'utf8').replace(/\/\*[\s\S]*?\*\//g,'').replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,'');

@@ -1,6 +1,6 @@
 import {$} from './ui.js';
-import {checkCinematicVideo} from './cinematic-video.js';
-import {imageKey} from './cinematic-media.js';
+import {checkCinematicVideo} from './cinematic-video.js?v=live01b4';
+import {imageKey} from './cinematic-media.js?v=live01b4';
 export function renderBackgroundMedia(root,{state,composer,change}){
   const v=state.backgroundVideo;
   root.innerHTML=`<h3>Fundo vivo</h3><p class="form-hint">A imagem de fundo continua sendo o fallback. Anexe WebM VP9 com ou sem alpha, sem áudio, até 8 MB / 12 s. Fundo e camadas compartilham o limite de dois vídeos. Janelas ficam em Direção.</p><div class="cinematic-actions"><button type="button" data-use-theater>Usar teatro corrigido (imagem)</button><button type="button" data-use-theater-video>Usar teatro vivo de demonstração</button></div><p class="form-hint">Essas ações substituem o fundo do rascunho. Salvar continua explícito.</p><input type="file" data-background-video accept="video/webm">${v?`<p>Vídeo local anexado.</p><label><input type="checkbox" data-background-enabled ${v.enabled?'checked':''}>Ativo</label><label><input type="checkbox" data-background-loop ${v.loop?'checked':''}>Repetir</label><label class="field">Velocidade<input type="number" data-background-rate min=".25" max="2" step=".05" value="${v.rate}"></label><label class="field">Atraso (s)<input type="number" data-background-delay min="0" max="60" value="${v.delay}" step="any"></label><button type="button" data-background-remove>Remover vídeo e manter imagem</button>`:''}<p data-bg-status role="status"></p>`;

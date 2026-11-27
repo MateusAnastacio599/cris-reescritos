@@ -4014,7 +4014,8 @@ body #vwJoin .t {
     transform: rotate(-1.5deg)
 }
 
-body #vwJoin button:not([data-c]) {
+/* Legacy entry actions only; room palette and modern controls own their styles. */
+body #vwJoin:not(.cris-room-entry) .card > button:not([data-c]) {
     background: var(--k-red)!important;
     color: var(--k-onred)!important;
     border-radius: 0!important;

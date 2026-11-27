@@ -1,4 +1,5 @@
-import {isCinematic,isCinematicPayload,isCinematicKey} from './cinematic-model.js';
+export const CINEMATIC_PROTOCOL_BUILD='live01b4';
+import {isCinematic,isCinematicPayload,isCinematicKey} from './cinematic-model.js?v=live01b4';
 
 export const CINEMATIC_CHANNEL='cris-cinematic-local-v1';
 export const CINEMATIC_LEASE=75000;

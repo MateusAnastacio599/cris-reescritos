@@ -1,6 +1,8 @@
-import {isCinematic,cinematicMediaIds,CINEMATIC_COMPOSITION_BYTES,cinematicTotal} from './cinematic-model.js';
-import {sceneSpan} from './cinematic-timing.js';
-import {imageKey,validateCompositionMedia} from './cinematic-media.js?v=live01b3';
+import {CINEMATIC_BUILD,cinematicEnvironment,safeEnvironment,safeBuild,cinematicFailure,safeErrorType} from './cinematic-compat.js?v=live01b4';
+export const CINEMATIC_REMOTE_BUILD='live01b4';
+import {isCinematic,cinematicMediaIds,CINEMATIC_COMPOSITION_BYTES,cinematicTotal} from './cinematic-model.js?v=live01b4';
+import {sceneSpan} from './cinematic-timing.js?v=live01b4';
+import {imageKey,validateCompositionMedia} from './cinematic-media.js?v=live01b4';
 const key=v=>typeof v==='string'&&/^[\w-]{1,128}$/.test(v);
 const statuses=new Set(['preparando','aguardando','pronto','fullscreen','lento','bloqueado','conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado']);
 const mime=new Set(['image/png','image/jpeg','image/webp','video/webm']);
@@ -29,10 +31,10 @@ export class RemoteCinematics{
   this.lease=setInterval(()=>{if(this.pending&&this.now()-this.pending.lastSeen>45000)void this.endClient('expired',true);},5000);
  }
  trace(peer,phase,code=''){if(peer)peer.phase=phase;this.events.push({at:this.now(),phase,...(code?{code}:{})});if(this.events.length>80)this.events.shift();}
- diagnostics(){return {hostReady:!!this.sign,hostFailure:this.hostFailure,active:!!this.active,coordination:this.active?{phase:this.active.phase,startAt:this.active.startAt||null,local:this.active.metrics,canProceed:!!this.active.canProceed}:this.lastCoordination||null,peers:[...this.peers.values()].map(p=>({phase:p.phase,status:p.status,code:p.code||null,verified:p.verified,boardSynced:!!p.connection._syncReady,metrics:p.metrics||{},version:p.connection._cinematicVersion||1})),events:this.events.slice()};}
- notify(){this.changed([...this.peers.values()].map(p=>({id:p.connection._identity||p.connection.peer,name:String(p.connection._name||'Jogador').slice(0,80),status:p.status,label:({conectado:'Conectado',preparando:'Preparando apresentação',aguardando:'Aguardando preparo do jogador',pronto:'Mídia pronta',fullscreen:'Preparando tela',lento:'Demorando · mestre pode prosseguir',bloqueado:'Reprodução bloqueada · aguardando recuperação',recebendo:'Recebendo mídia',carregando:'Carregando apresentação',apresentando:'Apresentando',falhou:'Falhou',encerrando:'Encerrando',encerrado:'Encerrado'})[p.status]+(p.status==='apresentando'&&p.metrics?.videoFallbacks?' · WebM em fallback estático':''),error:p.error||''})));this.checkCompletion();this.maybeStart();}
+ diagnostics(){return {build:CINEMATIC_BUILD,environment:cinematicEnvironment(),hostReady:!!this.sign,hostFailure:this.hostFailure,active:!!this.active,coordination:this.active?{phase:this.active.phase,startAt:this.active.startAt||null,local:this.active.metrics,canProceed:!!this.active.canProceed}:this.lastCoordination||null,peers:[...this.peers.values()].map(p=>({id:p.connection._identity||p.connection.peer||'unknown',phase:p.phase,failurePhase:p.failurePhase||null,errorType:p.errorType||null,build:safeBuild(p.connection._cinematicBuild),environment:p.environment||null,status:p.status,code:p.code||null,verified:p.verified,boardSynced:!!p.connection._syncReady,metrics:p.metrics||{},version:p.connection._cinematicVersion||1})),events:this.events.slice()};}
+ notify(){this.changed([...this.peers.values()].map(p=>({id:p.connection._identity||p.connection.peer,name:String(p.connection._name||'Jogador').slice(0,80),status:p.status,label:({conectado:'Conectado',preparando:'Preparando apresentação',aguardando:'Aguardando preparo do jogador',pronto:'Mídia pronta',fullscreen:'Preparando tela',lento:'Demorando · mestre pode prosseguir',bloqueado:'Reprodução bloqueada · aguardando recuperação',recebendo:'Recebendo mídia',carregando:'Carregando apresentação',apresentando:'Apresentando',falhou:p.code==='legacy-client'?'Atualização necessária':'Falhou',encerrando:'Encerrando',encerrado:'Encerrado'})[p.status]+(p.status==='apresentando'&&p.metrics?.videoFallbacks?' · WebM em fallback estático':''),error:p.error||'',code:p.code||null})));this.checkCompletion();this.maybeStart();}
  state(peer,status,error=''){if(peer.status===status&&peer.error===error)return;peer.status=status;peer.error=error;this.notify();}
- fail(peer,code,text){peer.code=code;this.trace(peer,'failed',code);this.state(peer,'falhou',text);if(peer.live.role==='client')this.control(peer,'failure',{code});}
+ fail(peer,code,text=cinematicFailure(code),error){peer.errorType=error?safeErrorType(error):null;peer.failurePhase=peer.phase;peer.code=code;this.trace(peer,'failed',code);this.state(peer,'falhou',text);if(peer.live.role==='client')this.control(peer,'failure',{code,phase:peer.failurePhase,errorType:peer.errorType,environment:cinematicEnvironment(),sid:this.pending?.sid||null});}
  refresh(){for(const peer of this.peers.values())if(peer.live.role==='host'&&peer.verified&&this.active&&!peer.run&&peer.offered!==this.active.sid&&peer.connection._syncReady!==false)void this.offer(peer,this.active);}
  waitForCompletion(){
   if(!this.operation&&!this.active)return Promise.resolve();
@@ -56,6 +58,7 @@ export class RemoteCinematics{
  bind(connection,live){
   const peer={connection,live,status:'conectado',phase:'connected',verified:false,closed:false};this.peers.set(connection,peer);this.notify();
   if(connection._legacy||connection._cinematicVersion!==undefined&&connection._cinematicVersion<4){peer.incompatible=true;this.fail(peer,'legacy-client','Este cliente precisa atualizar o CRIS para receber Cinematics.');return;}
+  if(live.role==='client'&&!globalThis.crypto?.subtle){this.fail(peer,'crypto-unavailable');return;}
   if(live.role==='client'){this.watermark=0;peer.nonce=crypto.randomUUID();this.control(peer,'challenge',{nonce:peer.nonce});peer.proofTimer=setTimeout(()=>{if(!peer.verified)this.fail(peer,'host-proof-timeout','O mestre não confirmou a apresentação. Atualize os dois aparelhos e reabra a mesa.');},15000);}
  }
  packet(packet,connection){
@@ -72,19 +75,19 @@ export class RemoteCinematics{
   if(host){
    if(m.kind==='clock'&&Number.isFinite(m.sent)){this.control(peer,'clock-result',{sent:m.sent,hostNow:this.now()});return;}
    if(m.kind==='clock-sample'&&Number.isFinite(m.rtt)&&m.rtt>=0&&m.rtt<=5000){peer.rtt=m.rtt;return;}
-   if(m.kind==='failure'){this.fail(peer,/^[a-z-]{1,64}$/.test(m.code||'')?m.code:'client-failed','O jogador não confirmou a apresentação. Veja o diagnóstico avançado.');return;}
+   if(m.kind==='failure'){if(m.sid&&m.sid!==peer.expected)return;const code=/^[a-z-]{1,64}$/.test(m.code||'')?m.code:'client-failed';this.fail(peer,code,cinematicFailure(code),m.errorType?{name:m.errorType}:null);peer.environment=safeEnvironment(m.environment)||peer.environment;if(/^[a-z-]{1,64}$/.test(m.phase||''))peer.failurePhase=m.phase;return;}
    if(m.kind==='challenge'&&key(m.nonce)){
     if(!this.sign){this.control(peer,'unavailable');this.state(peer,'falhou',this.hostError||'Reabra o compartilhamento.');return;}
     this.trace(peer,'host-proof-signing');const signature=await this.sign(hostChallenge(m.nonce,m.campaign,m.room,m.session));
     this.trace(peer,'host-proof-sent');this.control(peer,'proof',{nonce:m.nonce,signature,hostNow:this.now()});return;
    }
-   if(m.kind==='verified'){peer.verified=true;this.trace(peer,'host-proof-confirmed');this.refresh();return;}
+   if(m.kind==='verified'){peer.environment=safeEnvironment(m.environment);peer.verified=true;this.trace(peer,'host-proof-confirmed');this.refresh();return;}
    if(m.kind==='need'&&peer.run?.sid===m.sid&&Array.isArray(m.ids)&&m.ids.length<=27&&new Set(m.ids).size===m.ids.length&&m.ids.every(id=>peer.run.assets.some(a=>a.id===id))){
     if(peer.sending)return;peer.sending=true;this.trace(peer,'media-requested');this.state(peer,'recebendo');void this.transfer(peer,peer.run,m.ids);return;
    }
    if(m.kind==='ready'&&peer.run?.sid===m.sid&&peer.transferred&&!peer.ready){peer.ready=true;peer.metrics={...peer.metrics,...this.safeMetrics(m.metrics),readyAt:this.now()};this.trace(peer,'receiver-ready');this.state(peer,'pronto');if(peer.run.startAt)this.playPeer(peer,peer.run);else this.maybeStart();return;}
    if(m.kind==='state'&&(!peer.expected||peer.expected===m.sid)&&(peer.run?.sid===m.sid||!peer.run&&peer.ending===m.sid)&&statuses.has(m.status)){
-    if(m.status==='encerrado'){peer.ending=null;if(peer.run){peer.run.completed??=new Set();peer.run.completed.add(peer.connection._identity||peer.connection.peer||peer.connection);}}if(m.status==='falhou'){peer.run=null;peer.wire?.close();}peer.metrics={...peer.metrics,...this.safeMetrics(m.metrics)};this.trace(peer,'participant-'+m.status);this.state(peer,m.status,m.status==='falhou'?'O jogador não conseguiu carregar a apresentação.':'');if(['apresentando','falhou','encerrando','encerrado'].includes(m.status))clearTimeout(peer.timeout);if(m.status==='apresentando'){peer.metrics.startSkewMs=Number.isFinite(m.actualAt)?m.actualAt-peer.run.startAt:null;peer.run.started??=new Map();if(!peer.run.started.has(peer.connection._identity||peer.connection.peer||peer.connection))peer.run.started.set(peer.connection._identity||peer.connection.peer||peer.connection,peer.run.startAt);}this.checkCompletion();return;
+    if(m.status==='encerrado'){peer.ending=null;if(peer.run){peer.run.completed??=new Set();peer.run.completed.add(peer.connection._identity||peer.connection.peer||peer.connection);}}if(m.status==='falhou'){peer.run=null;peer.wire?.close();}peer.metrics={...peer.metrics,...this.safeMetrics(m.metrics)};if(m.status!=='falhou')this.trace(peer,'participant-'+m.status);this.state(peer,m.status,m.status==='falhou'?cinematicFailure(peer.code):'');if(['apresentando','falhou','encerrando','encerrado'].includes(m.status))clearTimeout(peer.timeout);if(m.status==='apresentando'){peer.metrics.startSkewMs=Number.isFinite(m.actualAt)?m.actualAt-peer.run.startAt:null;peer.run.started??=new Map();if(!peer.run.started.has(peer.connection._identity||peer.connection.peer||peer.connection))peer.run.started.set(peer.connection._identity||peer.connection.peer||peer.connection,peer.run.startAt);}this.checkCompletion();return;
    }
    // Incoming client start/stop/media commands never reach the player or other peers.
    return;
@@ -96,17 +99,17 @@ export class RemoteCinematics{
    const valid=await verifyHostProof(publicKey,hostChallenge(peer.nonce,m.campaign,m.room,m.session),m.signature);
    if(peer.closed)return;
    if(!valid){this.fail(peer,'host-proof-invalid','A identidade do mestre não foi confirmada. Reabra a mesa e tente novamente.');return;}
-   peer.verified=true;this.trace(peer,'host-proof-verified');peer.clockOffset=Number.isFinite(m.hostNow)?this.now()-m.hostNow:0;clearTimeout(peer.proofTimer);this.control(peer,'verified');this.control(peer,'clock',{sent:this.now()});this.state(peer,'conectado');return;
+   peer.verified=true;this.trace(peer,'host-proof-verified');peer.clockOffset=Number.isFinite(m.hostNow)?this.now()-m.hostNow:0;clearTimeout(peer.proofTimer);this.control(peer,'verified',{environment:cinematicEnvironment()});this.control(peer,'clock',{sent:this.now()});this.state(peer,'conectado');return;
   }
   if(!peer.verified)return;
   if(m.kind==='prepare'){
-   if(!validateManifest(m)||m.revision<=this.watermark)return;
+   if(m.revision<=this.watermark)return;if(!validateManifest(m)){this.fail(peer,'manifest-invalid');return;}peer.code=null;peer.failurePhase=null;peer.errorType=null;
    this.pending?.controller?.abort();await this.presentation?.end();if(peer.closed||m.revision<=this.watermark)return;
    this.trace(peer,'manifest-received');this.watermark=m.revision;const generation=++this.generation;
    await this.frame.clear({immediate:true});if(peer.closed||generation!==this.generation)return;
    this.pending={...m,peer,lastSeen:this.now(),generation,controller:new AbortController()};
    this.pending.metrics={commandMs:Math.max(0,this.now()-(peer.clockOffset||0)-(m.offeredAt||this.now())),bytes:0,integrityMs:0};this.pending.receivedAt=this.now();
-   await this.presentation?.begin({frame:this.frame,signal:this.pending.controller.signal});if(peer.closed||generation!==this.generation)return;clearTimeout(this.cacheTimer);
+   this.trace(peer,'receiver-setup');try{await this.presentation?.begin({frame:this.frame,signal:this.pending.controller.signal});}catch(error){if(error?.name==='AbortError')return;this.fail(peer,'receiver-setup-failed',cinematicFailure('receiver-setup-failed'),error);await this.endClient('failed',true);return;}if(peer.closed||generation!==this.generation)return;clearTimeout(this.cacheTimer);
    this.makeWire(peer,m.sid);this.evict(m.assets);
    for(const a of m.assets){const cached=this.cache.get(a.id);if(cached&&(cached.type!==a.type||cached.size!==a.size))this.cache.delete(a.id);}
    const ids=m.assets.filter(a=>!this.cache.has(a.id)).map(a=>a.id);
@@ -162,7 +165,7 @@ export class RemoteCinematics{
  playPeer(peer,run){if(peer.playSent||!run.startAt)return;peer.playSent=true;this.control(peer,'play',{sid:run.sid,startAt:run.startAt});}
  waitStart(pending,delay){return new Promise((resolve,reject)=>{const signal=pending.controller?.signal,abort=()=>{clearTimeout(timer);reject(new DOMException('Cancelado','AbortError'));},timer=setTimeout(()=>{signal?.removeEventListener('abort',abort);resolve();},delay);if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});});}
  async offer(peer,run){
-  if(peer.closed||this.active!==run)return;const identity=peer.connection._identity||peer.connection.peer||peer.connection;if(run.completed?.has(identity)){this.state(peer,'encerrado');return;}peer.transferred=false;peer.playSent=false;peer.ready=false;peer.expected=run.sid;peer.metrics={offeredAt:this.now(),totalBytes:run.assets.reduce((n,a)=>n+a.size,0)};peer.offered=run.sid;peer.run=run;this.trace(peer,'manifest-sent');this.state(peer,'preparando');peer.ending=null;this.makeWire(peer,run.sid);
+  if(peer.closed||this.active!==run)return;const identity=peer.connection._identity||peer.connection.peer||peer.connection;if(run.completed?.has(identity)){this.state(peer,'encerrado');return;}peer.code=null;peer.failurePhase=null;peer.errorType=null;peer.transferred=false;peer.playSent=false;peer.ready=false;peer.expected=run.sid;peer.metrics={offeredAt:this.now(),totalBytes:run.assets.reduce((n,a)=>n+a.size,0)};peer.offered=run.sid;peer.run=run;this.trace(peer,'manifest-sent');this.state(peer,'preparando');peer.ending=null;this.makeWire(peer,run.sid);
   this.control(peer,'prepare',{sid:run.sid,revision:run.revision,item:run.item,assets:run.assets,startedAt:run.startedAt,offeredAt:this.now()});
   clearTimeout(peer.timeout);peer.timeout=setTimeout(()=>{if(peer.run===run){peer.run=null;peer.wire?.close();this.control(peer,'stop',{sid:run.sid,revision:run.revision,immediate:true});this.state(peer,'falhou','O jogador não confirmou a apresentação no prazo.');}},180000);
  }
@@ -198,7 +201,7 @@ export class RemoteCinematics{
    const asset=item.layers?.length||item.backgroundVideo?pending.media:pending.media[item.imageId];
    if(this.frame.prepare&&!await this.frame.prepare(asset,item,()=>{if(this.current(pending))void this.endClient('automatic',true);}))throw Error('Player recusou o preparo');
    if(!this.current(pending))return;pending.prepared=true;pending.readyAt=this.now();pending.metrics.prepareMs=this.now()-prepareBegin;pending.metrics.firstFrameMs=this.now()-pending.receivedAt;Object.assign(pending.metrics,this.frame.metrics||{});this.presentation?.ready();this.trace(peer,'media-ready');this.state(peer,'pronto');this.control(peer,'ready',{sid:pending.sid,metrics:pending.metrics});
-  }catch(error){if(this.current(pending)&&error?.name!=='AbortError')await this.endClient('failed',true);}
+  }catch(error){if(this.current(pending)&&error?.name!=='AbortError'){this.fail(peer,'media-prepare-failed',cinematicFailure('media-prepare-failed'),error);await this.endClient('failed',true);}}
  }
  async playClient(pending){
   if(!this.current(pending)||pending.playing)return;pending.playing=true;
@@ -218,13 +221,13 @@ export class RemoteCinematics{
    const shown=this.presentation?await this.presentation.start(start,{signal:pending.controller.signal}):await start();
    if(!this.current(pending))return;if(!shown)throw Error('Player não iniciou');
    this.trace(peer,'player-started');this.state(peer,'apresentando');pending.metrics.readyToPlayMs=this.now()-(pending.readyAt||this.now());this.control(peer,'state',{sid:pending.sid,status:'apresentando',actualAt:this.now()-(peer.clockOffset||0),metrics:pending.metrics});
-  }catch(error){if(this.current(pending)&&error?.name!=='AbortError')await this.endClient('failed',true);}
+  }catch(error){if(this.current(pending)&&error?.name!=='AbortError'){this.fail(peer,'player-start-failed',cinematicFailure('player-start-failed'),error);await this.endClient('failed',true);}}
  }
  async endClient(reason,immediate=false){
   const pending=this.pending;this.pending=null;this.generation=(this.generation||0)+1;const generation=this.generation;
-  if(pending){pending.controller?.abort();pending.peer.wire?.close();this.state(pending.peer,reason==='failed'?'falhou':'encerrando',reason==='failed'?'Não foi possível carregar a mídia.':'');}
+  if(pending){pending.controller?.abort();pending.peer.wire?.close();this.state(pending.peer,reason==='failed'?'falhou':'encerrando',reason==='failed'?cinematicFailure(pending.peer.code):'');}
   await this.frame.clear({immediate});if(this.generation!==generation)return;await this.presentation?.end();if(this.generation!==generation)return;
-  if(pending){this.trace(pending.peer,'player-ended');const status=reason==='failed'?'falhou':'encerrado';this.state(pending.peer,status,reason==='failed'?'Não foi possível carregar a mídia.':'');this.control(pending.peer,'state',{sid:pending.sid,status});}
+  if(pending){if(reason!=='failed')this.trace(pending.peer,'player-ended');const status=reason==='failed'?'falhou':'encerrado';this.state(pending.peer,status,reason==='failed'?cinematicFailure(pending.peer.code):'');this.control(pending.peer,'state',{sid:pending.sid,status});}
   if(reason==='failed')this.presentation?.failure();
   clearTimeout(this.cacheTimer);if(!this.closed)this.cacheTimer=setTimeout(()=>this.cache.clear(),30000);
  }

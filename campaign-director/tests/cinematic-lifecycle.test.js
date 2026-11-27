@@ -37,7 +37,7 @@ test('cyclic presets close on the same pose, and reveal zooms in only once',()=>
 function fakeLayer(){
   const calls=[],classes=new Set();
   const document={createElement:tag=>({tag,naturalWidth:100,naturalHeight:100,
-    ownerDocument:document,replaceChildren(){},append(){},setAttribute(){},decode:async()=>{},animate(frames,timing){
+    ownerDocument:document,remove(){},replaceChildren(){},append(){},setAttribute(){},decode:async()=>{},animate(frames,timing){
       const animation={frames,timing,cancelled:false,cancel(){this.cancelled=true;},pause(){this.paused=true;},play(){this.paused=false;}};
       calls.push(animation);return animation;
     }})};
@@ -191,4 +191,13 @@ test('coordinated receiver acknowledges preparation promptly and remains cancell
  const messages=[];let release,starts=0,stops=0;const pending=new Promise(r=>release=r),receiver=new CinematicReceiver({scope,boardId:'coordinated-board',frame:{clear:async()=>true},send:m=>messages.push(m),coordinate:async({signal})=>{await pending;if(signal.aborted)return false;starts++;return true;},onPresentation:e=>{if(e.type==='stop')stops++;}});
  const command=cinematicEnvelope(scope,{type:'start',senderId:'director',requestId:'request',sessionId:'session',boardId:'coordinated-board',scene,item:legacy,image,sequence:1});
  const preparing=receiver.handle(command);assert.equal(messages[0].type,'accepted');assert.equal(starts,0);await receiver.handle({...command,type:'stop',immediate:true,sequence:2});release();await preparing;assert.equal(starts,0);assert.equal(stops,1);assert.equal(receiver.active,null);assert.ok(messages.some(m=>m.type==='ended'));
+});
+
+test('composition atmosphere shares the lighting world and never accumulates on motion changes',t=>{
+ const previous=globalThis.matchMedia;globalThis.matchMedia=()=>({matches:false});t.after(()=>{if(previous)globalThis.matchMedia=previous;else delete globalThis.matchMedia;});
+ const {frame,layer}=fakeLayer(),document=layer.ownerDocument,create=document.createElement;
+ document.createElement=tag=>{const node=create(tag);node.remove=()=>{if(node.parent)node.parent.children=node.parent.children.filter(n=>n!==node);node.parent=null;};return node;};
+ const world={children:[],append(node){node.parent=this;this.children.push(node);}};
+ frame.composition={world,planes:[],pulses:[],videos:[]};frame.item={...legacy,motion:'breath',ending:'loop',hold:0};frame.image=world;frame.playing=false;
+ try{frame.startEffects();assert.equal(world.children.length,1);assert.equal(world.children[0].className,'cinematic-atmosphere');assert.equal(layer.children.length,1);frame.startEffects();assert.equal(world.children.length,1);assert.equal(frame.animations.length,1);assert.equal(frame.animations[0].paused,true);frame.stopEffects();assert.equal(world.children.length,0);}finally{frame.stopEffects();}
 });

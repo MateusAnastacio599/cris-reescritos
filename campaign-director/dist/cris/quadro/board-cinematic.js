@@ -1,9 +1,10 @@
-import {CinematicFrame} from '../../cinematic-frame.js?v=live01b3';
-import {CINEMATIC_CHANNEL,CinematicReceiver,validBoard} from '../../cinematic-protocol.js?v=live01b3';
-import {CinematicPresentation} from '../../cinematic-presentation.js?v=live01b3';
-import {RemoteCinematics} from '../../cinematic-remote.js?v=live01b3';
+import {CinematicFrame,CINEMATIC_FRAME_BUILD} from '../../cinematic-frame.js?v=live01b4';
+import {CINEMATIC_PROTOCOL_BUILD,CINEMATIC_CHANNEL,CinematicReceiver,validBoard} from '../../cinematic-protocol.js?v=live01b4';
+import {CinematicPresentation,CINEMATIC_PRESENTATION_BUILD} from '../../cinematic-presentation.js?v=live01b4';
+import {RemoteCinematics,CINEMATIC_REMOTE_BUILD} from '../../cinematic-remote.js?v=live01b4';
 
 export function mountBoardCinematic({userId,boardCampaignId,isMaster,archiveId,ready}){
+ if([CINEMATIC_PROTOCOL_BUILD,CINEMATIC_FRAME_BUILD,CINEMATIC_PRESENTATION_BUILD,CINEMATIC_REMOTE_BUILD,window.CRIS_BOARD_LIVE?.LIVE_BUILD].some(build=>build!=='live01b4'))throw Error('Cinematic modules need an update');
  const scope={userId,boardCampaignId};if(archiveId||!validBoard(scope))return;
  const element=document.createElement('div');element.className='cinematic-frame cinematic-board-layer';element.hidden=true;element.setAttribute('aria-label','Apresentação cinematográfica');
  let receiver,channel,timer;
@@ -13,6 +14,7 @@ export function mountBoardCinematic({userId,boardCampaignId,isMaster,archiveId,r
  const observer=new MutationObserver(()=>{const active=!element.hidden&&!!frame.playing;document.body.classList.toggle('cris-cinematic-active',active);controls.hidden=!active;if(!active)document.body.classList.remove('cris-cinematic-controls-open');});observer.observe(element,{attributes:true,attributeFilter:['hidden','class']});
  const presentation=new CinematicPresentation({controls,status:phase=>{const current=remote.pending?.peer;if(current){remote.trace(current,phase);if(phase==='autoplay-blocked'){remote.state(current,'bloqueado');remote.control(current,'state',{sid:remote.pending.sid,status:'bloqueado'});}}}});
  const remote=window.CRIS_REMOTE_CINEMATICS=new RemoteCinematics({Wire:window.CRIS_BOARD_LIVE.LiveWire,frame,bridge:window.CRISBridge,presentation,changed:participants=>{
+  const update=participants.find(p=>p.code==='legacy-client');if(!isMaster&&update&&!presentation.updateNotice){presentation.updateNotice=true;presentation.failure({message:update.error,update:true});}
   window.CRIS_ROOM_CONTROLS?.remote(participants);window.CRIS_ROOM_CONTROLS?.coordination?.(remote.active);
   if(isMaster)window.CRIS_ROOM_CONTROLS?.notice(remote.hostError||'');
   if(receiver?.active)receiver.reply(receiver.active,{type:'remote-status',participants,coordination:remote.active?.phase});
