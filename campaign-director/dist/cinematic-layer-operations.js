@@ -1,4 +1,4 @@
-import {CINEMATIC_MAX_LAYERS} from './cinematic-model.js?v=live01b5a';
+import {CINEMATIC_MAX_LAYERS} from './cinematic-model.js?v=directorcinematic01';
 export function duplicateCinematicLayer(layers,id,backgroundVideo=false){
   if(layers.length>=CINEMATIC_MAX_LAYERS)throw Error('A composição já tem 12 camadas.');
   const source=layers.find(l=>l.id===id);if(!source)throw Error('Selecione uma camada.');

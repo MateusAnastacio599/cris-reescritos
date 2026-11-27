@@ -1,6 +1,6 @@
-import {loadCinematicMedia} from './cinematic-media.js?v=live01b5a';
-import {cinematicItems,isCinematicKey} from './cinematic-model.js?v=live01b5a';
-import {sameBoard,sameCinematicScene} from './cinematic-protocol.js?v=live01b5a';
+import {loadCinematicMedia} from './cinematic-media.js?v=directorcinematic01';
+import {cinematicItems,isCinematicKey} from './cinematic-model.js?v=directorcinematic01';
+import {sameBoard,sameCinematicScene} from './cinematic-protocol.js?v=directorcinematic01';
 
 export function validateCinematicCue(action){
   if(action.type==='cinematic-start'&&(!isCinematicKey(action.cinematicId)||action.replace!==undefined&&typeof action.replace!=='boolean')){
@@ -14,8 +14,8 @@ export function validateCinematicCue(action){
 // Cue scheduling remains owned by the existing cue runner. The captured revision
 // prevents delayed commands and image loads from surviving navigation or a stop.
 export class CinematicCues{
-  constructor({engine,link,getScope,getLocation,getState,images,onError}){
-    Object.assign(this,{engine,link,getScope,getLocation,getState,images,onError});
+  constructor({engine,link,getScope,getLocation,getState,images,onError,mediaFor}){
+    Object.assign(this,{engine,link,getScope,getLocation,getState,images,onError,mediaFor});
     this.revision=0;
     this.command=0;
     engine.addEventListener('cue-context',event=>{
@@ -46,7 +46,9 @@ export class CinematicCues{
     const scene=state.campaigns.find(value=>value.id===location.campaignId)?.pages.find(value=>value.id===location.pageId)?.scenes.find(value=>value.id===location.sceneId);
     const item=cinematicItems(scene??{}).find(value=>value.id===action.cinematicId);
     if(!item)throw Error('A Cinematic desta cue não está disponível na cena atual. Edite a cue e escolha uma apresentação salva.');
-    const image=await loadCinematicMedia(item,this.images);
+    let image;
+    try{image=await (this.mediaFor?this.mediaFor(item,location):loadCinematicMedia(item,this.images));}
+    catch(error){if(!valid()||command!==this.command)return false;throw error;}
     if(!valid()||command!==this.command)return false;
     if(!image)throw Error('Imagem da Cinematic indisponível neste navegador. Anexe novamente ou importe o backup completo.');
     const started=await this.link.present(context.scope,context.scene,item,image,{replace:action.replace!==false});

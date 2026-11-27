@@ -1,6 +1,6 @@
-import {NEW_FX} from './cinematic-fx.js?v=live01b5a';
-import {animateCameraPath} from './cinematic-camera-player.js?v=live01b5a';
-import {cameraTransform,defaultCamera} from './cinematic-direction-model.js?v=live01b5a';
+import {NEW_FX} from './cinematic-fx.js?v=directorcinematic01';
+import {animateCameraPath} from './cinematic-camera-player.js?v=directorcinematic01';
+import {cameraTransform,defaultCamera} from './cinematic-direction-model.js?v=directorcinematic01';
 
 export function effectFrames(effect){
   const identity={transform:'translate(0%, 0%) scale(1, 1) rotate(0deg)'};

@@ -1,13 +1,13 @@
-import {ownsStudio,releaseStudio,numericInvalid,captureContext,restoreContext,arrangeStudio,renderTemporalDock,confirmStudio} from './cinematic-studio-ui.js?v=live01b5a';
-import {sceneSpan} from './cinematic-timing.js?v=live01b5a';
+import {ownsStudio,releaseStudio,numericInvalid,captureContext,restoreContext,arrangeStudio,renderTemporalDock,confirmStudio} from './cinematic-studio-ui.js?v=directorcinematic01';
+import {sceneSpan} from './cinematic-timing.js?v=directorcinematic01';
 const DIRECTION_KEYS=['camera','lighting','sceneDuration','backgroundVideo'];
-import {StudioProperties} from './cinematic-studio-properties.js?v=live01b5a';
-import {StudioHistory} from './cinematic-studio-history.js?v=live01b5a';
-import {CinematicLayersEditor} from './cinematic-layers-editor.js?v=live01b5a';
-import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,cinematicFades,cinematicTotal,checkCinematicImage,checkCinematicUpload,withCinematic,duplicateCinematic} from './cinematic-model.js?v=live01b5a';
-import {cinematicImages,imageKey,loadCinematicMedia,validateCompositionMedia} from './cinematic-media.js?v=live01b5a';
-import {mountMotionNotice} from './cinematic-motion.js?v=live01b5a';
-import {CinematicFrame} from './cinematic-frame.js?v=live01b5a';
+import {StudioProperties} from './cinematic-studio-properties.js?v=directorcinematic01';
+import {StudioHistory} from './cinematic-studio-history.js?v=directorcinematic01';
+import {CinematicLayersEditor} from './cinematic-layers-editor.js?v=directorcinematic01';
+import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,cinematicFades,cinematicTotal,checkCinematicImage,checkCinematicUpload,withCinematic,duplicateCinematic} from './cinematic-model.js?v=directorcinematic01';
+import {cinematicImages,imageKey,loadCinematicMedia,validateCompositionMedia} from './cinematic-media.js?v=directorcinematic01';
+import {mountMotionNotice} from './cinematic-motion.js?v=directorcinematic01';
+import {CinematicFrame} from './cinematic-frame.js?v=directorcinematic01';
 import {$,esc,field,openForm,option} from './ui.js';
 
 export function openCinematic({scene,save,present,stop,subscribe}){

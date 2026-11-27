@@ -1,7 +1,9 @@
-import {CinematicCues} from './cinematic-cues.js?v=live01b5a';
-import {cinematicImages} from './cinematic-media.js?v=live01b5a';
-import {openCinematic} from './cinematic-editor.js?v=live01b5a';
-import {CinematicLink} from './cinematic-link.js?v=live01b5a';
+import {CinematicSequence} from './cinematic-sequence.js?v=directorcinematic01';
+import {mountSceneCinematic} from './cinematic-scene-ui.js?v=directorcinematic01';
+import {CinematicCues} from './cinematic-cues.js?v=directorcinematic01';
+import {cinematicImages} from './cinematic-media.js?v=directorcinematic01';
+import {openCinematic} from './cinematic-editor.js?v=directorcinematic01';
+import {CinematicLink} from './cinematic-link.js?v=directorcinematic01';
 import {mountScriptDisplay,scriptDisplayHTML} from './script-display.js';
 import {mountSceneSections,setupSessionTools,updateSceneSections} from './session-view.js';
 import {crisHome} from './hub-links.js';
@@ -35,14 +37,14 @@ const cinematicScope=()=>({
   userId:cloudUI?.account.profile?.is_operator?cloudUI.account.user?.id:null,
   boardCampaignId:cloudUI?.sync.workspace.binding?.campaignId,
 });
-let cinematicLocation;
+let cinematicLocation,sequence,sceneCinematicUI;
 const cinematicCues=new CinematicCues({engine,link:cinematic,getScope:cinematicScope,
-  getLocation:()=>state.ui.view==='document'?locationForScene():null,getState:()=>state,images:cinematicImages,onError:message=>toast(message,true)});
+  getLocation:()=>state.ui.view==='document'?locationForScene():null,getState:()=>state,images:cinematicImages,mediaFor:item=>sequence.mediaFor(item),onError:message=>toast(message,true)});
 const reconcileCinematic=()=>{
   const location=state.ui.view==='document'?locationForScene():null;
   const key=JSON.stringify([cinematicScope(),location]);
   if(cinematicLocation!==key){cinematicCues.invalidate();cinematicLocation=key;}
-  cinematic.reconcile(cinematicScope(),location);
+  cinematic.reconcile(cinematicScope(),location);void sequence?.refresh();
 };
 const openSceneCinematic=()=>{
   const target=scene(),location=locationForScene();
@@ -57,7 +59,9 @@ cinematic.subscribe(({active,message})=>{
   const status=$('#cinematicSceneStatus');
   if(status)status.textContent=message;
 });
-window.addEventListener('pagehide',()=>cinematic.close());
+sequence=new CinematicSequence({getState:()=>state,getLocation:()=>state.ui.view==='document'?locationForScene():null,getScope:cinematicScope,link:cinematic,images:cinematicImages,changed:()=>sceneCinematicUI?.update()});
+window.addEventListener('pagehide',()=>{sequence.close();cinematic.close();});
+window.addEventListener('focus',()=>{if(sequence.failure)void sequence.refresh({retry:true});});
 const boardLink=new BoardLink({campaign:()=>cloudUI?.sync.workspace.binding?.campaignId});
 const configContext={board:boardLink,state:()=>state,scene:()=>scene(),engine,location:locationForScene,commit:()=>commit(true)};
 const library=new LibraryUI({state:()=>state,engine,commit:()=>commit(true),save:()=>autosave()});
@@ -72,7 +76,7 @@ function normalizeSelection(){const c=campaign(),p=page(),s=scene();state.ui.cam
 function persist() {
   if(recoveryError){$('#saveStatus').className='save-status failed';$('#saveStatus span').textContent='Dados preservados · recuperação pendente';return false;}
   clearTimeout(saveTimer);
-  try{saveState(state);const label=$('#saveStatus');label.className='save-status';$('span',label).textContent='Salvo neste computador';cloudUI?.sync.changed();cloudUI?.renderStatus();return true;}
+  try{saveState(state);const label=$('#saveStatus');label.className='save-status';$('span',label).textContent='Salvo neste computador';cloudUI?.sync.changed();cloudUI?.renderStatus();void sequence?.refresh();return true;}
   catch(error){$('#saveStatus').className='save-status failed';$('#saveStatus span').textContent='Falha ao salvar · faça um backup';toast('Não foi possível salvar. Exporte um backup antes de fechar esta página.',true);return false;}
 }
 function autosave(){
@@ -208,6 +212,7 @@ function renderDocument(){
     Object.assign(state.ui,preferences);
     persist();
   });
+  sceneCinematicUI=mountSceneCinematic($('.document-top'),{scene:s,save:()=>persist(),present:item=>cinematicCues.execute({type:'cinematic-start',cinematicId:item.id,replace:true},{scope:{...cinematicScope()},scene:locationForScene(),revision:cinematicCues.revision}).catch(error=>toast(error.message,true)),sequence});
   setupDirectorResize();
   $$('[data-scene]').forEach(b=>b.onclick=()=>navigate({sceneId:b.dataset.scene}));
   $('#openBoardClues').onpointerdown=()=>editor?.captureSelection();$('#newScene').onclick=()=>createScene();$('#toggleEdit').onclick=()=>{editing=!editing;persist();renderDocument();updateAudioUI();};
@@ -323,7 +328,7 @@ function pageOptions(){
   const p=page(),s=scene();openForm({title:'Página e cena',body:`<div class="option-list"><button type="button" id="editPageMeta">${icon('edit')} Configurar página <small>${esc(p.title)}</small></button><button type="button" id="renameScene">${icon('file')} Renomear cena <small>${esc(s.title)}</small></button>${s.textHistory?.length?`<button type="button" id="sceneTextHistory">${icon('file')} Versões anteriores do roteiro <small>${s.textHistory.length} versões</small></button>`:''}<button type="button" id="duplicateScene">${icon('copy')} Duplicar cena e direção sonora</button><button type="button" id="deleteScene" class="danger-text">${icon('trash')} Excluir cena atual</button><button type="button" id="deletePage" class="danger-text">${icon('trash')} Excluir página e cenas</button></div>`,onReady:root=>{
     $('#editPageMeta',root).onclick=editPage;$('#sceneTextHistory',root)?.addEventListener('click',()=>openSceneHistory(s));
     $('#renameScene',root).onclick=()=>openForm({title:'Renomear cena',body:field('Nome','title',s.title,'required maxlength="120"'),onSubmit:form=>{const title=String(form.get('title')).trim();if(!title)throw new Error('Informe um nome.');s.title=title;delete s.label;commit(true);}});
-    $('#duplicateScene',root).onclick=()=>{const duplicate=clone(s);duplicate.id=uid('scene');duplicate.title+=' (cópia)';delete duplicate.label;p.scenes.splice(p.scenes.indexOf(s)+1,0,duplicate);$('#appDialog').close();navigate({sceneId:duplicate.id});};
+    $('#duplicateScene',root).onclick=()=>{const duplicate=clone(s);duplicate.id=uid('scene');duplicate.title+=' (cópia)';delete duplicate.label;if(duplicate.cinematic)delete duplicate.cinematic.remotePrewarmIds;p.scenes.splice(p.scenes.indexOf(s)+1,0,duplicate);$('#appDialog').close();navigate({sceneId:duplicate.id});};
     $('#deleteScene',root).onclick=()=>{if(p.scenes.length===1){toast('A página precisa de uma cena. Crie outra antes de excluir esta.',true);return;}confirmAction('Excluir cena?',`O roteiro e a direção de “${s.title}” serão excluídos.`,()=>{if(engine.active?.key===locationForScene().key)engine.stop();p.scenes=p.scenes.filter(x=>x!==s);return ()=>navigate({sceneId:p.scenes[0].id});});};
     $('#deletePage',root).onclick=()=>{if(campaign().pages.length===1){toast('A campanha precisa de uma página. Crie outra antes de excluir esta.',true);return;}confirmAction('Excluir página?',`“${p.title}” e suas ${p.scenes.length} cenas serão excluídas. Exporte um backup se quiser guardar uma cópia.`,()=>{if(engine.active?.pageId===p.id)engine.stop();campaign().pages=campaign().pages.filter(x=>x!==p);return ()=>navigate({pageId:campaign().pages[0].id,sceneId:campaign().pages[0].scenes[0].id});});};
   }});
