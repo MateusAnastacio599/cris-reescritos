@@ -1,0 +1,148 @@
+{
+  "transport": "simulated",
+  "master": {
+    "hostReady": true,
+    "hostFailure": null,
+    "active": true,
+    "coordination": {
+      "phase": "apresentando",
+      "startAt": 1795722945763,
+      "local": {
+        "imageMs": 20.9000000001397,
+        "videoMs": 131.80000000004657,
+        "videoFallbacks": 0,
+        "prepareMs": 145,
+        "startSkewMs": 1
+      },
+      "canProceed": false
+    },
+    "peers": [
+      {
+        "phase": "participant-apresentando",
+        "status": "apresentando",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "metrics": {
+          "offeredAt": 1795722944467,
+          "totalBytes": 3829001,
+          "bytes": 3829001,
+          "reused": 0,
+          "base64Ms": 197,
+          "transferMs": 450,
+          "wire": 5105691,
+          "maxInFlight": 4,
+          "commandMs": 7.5,
+          "decodeBase64Ms": 18,
+          "integrityMs": 21,
+          "prepareMs": 41,
+          "firstFrameMs": 491,
+          "imageMs": 11,
+          "videoMs": 31.3,
+          "videoFallbacks": 0,
+          "readyAt": 1795722944963,
+          "readyToPlayMs": 797,
+          "startSkewMs": 0.5
+        },
+        "version": 4
+      }
+    ],
+    "events": [
+      {
+        "at": 1795722935257,
+        "phase": "host-key-registered"
+      },
+      {
+        "at": 1795722941582,
+        "phase": "host-proof-signing"
+      },
+      {
+        "at": 1795722941582,
+        "phase": "host-proof-sent"
+      },
+      {
+        "at": 1795722941617,
+        "phase": "host-proof-confirmed"
+      },
+      {
+        "at": 1795722944467,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795722944471,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795722944921,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795722944963,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795722945759,
+        "phase": "participant-apresentando"
+      }
+    ]
+  },
+  "player": {
+    "hostReady": false,
+    "hostFailure": null,
+    "active": false,
+    "coordination": null,
+    "peers": [
+      {
+        "phase": "player-started",
+        "status": "apresentando",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "metrics": {},
+        "version": 4
+      }
+    ],
+    "events": [
+      {
+        "at": 1795722941605,
+        "phase": "host-key-reading"
+      },
+      {
+        "at": 1795722941606,
+        "phase": "host-proof-verified"
+      },
+      {
+        "at": 1795722944470,
+        "phase": "manifest-received"
+      },
+      {
+        "at": 1795722944471,
+        "phase": "mobile-preparing"
+      },
+      {
+        "at": 1795722944479,
+        "phase": "media-validated"
+      },
+      {
+        "at": 1795722944909,
+        "phase": "media-validated"
+      },
+      {
+        "at": 1795722944920,
+        "phase": "receiver-preparing"
+      },
+      {
+        "at": 1795722944961,
+        "phase": "media-ready"
+      },
+      {
+        "at": 1795722945757,
+        "phase": "player-loading"
+      },
+      {
+        "at": 1795722945758,
+        "phase": "player-started"
+      }
+    ]
+  }
+}

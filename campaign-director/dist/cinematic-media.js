@@ -34,10 +34,17 @@ export const cinematicImages={
   },
 };
 
+const hashes=new WeakMap();
+export const cinematicHashMetrics={calls:0,bytes:0,ms:0,reused:0};
 export async function imageKey(image){
-  if(image?.type==='video/webm')await checkCinematicVideo(image,{allowOpaque:true});else await checkCinematicImage(image);
-  const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',await image.arrayBuffer()));
-  return (image.type==='video/webm'?'video-':'image-')+[...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+  if(!(image instanceof Blob))throw Error('Mídia inválida.');
+  if(hashes.has(image)){cinematicHashMetrics.reused++;return hashes.get(image);}
+  const promise=(async()=>{const begin=performance.now();
+    if(image.type==='video/webm')await checkCinematicVideo(image,{allowOpaque:true});else await checkCinematicImage(image);
+    const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',await image.arrayBuffer()));
+    cinematicHashMetrics.calls++;cinematicHashMetrics.bytes+=image.size;cinematicHashMetrics.ms+=performance.now()-begin;
+    return (image.type==='video/webm'?'video-':'image-')+[...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+  })();hashes.set(image,promise);try{return await promise;}catch(error){hashes.delete(image);throw error;}
 }
 
 export async function storeCinematicImage(image,images=cinematicImages){

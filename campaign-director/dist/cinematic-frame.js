@@ -3,7 +3,7 @@ import {animateTimedFX} from './cinematic-fx.js';
 import {animateDirectorLights} from './cinematic-light-player.js';
 import {cameraTransform} from './cinematic-direction-model.js';
 import {animateDirectionCamera,animateLayerEffects,animateLighting} from './cinematic-direction-player.js';
-import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js?v=live01b2';
+import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js?v=live01b3';
 import {checkCinematicImage,cinematicEnding,cinematicFades} from './cinematic-model.js';
 import {cinematicMotion,mountMotionNotice} from './cinematic-motion.js';
 const fadeBuffer=30;
@@ -109,7 +109,7 @@ export class CinematicFrame{
     this.element.hidden=false;
     this.element.getBoundingClientRect();
     this.element.style.setProperty('--cinematic-fade',cinematicFades(item).fadeIn*1000+'ms');
-    this.element.classList.add('cinematic-visible');
+    this.element.classList.add('cinematic-visible');this.element.classList[autoplay?'remove':'add']('cinematic-prepared');
     if(composition)this.removeFit=fitComposition(composition,this.element,{contain:this.fit==='contain'});
     this.position=0;this.playing=autoplay;this.onEnd=onEnd;this.startedAt=performance.now();
     this.startEffects();
@@ -118,15 +118,15 @@ export class CinematicFrame{
     if(composition?.videos.length)this.videoTimer=setInterval(()=>this.syncVideos(),80);
   }
   async prepare(asset,item,onEnd){
-    const shown=await this.show(asset,item,onEnd,{autoplay:false});
+    const begin=performance.now();const shown=await this.show(asset,item,onEnd,{autoplay:false});
     if(!shown)return false;const generation=this.generation;
     // Mount first: mobile decoders may not load a detached/hidden video. The
     // presentation gate covers this paused first frame while media becomes ready.
-    await this.composition?.ready?.();return generation===this.generation&&!!this.item;
+    this.metrics={imageMs:performance.now()-begin};await this.composition?.ready?.();this.metrics.videoMs=Math.max(0,...(this.composition?.videos||[]).map(v=>v.prepareMs||0));this.metrics.videoFallbacks=(this.composition?.videos||[]).filter(v=>v.config.enabled&&!v.ready).length;return generation===this.generation&&!!this.item;
   }
   async startPrepared(){
-    if(!this.item)return false;const generation=this.generation;this.play();
-    await this.syncVideos();return generation===this.generation&&!!this.item;
+    if(!this.item)return false;const generation=this.generation;this.element.classList.remove('cinematic-prepared');this.play();
+    await this.syncVideos();if(this.composition?.videos.some(v=>v.autoplayBlocked)){this.pause();this.element.classList.add('cinematic-prepared');throw new DOMException('Reprodução automática bloqueada.','NotAllowedError');}return generation===this.generation&&!!this.item;
   }
   time(){return this.item?Math.max(0,(this.position??0)+(this.playing?(performance.now()-this.startedAt)/1000:0)):0;}
   scheduleEnd(generation=this.generation){

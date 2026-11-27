@@ -1,0 +1,6 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> cris-campaign-director-v3@3.28.0 check
+> node scripts/check.mjs
+
+Verificação aprovada: módulos, imports, shell, CSS, manifesto e arquivos de áudio.

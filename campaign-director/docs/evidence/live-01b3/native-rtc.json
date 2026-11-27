@@ -1,0 +1,143 @@
+{
+  "fixture": "LIVE-01A.1 · isolação e WebRTC",
+  "scope": "Contas FICTÍCIAS; não autentica membros",
+  "isolation": null,
+  "rtc": {
+    "stage": "failed",
+    "events": [
+      {
+        "ms": 8,
+        "name": "before-createOffer",
+        "signaling": "stable",
+        "ice": "new",
+        "gathering": "new",
+        "connection": "new",
+        "localDescription": false,
+        "remoteDescription": false
+      },
+      {
+        "ms": 15,
+        "name": "a:signalingstatechange",
+        "signaling": "have-local-offer",
+        "ice": "new",
+        "gathering": "new",
+        "connection": "new",
+        "localDescription": true,
+        "remoteDescription": false
+      },
+      {
+        "ms": 15,
+        "name": "a:icegatheringstatechange",
+        "signaling": "have-local-offer",
+        "ice": "new",
+        "gathering": "gathering",
+        "connection": "new",
+        "localDescription": true,
+        "remoteDescription": false
+      },
+      {
+        "ms": 16,
+        "name": "b:signalingstatechange",
+        "signaling": "have-remote-offer",
+        "ice": "new",
+        "gathering": "new",
+        "connection": "new",
+        "localDescription": false,
+        "remoteDescription": true
+      },
+      {
+        "ms": 18,
+        "name": "b:signalingstatechange",
+        "signaling": "stable",
+        "ice": "new",
+        "gathering": "new",
+        "connection": "new",
+        "localDescription": true,
+        "remoteDescription": true
+      },
+      {
+        "ms": 18,
+        "name": "b:icegatheringstatechange",
+        "signaling": "stable",
+        "ice": "new",
+        "gathering": "gathering",
+        "connection": "new",
+        "localDescription": true,
+        "remoteDescription": true
+      },
+      {
+        "ms": 19,
+        "name": "a:signalingstatechange",
+        "signaling": "stable",
+        "ice": "new",
+        "gathering": "gathering",
+        "connection": "new",
+        "localDescription": true,
+        "remoteDescription": true
+      },
+      {
+        "ms": 140,
+        "name": "a:icegatheringstatechange",
+        "signaling": "stable",
+        "ice": "new",
+        "gathering": "complete",
+        "connection": "new",
+        "localDescription": true,
+        "remoteDescription": true
+      },
+      {
+        "ms": 140,
+        "name": "b:icegatheringstatechange",
+        "signaling": "stable",
+        "ice": "new",
+        "gathering": "complete",
+        "connection": "new",
+        "localDescription": true,
+        "remoteDescription": true
+      }
+    ],
+    "candidates": 0,
+    "candidateTypes": {
+      "host": 0,
+      "srflx": 0,
+      "relay": 0
+    },
+    "candidateCompleteEvents": 2,
+    "candidateErrors": 0,
+    "constructorAvailable": true,
+    "secureContext": true,
+    "description": "Par nativo sem PeerJS; STUN opcional, sem TURN: apenas diagnóstico da API; não prova multiplayer.",
+    "publicStun": true,
+    "offerType": "offer",
+    "error": "DataChannel timeout (8000 ms)",
+    "errorName": "Error",
+    "failedStage": "DataChannel",
+    "elapsedMs": 8020,
+    "final": [
+      {
+        "signaling": "stable",
+        "ice": "new",
+        "gathering": "complete",
+        "connection": "new",
+        "localDescription": true,
+        "remoteDescription": true,
+        "localSdpCandidates": 0,
+        "remoteSdpCandidates": 0,
+        "statsLocalCandidates": 2,
+        "statsRemoteCandidates": 0
+      },
+      {
+        "signaling": "stable",
+        "ice": "new",
+        "gathering": "complete",
+        "connection": "new",
+        "localDescription": true,
+        "remoteDescription": true,
+        "localSdpCandidates": 0,
+        "remoteSdpCandidates": 0,
+        "statsLocalCandidates": 2,
+        "statsRemoteCandidates": 0
+      }
+    ]
+  }
+}

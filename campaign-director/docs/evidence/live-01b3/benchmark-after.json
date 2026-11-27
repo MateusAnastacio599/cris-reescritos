@@ -1,0 +1,428 @@
+{
+  "hashReuse": {
+    "calls": 8,
+    "arrayBufferReads": 1,
+    "ms": 0.5457270000006247
+  },
+  "kind": "SIMULATION. Real hashes and LiveWire; decoder uses time stubs; no WebRTC or physical devices.",
+  "root": "/workspace/scratch/0aa6b72416ce/cris-live-next",
+  "results": [
+    {
+      "label": "simple, 2 participants",
+      "rttMs": 20,
+      "decoderDelayStubsMs": [
+        40,
+        100
+      ],
+      "totalMediaBytes": 12179,
+      "results": [
+        {
+          "cache": "cold",
+          "wallToLastStartMs": 981,
+          "startSpreadMs": 1,
+          "startAfterCommandMs": [
+            981,
+            981,
+            979
+          ],
+          "offsets": [
+            0.0015,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.500403000000006,
+              "integrityMs": 2.6505209999999977,
+              "decoderStubMs": 40.464819000000006,
+              "receiveToReadyMs": 93.25089499999999,
+              "readyToStartMs": 875.2411060000002
+            },
+            {
+              "commandMs": 10.941395999999997,
+              "integrityMs": 0.9641660000000059,
+              "decoderStubMs": 100.26312899999999,
+              "receiveToReadyMs": 152.66550599999997,
+              "readyToStartMs": 813.9138949999999
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795723103580,
+              "totalBytes": 12179,
+              "bytes": 12179,
+              "reused": 0,
+              "base64Ms": 6,
+              "transferMs": 53,
+              "applicationChars": 16417,
+              "maxInFlight": 2,
+              "commandMs": 10.5,
+              "decodeBase64Ms": 1,
+              "integrityMs": 1,
+              "prepareMs": 40,
+              "firstFrameMs": 93,
+              "readyAt": 1795723103695,
+              "readyToPlayMs": 876,
+              "startSkewMs": 1.5
+            },
+            {
+              "offeredAt": 1795723103581,
+              "totalBytes": 12179,
+              "bytes": 12179,
+              "reused": 0,
+              "base64Ms": 3,
+              "transferMs": 52,
+              "applicationChars": 16417,
+              "maxInFlight": 2,
+              "commandMs": 11.5,
+              "decodeBase64Ms": 0,
+              "integrityMs": 0,
+              "prepareMs": 100,
+              "firstFrameMs": 152,
+              "readyAt": 1795723103757,
+              "readyToPlayMs": 814,
+              "startSkewMs": -0.5
+            }
+          ],
+          "hash": {
+            "calls": 2,
+            "bytes": 24358,
+            "ms": 1.3246289999999874,
+            "reused": 3
+          }
+        },
+        {
+          "cache": "warm",
+          "wallToLastStartMs": 943,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            943,
+            943,
+            943
+          ],
+          "offsets": [
+            0.0005,
+            0.0005
+          ],
+          "observations": [
+            {
+              "commandMs": 10.302799999999934,
+              "integrityMs": 0,
+              "decoderStubMs": 40.53076199999987,
+              "receiveToReadyMs": 61.970763000000034,
+              "readyToStartMs": 870.281479
+            },
+            {
+              "commandMs": 10.620321000000104,
+              "integrityMs": 0,
+              "decoderStubMs": 100.08155499999998,
+              "receiveToReadyMs": 121.30629699999986,
+              "readyToStartMs": 810.7264600000003
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795723104664,
+              "totalBytes": 12179,
+              "bytes": 0,
+              "reused": 1,
+              "base64Ms": 0,
+              "transferMs": 21,
+              "applicationChars": 0,
+              "maxInFlight": 0,
+              "commandMs": 11.5,
+              "integrityMs": 0,
+              "prepareMs": 40,
+              "firstFrameMs": 61,
+              "readyAt": 1795723104746,
+              "readyToPlayMs": 871,
+              "startSkewMs": 0.5
+            },
+            {
+              "offeredAt": 1795723104664,
+              "totalBytes": 12179,
+              "bytes": 0,
+              "reused": 1,
+              "base64Ms": 0,
+              "transferMs": 21,
+              "applicationChars": 0,
+              "maxInFlight": 0,
+              "commandMs": 11.5,
+              "integrityMs": 0,
+              "prepareMs": 100,
+              "firstFrameMs": 121,
+              "readyAt": 1795723104807,
+              "readyToPlayMs": 811,
+              "startSkewMs": 0.5
+            }
+          ],
+          "hash": {
+            "calls": 0,
+            "bytes": 0,
+            "ms": 0,
+            "reused": 3
+          }
+        }
+      ]
+    },
+    {
+      "label": "layers + WebM, 2 participants",
+      "rttMs": 20,
+      "decoderDelayStubsMs": [
+        40,
+        100
+      ],
+      "totalMediaBytes": 21106,
+      "results": [
+        {
+          "cache": "cold",
+          "wallToLastStartMs": 1111,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            1111,
+            1111,
+            1111
+          ],
+          "offsets": [
+            0,
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.406891000000087,
+              "integrityMs": 7.666120999999748,
+              "decoderStubMs": 40.70261100000016,
+              "receiveToReadyMs": 228.82208400000036,
+              "readyToStartMs": 870.6508309999999
+            },
+            {
+              "commandMs": 10.595379000000321,
+              "integrityMs": 2.958726999999726,
+              "decoderStubMs": 100.77158000000009,
+              "receiveToReadyMs": 288.7997889999997,
+              "readyToStartMs": 810.4532410000002
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795723105813,
+              "totalBytes": 21106,
+              "bytes": 21106,
+              "reused": 0,
+              "base64Ms": 29,
+              "transferMs": 187,
+              "applicationChars": 28676,
+              "maxInFlight": 2,
+              "commandMs": 10.5,
+              "decodeBase64Ms": 0,
+              "integrityMs": 6,
+              "prepareMs": 41,
+              "firstFrameMs": 228,
+              "readyAt": 1795723106062,
+              "readyToPlayMs": 871,
+              "startSkewMs": -0.5
+            },
+            {
+              "offeredAt": 1795723105813,
+              "totalBytes": 21106,
+              "bytes": 21106,
+              "reused": 0,
+              "base64Ms": 22,
+              "transferMs": 188,
+              "applicationChars": 28676,
+              "maxInFlight": 2,
+              "commandMs": 10.5,
+              "decodeBase64Ms": 0,
+              "integrityMs": 2,
+              "prepareMs": 101,
+              "firstFrameMs": 289,
+              "readyAt": 1795723106123,
+              "readyToPlayMs": 810,
+              "startSkewMs": -0.5
+            }
+          ],
+          "hash": {
+            "calls": 6,
+            "bytes": 42212,
+            "ms": 6.9132470000004105,
+            "reused": 9
+          }
+        },
+        {
+          "cache": "warm",
+          "wallToLastStartMs": 942,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            942,
+            942,
+            942
+          ],
+          "offsets": [
+            0,
+            0.0005
+          ],
+          "observations": [
+            {
+              "commandMs": 10.354247000000214,
+              "integrityMs": 0,
+              "decoderStubMs": 40.22537500000044,
+              "receiveToReadyMs": 60.56054700000004,
+              "readyToStartMs": 870.2564719999996
+            },
+            {
+              "commandMs": 10.58942500000012,
+              "integrityMs": 0,
+              "decoderStubMs": 99.73189199999979,
+              "receiveToReadyMs": 120.02709400000003,
+              "readyToStartMs": 810.6243000000004
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795723107029,
+              "totalBytes": 21106,
+              "bytes": 0,
+              "reused": 3,
+              "base64Ms": 0,
+              "transferMs": 20,
+              "applicationChars": 0,
+              "maxInFlight": 0,
+              "commandMs": 10.5,
+              "integrityMs": 0,
+              "prepareMs": 40,
+              "firstFrameMs": 60,
+              "readyAt": 1795723107111,
+              "readyToPlayMs": 870,
+              "startSkewMs": 0.5
+            },
+            {
+              "offeredAt": 1795723107029,
+              "totalBytes": 21106,
+              "bytes": 0,
+              "reused": 3,
+              "base64Ms": 0,
+              "transferMs": 20,
+              "applicationChars": 0,
+              "maxInFlight": 0,
+              "commandMs": 10.5,
+              "integrityMs": 0,
+              "prepareMs": 100,
+              "firstFrameMs": 120,
+              "readyAt": 1795723107170,
+              "readyToPlayMs": 811,
+              "startSkewMs": 0.5
+            }
+          ],
+          "hash": {
+            "calls": 0,
+            "bytes": 0,
+            "ms": 0,
+            "reused": 9
+          }
+        }
+      ]
+    },
+    {
+      "label": "large WebM, 1 participant",
+      "rttMs": 20,
+      "decoderDelayStubsMs": [
+        100
+      ],
+      "totalMediaBytes": 3829001,
+      "results": [
+        {
+          "cache": "cold",
+          "wallToLastStartMs": 3566,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            3566,
+            3566
+          ],
+          "offsets": [
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 10.450219000000288,
+              "integrityMs": 90.72655599999962,
+              "decoderStubMs": 100.2764129999996,
+              "receiveToReadyMs": 2739.6775850000004,
+              "readyToStartMs": 810.9178869999996
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795723108264,
+              "totalBytes": 3829001,
+              "bytes": 3829001,
+              "reused": 0,
+              "base64Ms": 190,
+              "transferMs": 2638,
+              "applicationChars": 5105691,
+              "maxInFlight": 4,
+              "commandMs": 10,
+              "decodeBase64Ms": 17,
+              "integrityMs": 48,
+              "prepareMs": 102,
+              "firstFrameMs": 2740,
+              "readyAt": 1795723111025,
+              "readyToPlayMs": 811,
+              "startSkewMs": 0
+            }
+          ],
+          "hash": {
+            "calls": 3,
+            "bytes": 3841180,
+            "ms": 47.12166300000081,
+            "reused": 3
+          }
+        },
+        {
+          "cache": "warm",
+          "wallToLastStartMs": 952,
+          "startSpreadMs": 0,
+          "startAfterCommandMs": [
+            952,
+            952
+          ],
+          "offsets": [
+            0
+          ],
+          "observations": [
+            {
+              "commandMs": 9.328298999998879,
+              "integrityMs": 0,
+              "decoderStubMs": 99.6249740000003,
+              "receiveToReadyMs": 128.3707919999997,
+              "readyToStartMs": 810.8485299999993
+            }
+          ],
+          "participants": [
+            {
+              "offeredAt": 1795723111933,
+              "totalBytes": 3829001,
+              "bytes": 0,
+              "reused": 2,
+              "base64Ms": 0,
+              "transferMs": 21,
+              "applicationChars": 0,
+              "maxInFlight": 0,
+              "commandMs": 10,
+              "integrityMs": 0,
+              "prepareMs": 107,
+              "firstFrameMs": 128,
+              "readyAt": 1795723112082,
+              "readyToPlayMs": 811,
+              "startSkewMs": 0
+            }
+          ],
+          "hash": {
+            "calls": 0,
+            "bytes": 0,
+            "ms": 0,
+            "reused": 4
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "transport": "simulated",
+  "cameraBefore": "transform: translate(-2226.71px, -90.29px) scale(0.465714);",
+  "cameraAfter": "transform: translate(-2226.71px, -90.29px) scale(0.465714);",
+  "participants": [
+    {
+      "name": "Matias Valen Azevedo",
+      "connections": 1,
+      "legacy": false,
+      "online": true,
+      "state": "connected",
+      "identity": "declared-unverified",
+      "id": "live-fixture-room-b3-final"
+    }
+  ]
+}

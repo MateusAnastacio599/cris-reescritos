@@ -90,3 +90,8 @@ body.cris-cinematic-preparing .cris-cinematic-controls{display:none}
 .cinematic-start-error button{margin-top:10px;display:block;min-height:40px;color:inherit;background:transparent;border:1px solid #8b735055;padding:8px 14px;border-radius:4px}
 .cinematic-mobile-gate{overflow:auto}.cinematic-mobile-card{max-height:calc(100dvh - 48px);overflow:auto}
 @media(orientation:landscape) and (max-height:500px){.cinematic-mobile-gate{padding:12px}.cinematic-mobile-card{max-height:calc(100dvh - 24px);width:min(420px,100%)}.cinematic-mobile-card svg{width:36px;height:36px;margin:0}.cinematic-mobile-card h2{font-size:20px;margin-bottom:8px}.cinematic-mobile-card p{margin-bottom:10px}.cinematic-mobile-card button{min-height:44px;padding:9px}.cinematic-mobile-card [data-inline]{margin-top:4px;min-height:40px}}
+/* Preparation stays mounted for decoding without covering the board. */
+.cinematic-frame.cinematic-prepared{opacity:0!important;pointer-events:none}
+.cinematic-presentation.cinematic-staging{opacity:0;pointer-events:none}
+.cinematic-presentation .cinematic-mobile-card{pointer-events:auto}
+.cinematic-presentation:not(.cinematic-staging) .cinematic-mobile-gate{z-index:3}
