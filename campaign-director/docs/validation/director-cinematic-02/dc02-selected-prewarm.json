@@ -1,0 +1,128 @@
+{
+  "master": {
+    "build": "directorcinematic02",
+    "prewarm": {
+      "sid": "028487a5-57ac-462c-a426-92add5f1380e",
+      "status": "ready",
+      "cacheBytes": 0,
+      "budget": 25165824,
+      "participants": [
+        {
+          "id": "live-fixture-player-readiness-final",
+          "name": "Matias Valen Azevedo",
+          "status": "ready",
+          "bytes": 545394,
+          "reusedBytes": 0,
+          "code": null
+        }
+      ]
+    },
+    "reentryCache": null,
+    "environment": {
+      "mode": "browser",
+      "browser": "Chrome/156",
+      "secure": true,
+      "crypto": true,
+      "abort": true,
+      "abortCheck": true
+    },
+    "hostReady": true,
+    "hostFailure": null,
+    "active": false,
+    "coordination": null,
+    "peers": [
+      {
+        "id": "live-fixture-player-readiness-final",
+        "phase": "host-proof-confirmed",
+        "failurePhase": null,
+        "errorType": null,
+        "build": "directorcinematic02",
+        "environment": {
+          "mode": "browser",
+          "browser": "Chrome/156",
+          "secure": true,
+          "crypto": true,
+          "abort": true,
+          "abortCheck": true
+        },
+        "status": "conectado",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "metrics": {},
+        "version": 4
+      }
+    ],
+    "events": [
+      {
+        "at": 1795802440947,
+        "phase": "host-key-registered"
+      },
+      {
+        "at": 1795802441466,
+        "phase": "host-proof-signing"
+      },
+      {
+        "at": 1795802441466,
+        "phase": "host-proof-sent"
+      },
+      {
+        "at": 1795802441511,
+        "phase": "host-proof-confirmed"
+      }
+    ]
+  },
+  "player": {
+    "build": "directorcinematic02",
+    "prewarm": {
+      "sid": null,
+      "status": "local",
+      "cacheBytes": 545394,
+      "budget": 25165824,
+      "participants": []
+    },
+    "reentryCache": {
+      "available": true,
+      "restoredBytes": 0
+    },
+    "environment": {
+      "mode": "browser",
+      "browser": "Chrome/156",
+      "secure": true,
+      "crypto": true,
+      "abort": true,
+      "abortCheck": true
+    },
+    "hostReady": false,
+    "hostFailure": null,
+    "active": false,
+    "coordination": null,
+    "peers": [
+      {
+        "id": "host",
+        "phase": "host-proof-verified",
+        "failurePhase": null,
+        "errorType": null,
+        "build": "directorcinematic02",
+        "environment": null,
+        "status": "conectado",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "metrics": {},
+        "version": 4
+      }
+    ],
+    "events": [
+      {
+        "at": 1795802441487,
+        "phase": "host-key-reading"
+      },
+      {
+        "at": 1795802441487,
+        "phase": "host-proof-verified"
+      }
+    ]
+  },
+  "videoCount": 0
+}

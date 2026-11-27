@@ -123,7 +123,7 @@ const crisBoardStorageKey=()=>"board:"+window.CRISBridge.campaignId+":"+window.C
     if(cam)u.cam=cam;else u.cam={x:-innerWidth/2,y:-innerHeight/2,z:1};q();I();
   }
   function crisManualCamera(){crisCameraRevision++;crisCameraPlaced=true;}
-  for(const type of ['pointerdown','wheel'])o.addEventListener(type,crisManualCamera,{capture:true,passive:true});
+  window.CRIS_BOARD_LIVE.watchCameraIntent(o,crisManualCamera,()=>crisCameraPlaced&&!document.body.classList.contains('cris-loading'));
   addEventListener('resize',()=>{if(Ks&&crisCameraPlaced&&!crisCameraRevision&&!document.body.classList.contains('cris-cinematic-active'))U();});
   function K(e2) {
     return u.items.find((t2) => t2.id === e2);
@@ -5242,6 +5242,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
     return crisLive.send(connection,message).catch(()=>{if(Ks)Ar("Falha ao sincronizar. Reconectando…");else vr("Um jogador perdeu a sincronização; aguardando reconexão.");});
   }
   function crisNewLive(role){
+    if(role==='client')crisBoot.sync?.('Conectando à mesa e preparando o quadro…');
     const focusRoom=window.CRISBridge.campaignId+':'+(role==='client'?Us:Os.code);if(role==='client'&&focusRoom!==crisCameraRoom){crisCameraRoom=focusRoom;crisCameraPlaced=false;crisCameraRevision=0;}
     crisLive?.stop();crisApply?.close();
     const apply=new crisLiveAPI.LiveApplyQueue((message,connection)=>{
@@ -5256,7 +5257,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
       onDrop:c=>window.CRIS_REMOTE_CINEMATICS?.disconnect(c),
       changed:()=>{if(crisLive===live){Os.links=live.links;Os.peer=live.peer;vr();window.CRIS_REMOTE_CINEMATICS?.refresh?.();}},
       status:message=>{if(crisLive===live)Ks?Ar(message):vr(message);},
-      onLost:()=>{if(crisLive!==live)return;Os.ready=false;Ar("Conexão interrompida. Reconectando à mesma sala…");ac(true);},
+      onLost:()=>{if(crisLive!==live)return;Os.ready=false;crisBoot.sync?.("Reconectando à mesa…");Ar("Conexão interrompida. Reconectando à mesma sala…");ac(true);},
       onReady:connection=>{
         if(crisLive!==live)return;
         connection._imgs=new Set();Os.links=live.links;Os.peer=live.peer;window.CRIS_REMOTE_CINEMATICS?.bind(connection,live);
@@ -5531,7 +5532,7 @@ ${(/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR")}`, s2 = O(e2, 0.2 * e
   }
   function crisRoomView(){return window.CRIS_ROOM_UI.connectionView({role:Ks?'client':'host',links:[...Os.links],pending:crisLive?.pending?.size||0,peerOpen:!!Os.peer?.open,error:crisLive?.peerError,everReady:crisEverReady,stopped:crisStopped});}
   function vr(message) {
-    const view=crisRoomView();if(view.state==='synced')crisEverReady=true;
+    const view=crisRoomView();if(view.state==='synced'){crisEverReady=true;if(Ks)crisBoot.ready();}else if(Ks&&view.state==='loading')crisBoot.stage('Recebendo imagens e organizando o quadro…');else if(Ks&&view.state==='failed')crisBoot.fail('Não foi possível concluir a conexão. Confira a rede ou tente novamente.');
     crisRoomUI?.notice(window.CRIS_CINEMATIC_ERROR?'O módulo de apresentação não carregou. Atualize o CRIS.':window.CRIS_REMOTE_CINEMATICS?.hostError||'');
     const reason={'scope-rejected':'Esta sala não corresponde à campanha. Confira o convite.','duplicate-tab':'Esta conta já está em outra aba. Feche-a e use Reconectar.','unavailable-id':'Esta mesa já está aberta em outro lugar. Feche a outra sessão ou gere outro código.'}[crisLive?.peerError];
     crisRoomUI?.render(view,view.state==='failed'?(reason||message||'Confira a conexão e tente novamente.'):'');

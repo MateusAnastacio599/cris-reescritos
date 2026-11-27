@@ -1,7 +1,7 @@
 // Coordinated presentation on every viewport; rotation is a hint, never permission. Playback remains in the existing CinematicFrame.
 export const mobilePresentation=({width,height,coarse=false})=>Math.min(width,height)<=600&&(coarse||width<=600);
 const abortError=()=>new DOMException('Apresentação cancelada.','AbortError');
-export const CINEMATIC_PRESENTATION_BUILD='live01b5a';
+export const CINEMATIC_PRESENTATION_BUILD='directorcinematic02';
 export class CinematicPresentation{
  constructor({document=globalThis.document,screen=globalThis.screen,viewport=()=>({width:innerWidth,height:innerHeight,coarse:matchMedia('(pointer:coarse)').matches}),controls,status=()=>{},now=Date.now}={}){Object.assign(this,{document,screen,viewport,controls,status,now});}
  async begin({frame,signal,host=false}){
@@ -13,7 +13,7 @@ export class CinematicPresentation{
   root.append(gate);d.body.append(root);
   const record=this.current={root,gate,count,host,frame,signal,mount:frame.mount,fit:frame.fit,locked:false,playing:false};
   frame.mount=root;frame.fit='cover';if(this.controls)root.append(this.controls);
-  record.resize=()=>{const v=this.viewport(),portrait=mobilePresentation(v)&&v.width<v.height;gate.querySelector('h2').textContent=host?'Avisando jogadores':portrait?'Vire o celular':'A cena vai começar';gate.querySelector('p').textContent=host?'A cena começa em instantes.':portrait?'Uma cena se aproxima. Assista na horizontal.':'Prepare-se para a próxima cena.';gate.setAttribute('data-rotation',String(!host&&portrait));};record.resize();d.defaultView?.addEventListener('resize',record.resize);gate.addEventListener('keydown',event=>event.stopPropagation());
+  record.resize=()=>{const v=this.viewport(),portrait=mobilePresentation(v)&&v.width<v.height;root.setAttribute('data-landscape',String(portrait));gate.querySelector('h2').textContent=host?'Avisando jogadores':portrait?'Vire o celular':'A cena vai começar';gate.querySelector('p').textContent=host?'A cena começa em instantes.':portrait?'Uma cena se aproxima. Assista na horizontal.':'Prepare-se para a próxima cena.';gate.setAttribute('data-rotation',String(!host&&portrait));};record.resize();d.defaultView?.addEventListener('resize',record.resize);gate.addEventListener('keydown',event=>event.stopPropagation());
   // Decode while connected, but keep the board usable until the common start.
   record.abort=()=>{clearInterval(record.countTimer);record.reject?.(abortError());};signal?.addEventListener('abort',record.abort,{once:true});this.status('preparing');return true;
  }

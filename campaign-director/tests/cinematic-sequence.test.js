@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {cinematicPrimary,remotePrewarmAllowed,validateSceneCinematics,withCinematic} from '../dist/cinematic-model.js';
+import {scriptScenes,sequenceTarget,CinematicSequence} from '../dist/cinematic-sequence.js';
+import {asset,until,pause} from './fixtures/cinematic-prewarm-harness.mjs';
+const one=await asset(16000,'one'),two=await asset(17000,'two'),alternate=await asset(18000,'alternate');
+const scene=(id,items=[],primaryId)=>({id,title:id,cinematic:{version:1,items,...(primaryId?{primaryId}:{})}});
+const state={campaigns:[{id:'camp',pages:[{id:'p1',folder:'A',scenes:[scene('s1',[one.item]),scene('empty')]},{id:'p2',folder:'B',scenes:[scene('branch',[alternate.item,two.item])]},{id:'p3',folder:'A',scenes:[scene('s3',[two.item])]}]}]};
+const scope={userId:'master',boardCampaignId:'board'},loc={campaignId:'camp',pageId:'p1',sceneId:'s1'};
+test('sequence follows grouped page navigation and saved scene arrays; multiple items require an explicit principal',()=>{
+ assert.deepEqual(scriptScenes(state.campaigns[0]).map(e=>e.sceneId),['s1','empty','s3','branch']);assert.equal(cinematicPrimary(state.campaigns[0].pages[1].scenes[0]),null);assert.equal(sequenceTarget(state,loc,true).sceneId,'s3');assert.equal(sequenceTarget(state,{...loc,pageId:'p3',sceneId:'s3'},true),null);assert.equal(sequenceTarget(state,{...loc,sceneId:'empty'}),null);
+});
+test('explicit remote authorization defaults off, survives backup validation and is revoked on composition edits',()=>{
+ const s=scene('test',[one.item,two.item],one.item.id);s.cinematic.remotePrewarmIds=[one.item.id];validateSceneCinematics(s.cinematic);assert.equal(remotePrewarmAllowed(s,one.item),true);s.cinematic=withCinematic(s,{...one.item,name:'edited'});assert.equal(remotePrewarmAllowed(s,one.item),false);assert.equal(s.cinematic.primaryId,one.item.id);assert.equal(remotePrewarmAllowed(scene('private',[one.item]),one.item),false);assert.throws(()=>validateSceneCinematics({...s.cinematic,primaryId:'missing'}));assert.throws(()=>validateSceneCinematics({...s.cinematic,remotePrewarmIds:['missing']}));
+});
+function fixture(){const current=structuredClone(state),calls=[],subscribers=new Set(),link={active:null,subscribe(fn){subscribers.add(fn);fn();return()=>subscribers.delete(fn);},cancelPrewarm(){calls.push('cancel');this.prewarmState=null;},async prewarm(scope,scene,item){calls.push({scope,scene,item});},emit(){for(const fn of subscribers)fn();}};let location={...loc},gets=0;const media=new Map([[one.item.imageId,one.blob],[two.item.imageId,two.blob],[alternate.item.imageId,alternate.blob]]),images={get:async id=>{gets++;return media.get(id);}};const queue=new CinematicSequence({getState:()=>current,getLocation:()=>location,getScope:()=>scope,link,images});return {current,link,queue,calls,images,get gets(){return gets;},select:value=>{location=value;return queue.refresh();}};}
+test('selection loads only its primary; current playback prepares exactly the next; finishing keeps that next cached',async()=>{
+ const f=fixture();try{await until(()=>f.queue.view().status==='Pronta localmente');assert.equal(f.gets,1);assert.equal(f.calls.some(c=>typeof c==='object'),false);f.current.campaigns[0].pages[2].scenes[0].cinematic.remotePrewarmIds=[two.item.id];f.link.active={phase:'apresentando',scene:loc,itemKey:JSON.stringify(one.item)};f.link.emit();await until(()=>f.calls.some(c=>c.item?.id===two.item.id));assert.equal(f.gets,2);assert.equal(f.queue.slots.size,2);assert.ok(f.queue.cacheBytes()<=48*1024*1024);f.link.active=null;f.link.emit();await pause(5);assert.equal(f.gets,2);assert.equal(f.queue.target.item.id,two.item.id);await f.select({...loc,pageId:'p3',sceneId:'s3'});assert.equal(f.gets,2);assert.equal(f.queue.target.item.id,two.item.id);assert.equal('scene' in f.calls.find(c=>c.item?.id===two.item.id).scene,false);}finally{f.queue.close();}
+});
+test('a private next is loaded locally without skipping ahead or sending it remotely; skipping scenes supersedes speculation',async()=>{
+ const f=fixture();try{await until(()=>f.queue.cacheBytes()>0);f.link.active={phase:'apresentando',scene:loc,itemKey:JSON.stringify(one.item)};f.link.emit();await until(()=>f.gets===2);assert.equal(f.calls.some(c=>c.item),false);await f.select({...loc,pageId:'p2',sceneId:'branch'});assert.equal(f.queue.target,null);assert.ok(f.queue.slots.size<=1);}finally{f.queue.close();}
+});
+test('rapid scene changes coalesce local reads instead of starting unlimited IDB/hash jobs',async()=>{
+ const f=fixture();try{await until(()=>f.queue.cacheBytes()>0);let release,concurrent=0,max=0;f.images.get=async id=>{concurrent++;max=Math.max(max,concurrent);await new Promise(r=>release=r);concurrent--;return id===two.item.imageId?two.blob:one.blob;};
+ const first=f.select({...loc,pageId:'p3',sceneId:'s3'});await until(()=>!!release);const second=f.select(loc),third=f.select({...loc,pageId:'p3',sceneId:'s3'});assert.equal(max,1);release();await pause(5);if(f.queue.loading)release();await Promise.all([first,second,third]);assert.equal(max,1);assert.ok(f.queue.slots.size<=2);
+ }finally{f.queue.close();}
+});

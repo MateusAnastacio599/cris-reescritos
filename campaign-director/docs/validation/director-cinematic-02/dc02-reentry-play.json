@@ -1,0 +1,246 @@
+{
+  "master": {
+    "build": "directorcinematic02",
+    "prewarm": {
+      "sid": null,
+      "status": "local",
+      "cacheBytes": 0,
+      "budget": 25165824,
+      "participants": []
+    },
+    "reentryCache": null,
+    "environment": {
+      "mode": "browser",
+      "browser": "Chrome/156",
+      "secure": true,
+      "crypto": true,
+      "abort": true,
+      "abortCheck": true
+    },
+    "hostReady": true,
+    "hostFailure": null,
+    "active": true,
+    "coordination": {
+      "phase": "apresentando",
+      "startAt": 1795802513296,
+      "local": {
+        "imageMs": 28.5999999998603,
+        "videoMs": 38.0999999998603,
+        "videoFallbacks": 0,
+        "prepareMs": 61,
+        "startSkewMs": 2
+      },
+      "canProceed": false
+    },
+    "peers": [
+      {
+        "id": "live-fixture-player-readiness-final",
+        "phase": "participant-apresentando",
+        "failurePhase": null,
+        "errorType": null,
+        "build": "directorcinematic02",
+        "environment": {
+          "mode": "browser",
+          "browser": "Chrome/156",
+          "secure": true,
+          "crypto": true,
+          "abort": true,
+          "abortCheck": true
+        },
+        "status": "apresentando",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "metrics": {
+          "offeredAt": 1795802511198,
+          "totalBytes": 545394,
+          "bytes": 0,
+          "reused": 3,
+          "reusedBytes": 545394,
+          "base64Ms": 0,
+          "transferMs": 17,
+          "applicationChars": 0,
+          "maxInFlight": 0,
+          "commandMs": 13.5,
+          "integrityMs": 0,
+          "prepareMs": 267,
+          "firstFrameMs": 284,
+          "imageMs": 178,
+          "videoMs": 59.9,
+          "videoFallbacks": 0,
+          "readyAt": 1795802511495,
+          "readyToPlayMs": 1803,
+          "startSkewMs": 2.5
+        },
+        "version": 4
+      }
+    ],
+    "events": [
+      {
+        "at": 1795802440947,
+        "phase": "host-key-registered"
+      },
+      {
+        "at": 1795802441466,
+        "phase": "host-proof-signing"
+      },
+      {
+        "at": 1795802441466,
+        "phase": "host-proof-sent"
+      },
+      {
+        "at": 1795802441511,
+        "phase": "host-proof-confirmed"
+      },
+      {
+        "at": 1795802453414,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795802453418,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795802453437,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795802453633,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795802455434,
+        "phase": "participant-apresentando"
+      },
+      {
+        "at": 1795802479226,
+        "phase": "participant-encerrado"
+      },
+      {
+        "at": 1795802493205,
+        "phase": "host-proof-signing"
+      },
+      {
+        "at": 1795802493205,
+        "phase": "host-proof-sent"
+      },
+      {
+        "at": 1795802493207,
+        "phase": "host-proof-confirmed"
+      },
+      {
+        "at": 1795802511198,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795802511219,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795802511243,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795802511495,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795802513299,
+        "phase": "participant-apresentando"
+      }
+    ]
+  },
+  "player": {
+    "build": "directorcinematic02",
+    "prewarm": {
+      "sid": null,
+      "status": "local",
+      "cacheBytes": 545394,
+      "budget": 25165824,
+      "participants": []
+    },
+    "reentryCache": {
+      "available": true,
+      "restoredBytes": 545394
+    },
+    "environment": {
+      "mode": "browser",
+      "browser": "Chrome/156",
+      "secure": true,
+      "crypto": true,
+      "abort": true,
+      "abortCheck": true
+    },
+    "hostReady": false,
+    "hostFailure": null,
+    "active": false,
+    "coordination": null,
+    "peers": [
+      {
+        "id": "host",
+        "phase": "player-started",
+        "failurePhase": null,
+        "errorType": null,
+        "build": "directorcinematic02",
+        "environment": null,
+        "status": "apresentando",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "metrics": {},
+        "version": 4
+      }
+    ],
+    "events": [
+      {
+        "at": 1795802493207,
+        "phase": "host-key-reading"
+      },
+      {
+        "at": 1795802493207,
+        "phase": "host-proof-verified"
+      },
+      {
+        "at": 1795802511211,
+        "phase": "manifest-received"
+      },
+      {
+        "at": 1795802511211,
+        "phase": "receiver-setup"
+      },
+      {
+        "at": 1795802511211,
+        "phase": "preparing"
+      },
+      {
+        "at": 1795802511228,
+        "phase": "receiver-preparing"
+      },
+      {
+        "at": 1795802511495,
+        "phase": "media-ready"
+      },
+      {
+        "at": 1795802511496,
+        "phase": "preroll"
+      },
+      {
+        "at": 1795802513296,
+        "phase": "starting"
+      },
+      {
+        "at": 1795802513296,
+        "phase": "player-loading"
+      },
+      {
+        "at": 1795802513298,
+        "phase": "presenting"
+      },
+      {
+        "at": 1795802513298,
+        "phase": "player-started"
+      }
+    ]
+  },
+  "videoCount": 1
+}

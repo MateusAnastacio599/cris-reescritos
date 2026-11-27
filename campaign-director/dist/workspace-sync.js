@@ -1,5 +1,5 @@
-import {CloudWorkspace,preserveBeforeCloudLoad} from './cloud-workspace.js';
-import {initialState,validateState,STORAGE_KEY} from './storage.js';
+import {CloudWorkspace,preserveBeforeCloudLoad} from './cloud-workspace.js?v=directorcinematic02';
+import {initialState,validateState,STORAGE_KEY} from './storage.js?v=directorcinematic02';
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().filter(k=>value[k]!==undefined).map(k=>[k,canonical(value[k])])):value;
 export function contentStamp(state){const {ui,...content}=state;return JSON.stringify(canonical(content));}
 export function isStarter(state){const pick=s=>{const campaigns=structuredClone(s.campaigns);for(const c of campaigns)for(const p of c.pages)for(const scene of p.scenes)for(const version of scene.textHistory||[])delete version.at;return {campaigns,audioAssets:s.audioAssets,playlists:s.playlists,ambiences:s.ambiences};};return contentStamp(pick(state))===contentStamp(pick(initialState()));}
