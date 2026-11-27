@@ -1,11 +1,11 @@
-import {sceneSpan} from './cinematic-timing.js?v=live01b5a';
-import {animateTimedFX} from './cinematic-fx.js?v=live01b5a';
-import {animateDirectorLights} from './cinematic-light-player.js?v=live01b5a';
-import {cameraTransform} from './cinematic-direction-model.js?v=live01b5a';
-import {animateDirectionCamera,animateLayerEffects,animateLighting} from './cinematic-direction-player.js?v=live01b5a';
-import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js?v=live01b5a';
-import {checkCinematicImage,cinematicEnding,cinematicFades} from './cinematic-model.js?v=live01b5a';
-import {cinematicMotion,mountMotionNotice} from './cinematic-motion.js?v=live01b5a';
+import {sceneSpan} from './cinematic-timing.js?v=directorcinematic01';
+import {animateTimedFX} from './cinematic-fx.js?v=directorcinematic01';
+import {animateDirectorLights} from './cinematic-light-player.js?v=directorcinematic01';
+import {cameraTransform} from './cinematic-direction-model.js?v=directorcinematic01';
+import {animateDirectionCamera,animateLayerEffects,animateLighting} from './cinematic-direction-player.js?v=directorcinematic01';
+import {loadComposition,fitComposition,animateComposition} from './cinematic-composition.js?v=directorcinematic01';
+import {checkCinematicImage,cinematicEnding,cinematicFades} from './cinematic-model.js?v=directorcinematic01';
+import {cinematicMotion,mountMotionNotice} from './cinematic-motion.js?v=directorcinematic01';
 const fadeBuffer=30;
 export const CINEMATIC_FADE_MS=300;
 
@@ -49,7 +49,7 @@ function atmosphere(motion,intensity){
   return null;
 }
 
-export const CINEMATIC_FRAME_BUILD='live01b5a';
+export const CINEMATIC_FRAME_BUILD='directorcinematic01';
 export class CinematicFrame{
   constructor(element,{mount=null,motion=cinematicMotion(),onMotion=()=>{},onWarning=()=>{},fit='cover'}={}){
     this.element=element;this.fit=fit;

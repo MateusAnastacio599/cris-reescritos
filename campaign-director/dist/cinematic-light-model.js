@@ -1,4 +1,4 @@
-import {validWindow} from './cinematic-timing.js?v=live01b5a';
+import {validWindow} from './cinematic-timing.js?v=directorcinematic01';
 const n=(v,a,b)=>Number.isFinite(v)&&v>=a&&v<=b;
 export const validFlicker=f=>!!f&&Object.keys(f).every(k=>['amount','frequency','seed'].includes(k))&&n(f.amount,0,.3)&&n(f.frequency,.1,2)&&Number.isInteger(f.seed)&&n(f.seed,0,65535);
 export function validLightExtensions(l){return (l.window===undefined||validWindow(l.window))&&(l.flicker===undefined||validFlicker(l.flicker))&&(l.kind===undefined||['spot','beam','global'].includes(l.kind))&&(l.rotation===undefined||n(l.rotation,-180,180));}

@@ -1,7 +1,7 @@
 // Coordinated presentation on every viewport; rotation is a hint, never permission. Playback remains in the existing CinematicFrame.
 export const mobilePresentation=({width,height,coarse=false})=>Math.min(width,height)<=600&&(coarse||width<=600);
 const abortError=()=>new DOMException('Apresentação cancelada.','AbortError');
-export const CINEMATIC_PRESENTATION_BUILD='live01b5a';
+export const CINEMATIC_PRESENTATION_BUILD='directorcinematic01';
 export class CinematicPresentation{
  constructor({document=globalThis.document,screen=globalThis.screen,viewport=()=>({width:innerWidth,height:innerHeight,coarse:matchMedia('(pointer:coarse)').matches}),controls,status=()=>{},now=Date.now}={}){Object.assign(this,{document,screen,viewport,controls,status,now});}
  async begin({frame,signal,host=false}){

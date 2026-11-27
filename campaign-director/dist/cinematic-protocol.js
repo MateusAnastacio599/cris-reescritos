@@ -1,5 +1,5 @@
-export const CINEMATIC_PROTOCOL_BUILD='live01b5a';
-import {isCinematic,isCinematicPayload,isCinematicKey} from './cinematic-model.js?v=live01b5a';
+export const CINEMATIC_PROTOCOL_BUILD='directorcinematic01';
+import {isCinematic,isCinematicPayload,isCinematicKey} from './cinematic-model.js?v=directorcinematic01';
 
 export const CINEMATIC_CHANNEL='cris-cinematic-local-v1';
 export const CINEMATIC_LEASE=75000;
@@ -18,6 +18,9 @@ export function validCinematicMessage(message,scope,now=Date.now()){
   if(!isCinematicKey(message.boardId))return false;
   if(message.type==='ready')return message.priority===undefined||Number.isInteger(message.priority)&&message.priority>=0&&message.priority<=3;
   if(!isCinematicKey(message.sessionId)||!validScene(message.scene))return false;
+  if(message.type==='warm-status')return ['local','preparing','ready','failed'].includes(message.status)&&Array.isArray(message.participants)&&message.participants.length<=64&&message.participants.every(p=>typeof p.name==='string'&&p.name.length<=80&&['preparing','ready','failed','unsupported','waiting'].includes(p.status));
+  if(['warm-ping','warm-cancel'].includes(message.type))return true;
+  if(message.type==='prewarm')return message.authorized===true&&Number.isSafeInteger(message.sequence)&&message.sequence>0&&isCinematic(message.item)&&isCinematicPayload(message.image,message.item);
   if(message.type==='remote-status')return Array.isArray(message.participants)&&message.participants.length<=64&&message.participants.every(p=>typeof p.name==='string'&&p.name.length<=80&&['preparando','aguardando','pronto','fullscreen','lento','bloqueado','conectado','recebendo','carregando','apresentando','falhou','encerrando','encerrado'].includes(p.status));
   if(message.type==='ended')return ['automatic','manual','expired'].includes(message.reason);
   if(message.type==='motion')return typeof message.motionReduced==='boolean';
@@ -36,8 +39,8 @@ export const sameCinematicSession=(a,b)=>!!a&&!!b&&a.senderId===b.senderId&&
   a.boardId===b.boardId&&a.sessionId===b.sessionId&&sameCinematicScene(a.scene,b.scene);
 
 export class CinematicReceiver{
-  constructor({scope,boardId,frame,send,ready=()=>true,now=Date.now,onPresentation=()=>{},priority=()=>0,onAutoEnd=()=>Promise.resolve(),coordinate=null}){
-    Object.assign(this,{scope,boardId,frame,send,ready,now,onPresentation,priority,onAutoEnd,coordinate});
+  constructor({scope,boardId,frame,send,ready=()=>true,now=Date.now,onPresentation=()=>{},priority=()=>0,onAutoEnd=()=>Promise.resolve(),coordinate=null,onPrewarm=()=>{},onWarmCancel=()=>{},onWarmPing=()=>{}}){
+    Object.assign(this,{scope,boardId,frame,send,ready,now,onPresentation,priority,onAutoEnd,coordinate,onPrewarm,onWarmCancel,onWarmPing});
     this.watermarks=new Map();
   }
   reply(message,fields){
@@ -47,7 +50,11 @@ export class CinematicReceiver{
   async handle(message){
     const now=this.now();
     if(!validCinematicMessage(message,this.scope,now))return;
-    if(message.type==='discover'){if(this.ready())this.reply(message,{type:'ready',priority:this.priority()});return;}
+    if(message.type==='discover'){if(this.ready())this.reply(message,{type:'ready',priority:this.priority(),prewarm:1});return;}
+    if(message.boardId===this.boardId&&['prewarm','warm-cancel','warm-ping'].includes(message.type)){
+      if(message.type==='prewarm'){if(!this.ready())return;this.warmWatermarks??=new Map();const prior=this.warmWatermarks.get(message.senderId)||0;if(message.sequence<=prior)return;if(this.warmWatermarks.size>=64)this.warmWatermarks.delete(this.warmWatermarks.keys().next().value);this.warmWatermarks.set(message.senderId,message.sequence);this.warm=message;try{if(await this.onPrewarm(message)===false)this.reply(message,{type:'warm-status',status:'failed',participants:[]});}catch{this.reply(message,{type:'warm-status',status:'failed',participants:[]});}}
+      else if(sameCinematicSession(this.warm,message)){if(message.type==='warm-ping')this.onWarmPing();else{this.warm=null;this.onWarmCancel();}}return;
+    }
     if(message.boardId!==this.boardId||!['start','update','stop','heartbeat'].includes(message.type))return;
     for(const [id,entry] of this.watermarks){
       if(now-entry.at>CINEMATIC_LEASE+requestLifetime)this.watermarks.delete(id);
@@ -119,6 +126,7 @@ export class CinematicReceiver{
     this.frame.clear({immediate});
   }
   close(){
+    this.onWarmCancel();this.warm=null;
     const active=this.active??this.ending;
     if(active)this.reply(active,{type:'closed'});
     this.clear(true);

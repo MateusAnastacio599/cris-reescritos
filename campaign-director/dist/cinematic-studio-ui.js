@@ -1,7 +1,7 @@
 import {$,esc} from './ui.js';
 import {icon} from './icons.js';
-import {windowRange,sceneSpan} from './cinematic-timing.js?v=live01b5a';
-import {EFFECT_TYPES,validEffect} from './cinematic-direction-model.js?v=live01b5a';
+import {windowRange,sceneSpan} from './cinematic-timing.js?v=directorcinematic01';
+import {EFFECT_TYPES,validEffect} from './cinematic-direction-model.js?v=directorcinematic01';
 const lockIcon='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 11h12v10H6ZM8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 
 export const ownsStudio=(root,instance)=>root?.dataset.studioInstance===instance;

@@ -1,4 +1,4 @@
-@import url('./cinematic-studio.css?v=live01b5a');
+@import url('./cinematic-studio.css?v=directorcinematic01');
 .cinematic-frame{position:relative;overflow:hidden;isolation:isolate;background:#100e14;color:#e8dfef;opacity:0;transition:opacity var(--cinematic-fade,300ms) ease-out!important}
 .cinematic-frame.cinematic-visible{opacity:1}
 .cinematic-frame[hidden]{display:none}
@@ -110,3 +110,16 @@ body.cris-cinematic-preparing .cris-cinematic-controls{display:none}
 @media(prefers-reduced-motion:reduce){.cinematic-preroll .cinematic-mobile-gate::before,.cinematic-preroll [data-rotation=true] svg{animation:none}}
 
 .cinematic-preroll[data-reduced-motion=true] .cinematic-mobile-gate::before,.cinematic-preroll[data-reduced-motion=true] [data-rotation=true] svg{animation:none}
+
+.scene-cinematic{display:flex;align-items:center;gap:9px;flex-wrap:wrap;width:100%;padding:10px 0 0;box-sizing:border-box}
+.document-top:has(.scene-cinematic){flex-wrap:wrap;height:auto;min-height:53px;padding-block:14px}
+.session-mode .document-top:has(.scene-cinematic){display:flex}
+.document-card:has(.scene-cinematic) .editor-toolbar{position:relative;top:auto}
+.scene-cinematic-choice{font:12px/1.4 var(--sans,system-ui);max-width:min(250px,100%);color:var(--muted,#b8a896)}
+.scene-cinematic select{padding:7px;background:var(--panel,#221d18);border:1px solid var(--line,#5b4c37);border-radius:5px}
+.scene-cinematic>small{font:11px/1.5 var(--sans,system-ui);color:var(--muted,#b8a896)}
+.scene-cinematic-permission{font:11px/1.5 var(--sans,system-ui);margin-left:auto;max-width:360px;color:var(--muted,#b8a896)}
+.scene-cinematic-permission summary{cursor:pointer;list-style:revert}
+.scene-cinematic-permission label{display:flex;align-items:center;gap:6px;margin:8px 0}
+.scene-cinematic-permission small{display:block;max-width:360px}
+@media(max-width:600px){.scene-cinematic-permission{margin-left:0}.scene-cinematic-choice{max-width:100%}}

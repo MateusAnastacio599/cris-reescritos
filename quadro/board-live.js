@@ -1,4 +1,4 @@
-export const LIVE_BUILD='live01b5a';
+export const LIVE_BUILD='directorcinematic01';
 import {observeLiveConnection,liveConnectionStage,LIVE_STAGE_TEXT} from './board-live-diagnostics.js';
 // LIVE-01A: PeerJS lifecycle and bounded, acknowledged board packets.
 // Account IDs in peer metadata are presence claims, NEVER authorization proofs.
@@ -29,8 +29,8 @@ export async function digest(text){const bytes=await crypto.subtle.digest('SHA-2
 export const validAsset=value=>typeof value==='string'&&value.length<=LIVE_LIMITS.asset&&/^data:(?:image\/(?:png|jpeg|webp|gif)|audio\/[a-zA-Z0-9.+-]+);base64,[A-Za-z0-9+/=]+$/.test(value);
 const ephemeral=new Set(['cur','fx','pose']);
 export class LiveWire{
- constructor({connection,scope,session,receive,known=new Map(),remoteAssets={},log=()=>{},fail=()=>{},limits=LIVE_LIMITS,priority=false,now=()=>performance.now(),sendWindow=1}){
-  Object.assign(this,{connection,scope,session,receive,known,log,fail,limits,priority,now});this.sendWindow=Math.max(1,Math.min(4,Number.isInteger(sendWindow)?sendWindow:1));this.inFlight=new Map();this.remoteAssets=new Map(Object.entries(remoteAssets).slice(0,1000));this.queue=[];this.serial=0;this.received=0;this.closed=false;this.inbound=Promise.resolve();this.inboundCount=0;this.bufferedChars=0;this.transients=new Map();this.deferred=new Map();this.replay=new Map();this.transientSequence=0;this.lastTransient=0;this.stats={packets:0,bytes:0,assets:0,reused:0,retries:0,ackMs:0,maxAckMs:0,hashMs:0,maxQueue:0,maxBufferedChars:0,lastTransferMs:0,transientSent:0,transientReceived:0,transientDropped:0,maxInFlight:0};
+ constructor({connection,scope,session,receive,known=new Map(),remoteAssets={},log=()=>{},fail=()=>{},limits=LIVE_LIMITS,priority=false,now=()=>performance.now(),sendWindow=1,beforeChunk=null}){
+  Object.assign(this,{connection,scope,session,receive,known,log,fail,limits,priority,now,beforeChunk});this.sendWindow=Math.max(1,Math.min(4,Number.isInteger(sendWindow)?sendWindow:1));this.inFlight=new Map();this.remoteAssets=new Map(Object.entries(remoteAssets).slice(0,1000));this.queue=[];this.serial=0;this.received=0;this.closed=false;this.inbound=Promise.resolve();this.inboundCount=0;this.bufferedChars=0;this.transients=new Map();this.deferred=new Map();this.replay=new Map();this.transientSequence=0;this.lastTransient=0;this.stats={packets:0,bytes:0,assets:0,reused:0,retries:0,ackMs:0,maxAckMs:0,hashMs:0,maxQueue:0,maxBufferedChars:0,lastTransferMs:0,transientSent:0,transientReceived:0,transientDropped:0,maxInFlight:0};
  }
  raw(message){if(this.closed||!this.connection.open)throw Error('Conexão encerrada');this.connection.send({...message,live:2,scope:this.scope,session:this.session});}
  send(message){
@@ -68,6 +68,7 @@ export class LiveWire{
     // Only Cinematic opts into a bounded 4-fragment window. Ordered durable
     // messages still commit sequentially; final ACK still waits for full SHA/apply.
     for(let start=0;start<total;start+=this.sendWindow){
+     if(this.beforeChunk)await this.beforeChunk(message);if(this.closed)throw Error('Conexão encerrada');
      const batch=[];for(let index=start;index<Math.min(total,start+this.sendWindow);index++)batch.push(this.acknowledge({kind:'chunk',id,index,total,length:text.length,hash,data:text.slice(index*this.limits.chunk,(index+1)*this.limits.chunk)}));
      await Promise.all(batch);
     }
@@ -234,7 +235,7 @@ export class LivePeerSession{
  }
  dial(){
   if(this.role!=='client'||!this.peer?.open||this.dialing||this.links.size)return;
-  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,cinematic:4,cinematicBuild:LIVE_BUILD,assets:Object.fromEntries(this.known)}});
+  const connection=this.peer.connect('qimesa-'+this.code,{reliable:true,serialization:'json',metadata:{live:2,wire:3,campaign:this.campaign,room:this.code,userId:this.userId,tabId:this.tabId,cinematic:4,cinematicBuild:LIVE_BUILD,cinematicPrewarm:1,assets:Object.fromEntries(this.known)}});
   this.dialing=connection;this.attach(connection,this.generation);
  }
  attach(c,generation){
@@ -251,14 +252,14 @@ export class LivePeerSession{
     const modern=m?.live===2&&m.campaign===this.campaign&&m.room===this.code&&clean(m.userId)&&clean(m.tabId);
     if(!modern&&!this.legacy){this.drop(c,'scope-rejected');return;}
     if(m?.live===2&&!modern){this.drop(c,'scope-rejected');return;}
-    c._syncReady=false;c._cinematicVersion=m?.cinematic||1;c._cinematicBuild=m?.cinematicBuild;c._identity=modern?m.userId:'legacy:'+c.peer;c._legacy=!modern;
+    c._syncReady=false;c._cinematicVersion=m?.cinematic||1;c._cinematicBuild=m?.cinematicBuild;c._cinematicPrewarm=m?.cinematicPrewarm===1;c._identity=modern?m.userId:'legacy:'+c.peer;c._legacy=!modern;
     // Keep the active logical session; a second tab must not trigger takeover/retry ping-pong.
     if(modern&&[...this.links].some(old=>old._identity===c._identity)){
      c.send({live:'busy',campaign:this.campaign,room:this.code,tabId:m.tabId});
      c._openTimer=setTimeout(()=>this.drop(c,'duplicate-tab'),10000);this.log('duplicate-tab');return;
     }
     this.links.add(c);this.pending.delete(c);
-    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion,cinematic:4,cinematicBuild:LIVE_BUILD});}
+    if(modern){c._session=crypto.randomUUID();c._wireVersion=m.wire===3?3:2;this.wire(c,m.assets);c.send({live:'welcome',campaign:this.campaign,room:this.code,session:c._session,wire:c._wireVersion,cinematic:4,cinematicBuild:LIVE_BUILD,cinematicPrewarm:1});}
     this.log('connection-open');this.changed();this.onReady(c);
    }
   });
@@ -268,7 +269,7 @@ export class LivePeerSession{
    if(message?.live==='busy'&&this.role==='client'&&this.dialing===c&&message.campaign===this.campaign&&message.room===this.code&&message.tabId===this.tabId){this.stop();this.peerError='duplicate-tab';this.status('Esta conta já está na mesa em outra aba. Feche a outra aba e use Reconectar para continuar aqui.');return;}
    if(message?.live==='welcome'&&this.role==='client'&&this.dialing===c){
     if(message.campaign!==this.campaign||message.room!==this.code||!clean(message.session)){this.drop(c,'scope-rejected');return;}
-    c._syncReady=false;c._cinematicVersion=message.cinematic||1;c._cinematicBuild=message.cinematicBuild;c._session=message.session;c._identity='host';c._wireVersion=message.wire===3?3:2;this.wire(c);this.links.add(c);this.pending.delete(c);this.dialing=null;clearTimeout(c._openTimer);this.log('connection-open');this.changed();this.onReady(c);return;
+    c._syncReady=false;c._cinematicVersion=message.cinematic||1;c._cinematicBuild=message.cinematicBuild;c._cinematicPrewarm=message.cinematicPrewarm===1;c._session=message.session;c._identity='host';c._wireVersion=message.wire===3?3:2;this.wire(c);this.links.add(c);this.pending.delete(c);this.dialing=null;clearTimeout(c._openTimer);this.log('connection-open');this.changed();this.onReady(c);return;
    }
    if(message?.live==='ping'){if(c._session&&c._session===message.session){c._lastSeen=this.now();c.send({live:'pong',session:c._session});}return;}
    if(message?.live==='pong'){if(c._session&&c._session===message.session)c._lastSeen=this.now();return;}

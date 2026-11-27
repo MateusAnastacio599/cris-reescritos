@@ -47,6 +47,7 @@ export function mountRoomUI({role,entry,name,room,title,callbacks={}}){
   peers.forEach(p=>{
    const row=element('div',null,'cris-room-person'),info=element('div');info.append(element('strong',p.name||'Jogador'),element('small',p.legacy?'Conectado · cliente antigo':p.online?'Sincronizado':p.reconnecting?'Reconectando':'Carregando quadro'));
    const presentation=remote.find(r=>r.id===p.id);if(presentation&&presentation.status!=='conectado')info.append(element('small',presentation.label||presentation.status),...(presentation.error?[element('small',presentation.error,'cris-room-error')]:[]));
+   if(presentation?.prewarm)info.append(element('small','Pré-carregamento · '+({ready:'Mídia pronta',preparing:'Recebendo mídia',failed:'Falha recuperável',unsupported:'Atualize o cliente',waiting:'Aguardando'})[presentation.prewarm]));
    row.append(info,button('', 'Remover',()=>callbacks.kick?.(p.id)));row.lastChild.setAttribute('aria-label','Remover '+(p.name||'jogador'));participants.append(row);
   });
   if(window.CRIS_REMOTE_CINEMATICS?.active?.canProceed)participants.append(button('cinematicProceed','Prosseguir com os prontos',()=>window.CRIS_REMOTE_CINEMATICS.proceed()));

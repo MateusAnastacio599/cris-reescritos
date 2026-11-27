@@ -1,10 +1,10 @@
-import {numericInvalid,captureContext,restoreContext,editEffect} from './cinematic-studio-ui.js?v=live01b5a';
-import {renderBackgroundMedia} from './cinematic-background-editor.js?v=live01b5a';
-import {renderWindows,renderLights} from './cinematic-direction-editor.js?v=live01b5a';
-import {sceneSpan} from './cinematic-timing.js?v=live01b5a';
-import {CinematicCameraEditor} from './cinematic-camera-editor.js?v=live01b5a';
+import {numericInvalid,captureContext,restoreContext,editEffect} from './cinematic-studio-ui.js?v=directorcinematic01';
+import {renderBackgroundMedia} from './cinematic-background-editor.js?v=directorcinematic01';
+import {renderWindows,renderLights} from './cinematic-direction-editor.js?v=directorcinematic01';
+import {sceneSpan} from './cinematic-timing.js?v=directorcinematic01';
+import {CinematicCameraEditor} from './cinematic-camera-editor.js?v=directorcinematic01';
 import {$,esc,option} from './ui.js';
-import {ANCHORS,changeLayerAnchor,newEffect,EFFECT_TYPES,EASINGS,lightingProfile,LIGHT_PROFILES} from './cinematic-direction-model.js?v=live01b5a';
+import {ANCHORS,changeLayerAnchor,newEffect,EFFECT_TYPES,EASINGS,lightingProfile,LIGHT_PROFILES} from './cinematic-direction-model.js?v=directorcinematic01';
 const input=(label,path,value,min,max,step=.01)=>`<label class="field"><span>${label}</span><input data-property="${path}" type="number" value="${value}" min="${min}" max="${max}" step="${step}"></label>`;
 const toggle=(label,path,value)=>`<label class="check-field"><input data-property="${path}" type="checkbox" ${value?'checked':''}>${label}</label>`;
 export class StudioProperties{
