@@ -1,3 +1,4 @@
+import {prepareCinematicImport} from './cinematic-import.js?v=directorux03';
 import {layerRows,confirmStudio} from './cinematic-studio-ui.js?v=directorcinematic02';
 import {CINEMATIC_ASSETS,FOG_VIDEO_ASSET} from './cinematic-assets.js?v=directorcinematic02';
 import {newEffect} from './cinematic-direction-model.js?v=directorcinematic02';
@@ -132,7 +133,7 @@ export class CinematicLayersEditor{
   pool(id,file){const total=[...this.files].reduce((sum,[key,blob])=>sum+(key===id?0:blob.size),0)+file.size;if(total>64*1024*1024)throw Error('O rascunho atingiu 64 MB. Salve e reabra o Studio para liberar os arquivos do histórico.');this.files.set(id,file);}
   async add(){
     const file=$('[data-layer-file]',this.root).files[0];if(!file||this.busy||this.layers.length>=CINEMATIC_MAX_LAYERS)return;const revision=this.revision;this.busy=true;this.list();this.onChange();let added;
-    try{await checkCinematicUpload(file);const size=await cinematicDimensions(file);if(size.pixels>8000000)throw Error('Use uma camada de até 8 megapixels.');const id=await imageKey(file);if(revision!==this.revision)return;this.pool(id,file);added={id:crypto.randomUUID(),name:file.name.slice(0,100),imageId:id,x:.5,y:.5,scale:.35,visible:true,parallax:1};this.layers.push(added);this.selected=added.id;await this.render(true);if(revision!==this.revision)return;this.list();this.updateControls();this.onSelect();this.onChange();}
+    try{await checkCinematicUpload(file);const size=await cinematicDimensions(file);if(size.pixels>8000000)throw Error('Use uma camada de até 8 megapixels.');const optimized=await prepareCinematicImport(file),image=optimized.blob,id=await imageKey(image);if(revision!==this.revision)return;this.pool(id,image);added={id:crypto.randomUUID(),name:file.name.slice(0,100),imageId:id,x:.5,y:.5,scale:.35,visible:true,parallax:1};this.layers.push(added);this.selected=added.id;await this.render(true);if(revision!==this.revision)return;this.list();this.updateControls();this.onSelect();this.onChange();}
     catch(e){if(revision!==this.revision)return;if(added)this.layers=this.layers.filter(l=>l!==added);this.list();this.updateControls();this.onError(e.message);}
     finally{if(revision===this.revision){this.busy=false;$('[data-layer-file]',this.root).value='';this.list();this.onChange();}}
   }

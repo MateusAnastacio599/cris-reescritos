@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {optimizeCinematicPNG,prepareCinematicImport} from '../dist/cinematic-import.js';
+import {imageKey} from '../dist/cinematic-media.js';
+import {importPNG,pngParts} from './fixtures/cinematic-import-png.mjs';
+test('new PNG recompression preserves exact filtered pixels, alpha, CRC and color/metadata chunks',async()=>{const f=importPNG(),result=await optimizeCinematicPNG(f.blob);assert.ok(result.savedBytes>f.blob.size*.1);assert.equal(result.blob.type,'image/png');const before=await pngParts(f.blob),after=await pngParts(result.blob);assert.deepEqual(after.raw,f.raw);assert.deepEqual(after.chunks.filter(c=>c.type!=='IDAT'),before.chunks.filter(c=>c.type!=='IDAT'));assert.notEqual(await imageKey(result.blob),await imageKey(f.blob));assert.equal(await optimizeCinematicPNG(f.blob),result);});
+test('import keeps the original under its own hash and returns a separate variant without overwriting',async()=>{const f=importPNG(),images=new Map(),result=await prepareCinematicImport(f.blob,{images:{get:async id=>images.get(id),putAll:async entries=>entries.forEach(([k,v])=>{assert.equal(images.has(k),false);images.set(k,v);})}});assert.equal(images.get(await imageKey(f.blob)),f.blob);assert.notEqual(result.blob,f.blob);});
+test('WebM alpha, other formats, already efficient PNG and oversized working sets keep original bytes',async()=>{const webm=new Blob([readFileSync(new URL('./fixtures/cinematic-studio/iris.webm',import.meta.url))],{type:'video/webm'});assert.equal((await optimizeCinematicPNG(webm)).blob,webm);const webp=new Blob(['unchanged'],{type:'image/webp'});assert.equal((await optimizeCinematicPNG(webp)).blob,webp);const png=importPNG({level:9}).blob;assert.equal((await optimizeCinematicPNG(png)).blob,png);const big=importPNG({width:4096,height:1025}).blob;assert.equal((await optimizeCinematicPNG(big)).blob,big);});

@@ -1,9 +1,10 @@
+import {prepareCinematicImport} from './cinematic-import.js?v=directorux03';
 import {ownsStudio,releaseStudio,numericInvalid,captureContext,restoreContext,arrangeStudio,renderTemporalDock,confirmStudio} from './cinematic-studio-ui.js?v=directorcinematic02';
 import {sceneSpan} from './cinematic-timing.js?v=directorcinematic02';
 const DIRECTION_KEYS=['camera','lighting','sceneDuration','backgroundVideo'];
 import {StudioProperties} from './cinematic-studio-properties.js?v=directorcinematic02';
 import {StudioHistory} from './cinematic-studio-history.js?v=directorcinematic02';
-import {CinematicLayersEditor} from './cinematic-layers-editor.js?v=directorcinematic02';
+import {CinematicLayersEditor} from './cinematic-layers-editor.js?v=directorux03';
 import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,cinematicFades,cinematicTotal,checkCinematicImage,checkCinematicUpload,withCinematic,duplicateCinematic} from './cinematic-model.js?v=directorcinematic02';
 import {cinematicImages,imageKey,loadCinematicMedia,validateCompositionMedia} from './cinematic-media.js?v=directorcinematic02';
 import {mountMotionNotice} from './cinematic-motion.js?v=directorcinematic02';
@@ -155,7 +156,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
       for(const node of [...root.querySelectorAll('.cinematic-form-grid,[data-duration]')])settings.append(node);
       composer=new CinematicLayersEditor($('.cinematic-layers-editor',root),{background:imageFor,onChange:record,onError:status,onSelect:()=>{if(properties){if(!['effects','transform'].includes(properties.section))properties.section='transform';properties.render();}}});
       properties=new StudioProperties($('[data-studio-properties]',root),{composer,read:()=>structuredClone(direction),change:value=>{const lightingChanged=JSON.stringify(direction.lighting)!==JSON.stringify(value.lighting);direction=value;composer.lighting=direction.lighting;composer.backgroundVideo=direction.backgroundVideo;composer.camera=direction.camera;record();if(lightingChanged)void composer.render();}});
-      composer.useBackground=async file=>{const id=await imageKey(file);composer.pool(id,file);backgroundId=id;$('[name=image]',root).value='';record();void composer.render();};
+      composer.useBackground=async file=>{file=(await prepareCinematicImport(file)).blob;const id=await imageKey(file);composer.pool(id,file);backgroundId=id;$('[name=image]',root).value='';record();void composer.render();};
       properties.preview=()=>$('[data-preview]',root).click();properties.presentation=settings;properties.section='presentation';composer.onAnchor=(layer,anchor)=>properties.anchor(layer,anchor);composer.onCameraChange=camera=>{direction.camera=camera;record();properties.render();};
       properties.render();
       arrangeStudio(root,dialog);
@@ -169,7 +170,7 @@ export function openCinematic({scene,save,present,stop,subscribe}){
         if(closed||event.target.name==='selected'||!event.target.name)return;
         if(event.target.name==='image'){
           if(event.type!=='change')return;const file=event.target.files[0];if(!file)return;const version=++selectionVersion;
-          try{await checkCinematicUpload(file);const id=await imageKey(file);if(closed||!owns()||version!==selectionVersion)return;composer.pool(id,file);backgroundId=id;record();void composer.render();}catch(error){status(error.message);}return;
+          try{await checkCinematicUpload(file);const optimized=await prepareCinematicImport(file),image=optimized.blob,id=await imageKey(image);if(closed||!owns()||version!==selectionVersion)return;composer.pool(id,image);backgroundId=id;record();void composer.render();if(optimized.savedBytes)status('PNG otimizado sem perda · '+Math.round(optimized.savedBytes/1024)+' KiB a menos.');}catch(error){status(error.message);}return;
         }
         record();
       };

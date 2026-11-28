@@ -1,0 +1,25 @@
+{
+  "kind": "Real lossless PNG transform; SIMULATED network/player",
+  "oneWayDelayMs": [
+    12,
+    3
+  ],
+  "preRollMs": 1800,
+  "importMs": 158.24350199999998,
+  "identicalFilteredPixelStream": true,
+  "savedBytes": 1350814,
+  "results": [
+    {
+      "variant": "original",
+      "mediaBytes": 2098089,
+      "clickToLastStartMs": 3660,
+      "foregroundTransferredBytes": 4196178
+    },
+    {
+      "variant": "lossless-png",
+      "mediaBytes": 747275,
+      "clickToLastStartMs": 2550,
+      "foregroundTransferredBytes": 1494550
+    }
+  ]
+}

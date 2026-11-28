@@ -8,15 +8,16 @@ import {CINEMATIC_PRESENTATION_BUILD} from '../dist/cinematic-presentation.js';
 import {CINEMATIC_PROTOCOL_BUILD} from '../dist/cinematic-protocol.js';
 import {LIVE_BUILD} from '../../quadro/board-live.js';
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
-test('published module graph and both copies use one release, retaining v4 capability',()=>{
+test('published graph refreshes Director UX modules and retains the compatible v4 renderer copies',()=>{
  for(const build of [CINEMATIC_PROTOCOL_BUILD,CINEMATIC_FRAME_BUILD,CINEMATIC_REMOTE_BUILD,CINEMATIC_PRESENTATION_BUILD,LIVE_BUILD])assert.equal(build,CINEMATIC_BUILD);
- for(const file of readdirSync(new URL('../dist/',import.meta.url)).filter(x=>x.endsWith('.js'))){const s=read('../dist/'+file);for(const match of s.matchAll(/from\s*['"]\.\/cinematic-[\w-]+\.js([^'"]*)/g))assert.equal(match[1],file==='cloud-cinematic-media.js'&&match[0].includes('cinematic-media.js')?'?v=cloudreliability01':'?v='+CINEMATIC_BUILD,file);}
+ const directorModules=new Set(['cinematic-scene-ui','cinematic-sequence','cinematic-link','cinematic-editor','cinematic-layers-editor','cinematic-import']);
+ for(const file of readdirSync(new URL('../dist/',import.meta.url)).filter(x=>x.endsWith('.js'))){const source=read('../dist/'+file);for(const match of source.matchAll(/from\s*['"]\.\/(cinematic-[\w-]+)\.js([^'"]*)/g)){const expected=directorModules.has(match[1])?'directorux03':match[1]==='cinematic-media'&&['cloud-cinematic-media.js','cinematic-import.js'].includes(file)?'cloudreliability01':CINEMATIC_BUILD;assert.equal(match[2],'?v='+expected,file+' -> '+match[1]);}}
  for(const dir of ['../../quadro/','../integration-main/quadro/','../dist/cris/quadro/']){
   for(const name of ['Halloween2026-1.css','board-room-ui.js','board-room.css','board-live.js'])assert.equal(read(dir+name),read('../../quadro/'+name));
   const html=read(dir+'index.html');assert.ok(html.includes('board-room.css?v='+CINEMATIC_BUILD));assert.ok(html.includes('Halloween2026-1.css?v='+CINEMATIC_BUILD));assert.ok(html.includes('cinematic.css?v='+CINEMATIC_BUILD));assert.ok(!html.includes('live01b3'));
  }
  assert.match(read('../../quadro/board-live.js'),/cinematic:4,cinematicBuild:LIVE_BUILD/);
- assert.match(read('../dist/index.html'),/app.js\?v=cloudreliability01/);
+ assert.match(read('../dist/index.html'),/app.js\?v=directorux03/);
  assert.match(read('../dist/cinematic.css'),/cinematic-studio.css\?v=directorcinematic02/);
  // No new service worker asset cache or data purge is needed to update modules.
  assert.doesNotMatch(read('../../sw.js'),/caches\.|addEventListener\(['"]fetch/);
