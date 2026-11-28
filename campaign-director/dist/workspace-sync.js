@@ -1,4 +1,4 @@
-import {CloudWorkspace,preserveBeforeCloudLoad} from './cloud-workspace.js?v=cloudreliability01';
+import {CloudWorkspace,preserveBeforeCloudLoad} from './cloud-workspace.js?v=studioux01a';
 import {initialState,validateState,STORAGE_KEY} from './storage.js?v=directorcinematic02';
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().filter(k=>value[k]!==undefined).map(k=>[k,canonical(value[k])])):value;
 export function contentStamp(state){const {ui,...content}=state;return JSON.stringify(canonical(content));}

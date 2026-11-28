@@ -110,3 +110,11 @@
 .cinematic-stage .cinematic-world{overflow:hidden}
 .cinematic-studio-preview>img{object-fit:contain}
 .cinematic-studio .cinematic-composer-canvas:focus-visible{outline:2px solid var(--studio-accent);outline-offset:-3px}
+/* File association/status only; the Studio workspace and renderer are unchanged. */
+.studio-file-card{display:flex;flex-wrap:wrap;gap:7px;padding:9px;margin:7px 0 12px;border:1px solid var(--studio-line);border-radius:6px;min-width:0}
+.studio-file-card strong,.studio-file-card small{display:block;flex-basis:100%;overflow-wrap:anywhere;font-size:11px;line-height:1.6}
+.studio-file-card img{width:100%;max-height:86px;object-fit:contain;background:#111;pointer-events:none}
+.cinematic-studio .studio-file-card button{font-size:11px;min-height:30px}
+.studio-confirm label{display:grid;gap:5px;font-size:12px;max-width:240px}
+
+.cinematic-studio .form-error:empty{display:none}

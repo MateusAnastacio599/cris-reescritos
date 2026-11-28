@@ -1,9 +1,9 @@
 import {getMedia} from './storage.js?v=directorcinematic02';
-import {sha256} from './cloud-workspace.js?v=cloudreliability01';
+import {sha256} from './cloud-workspace.js?v=studioux01a';
 import {$,esc,openForm,field,toast} from './ui.js';
 import {icon} from './icons.js';
 import {DirectorAccount,accountError} from './cloud-account.js';
-import {WorkspaceSync} from './workspace-sync.js?v=cloudreliability01';
+import {WorkspaceSync} from './workspace-sync.js?v=studioux01a';
 import {crisHome} from './hub-links.js';
 
 export class CloudUI{

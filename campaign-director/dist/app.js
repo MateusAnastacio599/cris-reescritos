@@ -1,8 +1,9 @@
+import {createStudioRecovery,readStudioRecovery,listStudioRecoveries} from './cinematic-crud.js?v=studioux01a';
 import {CinematicSequence} from './cinematic-sequence.js?v=directorux03';
 import {mountSceneCinematic} from './cinematic-scene-ui.js?v=directorux03';
 import {CinematicCues,sceneCinematicCue} from './cinematic-cues.js?v=directorcinematic02';
 import {cinematicImages} from './cinematic-media.js?v=directorcinematic02';
-import {openCinematic} from './cinematic-editor.js?v=directorux03';
+import {openCinematic} from './cinematic-editor.js?v=studioux01a';
 import {CinematicLink} from './cinematic-link.js?v=directorux03';
 import {mountScriptDisplay,scriptDisplayHTML} from './script-display.js';
 import {mountSceneSections,setupSessionTools,updateSceneSections} from './session-view.js';
@@ -22,7 +23,7 @@ import {LibraryUI} from './library-ui.js';
 import {AmbienceUI} from './ambience-ui.js';
 import {musicSummary,openSceneMusic} from './music-ui.js';
 import {openSceneConfig} from './scene-config.js?v=directorcinematic02';
-import {CloudUI} from './cloud-ui.js?v=cloudreliability01';
+import {CloudUI} from './cloud-ui.js?v=studioux01a';
 import {icon} from './icons.js';
 import {$,$$,esc,openForm,confirmAction,field,option,toast,downloadBlob,configureAudioPickers} from './ui.js';
 
@@ -48,7 +49,7 @@ const reconcileCinematic=()=>{
 };
 const openSceneCinematic=()=>{
   const target=scene(),location=locationForScene();
-  openCinematic({scene:target,save:()=>scene()===target&&persist(),
+  openCinematic({scene:target,cloud:()=>({owner:cloudUI?.account.user?.id,binding:cloudUI?.sync.workspace.binding,status:cloudUI?.sync.status}),backup:()=>createStudioRecovery(state,cloudUI?.account.user?.id),recoveryList:()=>listStudioRecoveries(cloudUI?.account.user?.id),recoverBackup:async backupId=>downloadBlob(await readStudioRecovery(cloudUI?.account.user?.id,{backupId}),'CRIS-antes-da-exclusao.json'),onDeleted:()=>cinematicCues.invalidate(),onClose:()=>{if(scene()===target&&state.ui.view==='document')renderDirector();},save:()=>scene()===target&&persist(),
     present:(item,image)=>{cinematicCues.command++;return cinematic.present(cinematicScope(),location,item,image);},
     stop:()=>{cinematicCues.command++;cinematic.stop();},subscribe:listener=>cinematic.subscribe(listener),
   });

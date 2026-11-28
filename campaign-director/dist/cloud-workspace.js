@@ -1,6 +1,6 @@
 import {exportWorkspace} from './storage.js?v=directorcinematic02';
 import {cinematicReferences} from './cinematic-model.js?v=directorcinematic02';
-import {CloudCinematicMedia} from './cloud-cinematic-media.js?v=cloudreliability01';
+import {CloudCinematicMedia} from './cloud-cinematic-media.js?v=studioux01a';
 import {getCloudClient} from './cloud-account.js';
 import {validateState,getMedia,putMedia,releaseAsset,STORAGE_KEY} from './storage.js?v=directorcinematic02';
 export const sha256=async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('');

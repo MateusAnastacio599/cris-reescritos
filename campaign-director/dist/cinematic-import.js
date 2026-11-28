@@ -26,5 +26,5 @@ export function optimizeCinematicPNG(file){
 export async function prepareCinematicImport(file,{images=cinematicImages}={}){
  const result=await optimizeCinematicPNG(file);
  if(result.savedBytes){const id=await imageKey(file);if(!await images.get(id))await images.putAll([[id,file]]);}
- return result;
+ return result.savedBytes&&typeof file.name==='string'&&globalThis.File?{...result,blob:new File([result.blob],file.name,{type:result.blob.type})}:result;
 }
