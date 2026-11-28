@@ -1,22 +1,33 @@
+import {exportWorkspace} from './storage.js?v=directorcinematic02';
+import {cinematicReferences} from './cinematic-model.js?v=directorcinematic02';
+import {CloudCinematicMedia} from './cloud-cinematic-media.js?v=cloudreliability01';
 import {getCloudClient} from './cloud-account.js';
 import {validateState,getMedia,putMedia,releaseAsset,STORAGE_KEY} from './storage.js?v=directorcinematic02';
 export const sha256=async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('');
 export class CloudWorkspace{
- constructor({client=getCloudClient,readMedia=getMedia,writeMedia=putMedia,release=releaseAsset}={}){Object.assign(this,{client,readMedia,writeMedia,release});this.binding=null;this.busy=false;}
+ constructor({client=getCloudClient,readMedia=getMedia,writeMedia=putMedia,release=releaseAsset,cinematics=new CloudCinematicMedia(),backupStorage=globalThis.localStorage,exportBackup=exportWorkspace}={}){Object.assign(this,{client,readMedia,writeMedia,release,cinematics,backupStorage,exportBackup});this.binding=null;this.busy=false;}
+ async checkpoint(state){
+  if(this.checkpointMade||!cinematicReferences(state).size||!this.backupStorage)return;
+  const backup=await this.exportBackup(state,true,this.cinematics.images),hash=await sha256(backup),id='cloud-checkpoint-'+crypto.randomUUID();await this.writeMedia(id,backup);const check=await this.readMedia(id);if(!check||await sha256(check)!==hash)throw Error('Não foi possível verificar o backup anterior à migração.');
+  this.backupStorage.setItem('cris:cloud-checkpoint:'+this.binding.ownerId,JSON.stringify({id,sha256:hash,at:new Date().toISOString()}));this.checkpointMade=true;
+ }
+ needsMediaMigration(state){return [...cinematicReferences(state).keys()].some(id=>!this.binding?.media?.cinematics?.[id]);}
  async list(){const c=await this.client();const r=await c.from('director_workspaces').select('id,campaign_id,revision,updated_at').order('updated_at',{ascending:false});if(r.error)throw r.error;return r.data||[];}
  async peek(id){const c=await this.client(),r=await c.from('director_workspaces').select('*').eq('id',id).single();if(r.error)throw r.error;return r.data;}
  bind(row){this.binding={id:row.id,revision:row.revision,campaignId:row.campaign_id,media:row.media,ownerId:row.owner_id};}
- async load(id,onProgress=()=>{}){
+ async load(id,onProgress=()=>{},{expectedRevision}={}){
   if(this.busy)throw Error('Outra operação da nuvem está em andamento.');this.busy=true;
   try{
    const c=await this.client(),r=await c.from('director_workspaces').select('*').eq('id',id).single();if(r.error)throw r.error;
-   const row=r.data,state=validateState(structuredClone(row.payload)),pending=[];
+   const row=r.data;if(expectedRevision!==undefined&&row.revision!==expectedRevision)throw Error('A sessão mudou em outro computador. Sincronize antes de preparar.');const state=validateState(structuredClone(row.payload)),pending=[];
    for(const asset of state.audioAssets.filter(a=>a.provider==='upload')){
     onProgress('Conferindo '+asset.name);const file=row.media[asset.id];if(!file)throw Error('A nuvem não contém o arquivo de '+asset.name);
     const cached=await this.readMedia(asset.id);if(cached){if(await sha256(cached)!==file.sha256)throw Error('O arquivo local de '+asset.name+' é diferente. Preserve seu backup antes de abrir esta versão.');continue;}
     const download=await c.storage.from(file.bucket).download(file.path);if(download.error)throw download.error;
     if(download.data.size!==file.bytes||await sha256(download.data)!==file.sha256)throw Error('Falha na verificação do áudio '+asset.name);pending.push([asset.id,download.data]);
    }
+   const cinematicEntries=await this.cinematics.load(c,state,row,onProgress);
+   await this.cinematics.images.putAll(cinematicEntries);
    for(const [assetId,blob] of pending){await this.writeMedia(assetId,blob);this.release(assetId);}
    this.binding={id:row.id,revision:row.revision,campaignId:row.campaign_id,media:row.media,ownerId:row.owner_id};return state;
   }finally{this.busy=false;}
@@ -25,7 +36,7 @@ export class CloudWorkspace{
   if(this.busy)throw Error('Outra operação da nuvem está em andamento.');if(!this.binding)throw Error('Abra primeiro a cópia da nuvem para vincular este navegador.');this.busy=true;
   try{
    const snapshot=validateState(structuredClone(state)),c=await this.client(),{data,error}=await c.auth.getUser();if(error)throw error;
-   if(data.user?.id!==this.binding.ownerId)throw Error('Entre na conta que abriu esta cópia.');const media={};
+   if(data.user?.id!==this.binding.ownerId)throw Error('Entre na conta que abriu esta cópia.');await this.checkpoint(snapshot);const media={};
    for(const a of snapshot.audioAssets.filter(a=>a.provider==='upload')){
     onProgress('Conferindo '+a.name);const blob=await this.readMedia(a.id);if(!blob)throw Error('O arquivo de '+a.name+' está ausente neste navegador.');
     const hash=await sha256(blob),old=this.binding.media[a.id];if(old&&old.sha256===hash){media[a.id]=old;continue;}
@@ -33,6 +44,7 @@ export class CloudWorkspace{
     const check=await c.storage.from('cris-audio').download(path);if(check.error)throw check.error;if(check.data.size!==blob.size||await sha256(check.data)!==hash)throw Error('Falha na verificação do envio de '+a.name);
     media[a.id]={bucket:'cris-audio',path,bytes:blob.size,sha256:hash,type:blob.type||'application/octet-stream'};
    }
+   media.cinematics=await this.cinematics.save(c,snapshot,this.binding,onProgress);
    const r=await c.rpc('save_director_workspace',{p_id:this.binding.id,p_revision:this.binding.revision,p_payload:snapshot,p_media:media});if(r.error)throw r.error;this.binding.revision=r.data;this.binding.media=media;return r.data;
   }finally{this.busy=false;}
  }

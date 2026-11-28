@@ -167,7 +167,7 @@ export async function validateCompositionMedia(item,asset,{decode=false}={}){
   return dimensions;
 }
 
-async function validateWorkspaceCompositions(state,entries,decode=false){
+export async function validateWorkspaceCompositions(state,entries,decode=false){
   for(const campaign of state.campaigns)for(const page of campaign.pages)for(const scene of page.scenes){
     for(const item of cinematicItems(scene))if(item.layers?.length||item.backgroundVideo){
       await validateCompositionMedia(item,Object.fromEntries(cinematicMediaIds(item).map(id=>[id,entries.get(id)])),{decode});
