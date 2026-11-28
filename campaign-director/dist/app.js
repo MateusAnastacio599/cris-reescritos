@@ -22,7 +22,7 @@ import {LibraryUI} from './library-ui.js';
 import {AmbienceUI} from './ambience-ui.js';
 import {musicSummary,openSceneMusic} from './music-ui.js';
 import {openSceneConfig} from './scene-config.js?v=directorcinematic02';
-import {CloudUI} from './cloud-ui.js?v=directorcinematic02';
+import {CloudUI} from './cloud-ui.js?v=cloudreliability01';
 import {icon} from './icons.js';
 import {$,$$,esc,openForm,confirmAction,field,option,toast,downloadBlob,configureAudioPickers} from './ui.js';
 

@@ -1,4 +1,4 @@
-import {CloudWorkspace,preserveBeforeCloudLoad} from './cloud-workspace.js?v=directorcinematic02';
+import {CloudWorkspace,preserveBeforeCloudLoad} from './cloud-workspace.js?v=cloudreliability01';
 import {initialState,validateState,STORAGE_KEY} from './storage.js?v=directorcinematic02';
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().filter(k=>value[k]!==undefined).map(k=>[k,canonical(value[k])])):value;
 export function contentStamp(state){const {ui,...content}=state;return JSON.stringify(canonical(content));}
@@ -39,7 +39,10 @@ export class WorkspaceSync extends EventTarget{
     const before=contentStamp(this.state()),workspace=this.workspace;
     const next=await workspace.load(row.id,text=>{if(generation===this.generation)this.setStatus('loading',text);});if(generation!==this.generation)return;
     if(contentStamp(this.state())!==before){this.conflict=row;this.stash('draft');this.setStatus('review','O roteiro foi editado durante o carregamento. Suas alterações foram preservadas.');return;}
-    preserveBeforeCloudLoad(this.storage);next.ui=this.state().ui;this.apply(next);this.acknowledge(next);this.conflict=null;this.setStatus('synced','Salvo no Supabase · pronto em outros computadores');
+    if(workspace.needsMediaMigration?.(next))await workspace.save(next,text=>{if(generation===this.generation)this.setStatus('saving',text);});
+    if(generation!==this.generation)return;
+    if(contentStamp(this.state())!==before){this.conflict=row;this.stash('draft');this.setStatus('review','O roteiro foi editado durante a migração. Suas alterações foram preservadas.');return;}
+    preserveBeforeCloudLoad(this.storage);next.ui=this.state().ui;this.apply(next);this.acknowledge(next);this.conflict=null;this.setStatus('synced','Salvo na nuvem · arquivos confirmados');
   }
   changed(){
     if(!this.owner||['loading','review','signed-out','error'].includes(this.status))return;
@@ -55,18 +58,31 @@ export class WorkspaceSync extends EventTarget{
     let running;running=(async()=>{
       try{
         await workspace.save(snapshot,text=>{if(generation===this.generation)this.setStatus('saving',text);});if(generation!==this.generation)return;
-        this.acknowledge(snapshot);this.setStatus('synced','Salvo no Supabase · pronto em outros computadores');
+        this.acknowledge(snapshot);this.setStatus('synced','Salvo na nuvem · arquivos confirmados');
       }catch(error){if(generation!==this.generation)return;this.stash('draft');
         if(/CONFLICT/i.test(error.message||'')){try{this.conflict=await workspace.peek(workspace.binding.id);}catch{this.setStatus('offline','Conflito detectado. Reconecte para comparar as versões.');return;}if(generation!==this.generation)return;this.setStatus('review','A sessão também mudou em outro computador. Escolha a versão antes de continuar.');}
         else this.setStatus('offline','Salvo neste computador · aguardando conexão. '+(error.message||''));
       }
     })().finally(()=>{if(this.flushing===running)this.flushing=null;if(generation===this.generation&&this.status==='synced'&&this.dirty)this.changed();});this.flushing=running;return running;
   }
+  async prepareDevice(){
+    if(this.conflict||!this.workspace.binding)throw Error('Resolva a sincronização da sessão primeiro.');
+    const generation=this.generation,workspace=this.workspace;
+    await this.flush();if(generation!==this.generation)return;if(this.dirty)throw Error('Há alterações sem confirmação na nuvem.');
+    const before=contentStamp(this.state()),revision=workspace.binding.revision;
+    this.setStatus('loading','Baixando para este dispositivo…');
+    try{
+      await workspace.load(workspace.binding.id,text=>{if(generation===this.generation)this.setStatus('loading',text);},{expectedRevision:revision});
+      if(generation!==this.generation)return;
+      if(contentStamp(this.state())!==before){this.setStatus('pending','O roteiro mudou durante a preparação. Sincronizando…');this.changed();return;}
+      this.setStatus('synced','Pronto neste dispositivo · arquivos verificados (login e transporte ainda exigem rede)');
+    }catch(error){if(generation===this.generation)this.setStatus('offline','Arquivo ausente ou falha de sincronização: '+error.message);throw error;}
+  }
   async resolve(choice){
     if(!this.conflict)return;const row=this.conflict;this.stash('draft');this.stash('previous-cloud',row.payload);
     if(choice==='remote'){await this.takeRemote(row);return;}
     this.workspace.bind(row);this.conflict=null;this.storage.setItem(this.key(),JSON.stringify({workspaceId:row.id,revision:row.revision,base:contentStamp(row.payload)}));
-    this.setStatus('pending','Sincronizando a versão escolhida…');await this.flush();if(!this.dirty)this.setStatus('synced','Salvo no Supabase · pronto em outros computadores');
+    this.setStatus('pending','Sincronizando a versão escolhida…');await this.flush();if(!this.dirty)this.setStatus('synced','Salvo na nuvem · arquivos confirmados');
   }
   async check(){
     if(!this.owner||this.flushing||['loading','review','error'].includes(this.status))return;
