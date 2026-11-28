@@ -1,0 +1,130 @@
+{
+  "before": {
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "visualWidth": 390,
+      "visualHeight": 844,
+      "scale": 1,
+      "fullscreen": false
+    },
+    "rotated": "true",
+    "frameLogical": {
+      "width": 844,
+      "height": 390
+    },
+    "frameVisual": {
+      "width": 390,
+      "height": 844,
+      "x": 0,
+      "y": 0
+    },
+    "world": {
+      "width": 844,
+      "height": 474.75
+    },
+    "aspect": 1.7777777777777777,
+    "scale": 0.5275,
+    "visible": {
+      "width": 1,
+      "height": 0.8214849921011058
+    },
+    "cropPercent": {
+      "x": 0,
+      "y": 17.851500789889418
+    },
+    "camera": "matrix(1, 0, 0, 1, 0, 0)",
+    "time": 3.0333000000000467,
+    "generation": 2,
+    "startCount": 1,
+    "videos": [
+      {
+        "time": 1.0331,
+        "ready": 4,
+        "paused": false,
+        "error": null
+      },
+      {
+        "time": 1.033,
+        "ready": 4,
+        "paused": false,
+        "error": null
+      }
+    ],
+    "body": "cris-cinematic-active",
+    "phases": [
+      "preparing",
+      "preroll",
+      "starting",
+      "presenting"
+    ],
+    "continuity": {
+      "composition": true,
+      "videos": true
+    }
+  },
+  "after": {
+    "viewport": {
+      "width": 844,
+      "height": 390,
+      "visualWidth": 844,
+      "visualHeight": 390,
+      "scale": 1,
+      "fullscreen": false
+    },
+    "rotated": "false",
+    "frameLogical": {
+      "width": 844,
+      "height": 390
+    },
+    "frameVisual": {
+      "width": 844,
+      "height": 390,
+      "x": 0,
+      "y": 0
+    },
+    "world": {
+      "width": 844,
+      "height": 474.75
+    },
+    "aspect": 1.7777777777777777,
+    "scale": 0.5275,
+    "visible": {
+      "width": 1,
+      "height": 0.8214849921011058
+    },
+    "cropPercent": {
+      "x": 0,
+      "y": 17.851500789889418
+    },
+    "camera": "matrix(1, 0, 0, 1, 0, 0)",
+    "time": 3.167,
+    "generation": 2,
+    "startCount": 1,
+    "videos": [
+      {
+        "time": 1.1668,
+        "ready": 4,
+        "paused": false,
+        "error": null
+      },
+      {
+        "time": 1.1668,
+        "ready": 4,
+        "paused": false,
+        "error": null
+      }
+    ],
+    "body": "cris-cinematic-active",
+    "phases": [
+      "preparing",
+      "preroll",
+      "starting",
+      "presenting"
+    ],
+    "continuity": {
+      "composition": true,
+      "videos": true
+    }
+  }
+}

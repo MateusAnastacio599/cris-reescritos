@@ -1,0 +1,168 @@
+{
+  "result": "PASS",
+  "source": "Chromium DOM measurements; not physical Android",
+  "rows": [
+    {
+      "viewport": "390x844",
+      "rotated": "true",
+      "beforeCrop": {
+        "x": 43.74983338220789,
+        "y": 53.79146919431279
+      },
+      "afterCrop": {
+        "x": 0,
+        "y": 17.851500789889418
+      },
+      "beforeVisibleAreaPercent": 25.99237556983285,
+      "afterVisibleAreaPercent": 82.14849921011059,
+      "world": {
+        "width": 844,
+        "height": 474.75
+      }
+    },
+    {
+      "viewport": "360x800",
+      "rotated": "true",
+      "beforeCrop": {
+        "x": 43.74991210923768,
+        "y": 55.00000000000001
+      },
+      "afterCrop": {
+        "x": 0,
+        "y": 19.999999999999996
+      },
+      "beforeVisibleAreaPercent": 25.312539550843045,
+      "afterVisibleAreaPercent": 80,
+      "world": {
+        "width": 800,
+        "height": 450
+      }
+    },
+    {
+      "viewport": "412x915",
+      "rotated": "true",
+      "beforeCrop": {
+        "x": 43.75011526615724,
+        "y": 54.97267759562842
+      },
+      "afterCrop": {
+        "x": 0,
+        "y": 19.95150460084556
+      },
+      "beforeVisibleAreaPercent": 25.327816951194773,
+      "afterVisibleAreaPercent": 80.04849539915443,
+      "world": {
+        "width": 915,
+        "height": 514.688
+      }
+    },
+    {
+      "viewport": "844x390",
+      "rotated": "false",
+      "beforeCrop": {
+        "x": 0,
+        "y": 17.851500789889418
+      },
+      "afterCrop": {
+        "x": 0,
+        "y": 17.851500789889418
+      },
+      "beforeVisibleAreaPercent": 82.14849921011059,
+      "afterVisibleAreaPercent": 82.14849921011059,
+      "world": {
+        "width": 844,
+        "height": 474.75
+      }
+    },
+    {
+      "viewport": "800x360",
+      "rotated": "false",
+      "beforeCrop": {
+        "x": 0,
+        "y": 19.999999999999996
+      },
+      "afterCrop": {
+        "x": 0,
+        "y": 19.999999999999996
+      },
+      "beforeVisibleAreaPercent": 80,
+      "afterVisibleAreaPercent": 80,
+      "world": {
+        "width": 800,
+        "height": 450
+      }
+    },
+    {
+      "viewport": "915x412",
+      "rotated": "false",
+      "beforeCrop": {
+        "x": 0,
+        "y": 19.95150460084556
+      },
+      "afterCrop": {
+        "x": 0,
+        "y": 19.95150460084556
+      },
+      "beforeVisibleAreaPercent": 80.04849539915443,
+      "afterVisibleAreaPercent": 80.04849539915443,
+      "world": {
+        "width": 915,
+        "height": 514.688
+      }
+    },
+    {
+      "viewport": "1920x1080",
+      "rotated": "false",
+      "beforeCrop": {
+        "x": 0,
+        "y": 0
+      },
+      "afterCrop": {
+        "x": 0,
+        "y": 0
+      },
+      "beforeVisibleAreaPercent": 100,
+      "afterVisibleAreaPercent": 100,
+      "world": {
+        "width": 1920,
+        "height": 1080
+      }
+    },
+    {
+      "viewport": "1440x900",
+      "rotated": "false",
+      "beforeCrop": {
+        "x": 9.999999999999998,
+        "y": 0
+      },
+      "afterCrop": {
+        "x": 9.999999999999998,
+        "y": 0
+      },
+      "beforeVisibleAreaPercent": 90,
+      "afterVisibleAreaPercent": 90,
+      "world": {
+        "width": 1600,
+        "height": 900
+      }
+    },
+    {
+      "viewport": "1366x768",
+      "rotated": "false",
+      "beforeCrop": {
+        "x": 0,
+        "y": 0.048804294777937685
+      },
+      "afterCrop": {
+        "x": 0,
+        "y": 0.048804294777937685
+      },
+      "beforeVisibleAreaPercent": 99.95119570522206,
+      "afterVisibleAreaPercent": 99.95119570522206,
+      "world": {
+        "width": 1366,
+        "height": 768.375
+      }
+    }
+  ]
+}

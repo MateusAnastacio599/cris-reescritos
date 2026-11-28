@@ -1,0 +1,54 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "visualWidth": 390,
+    "visualHeight": 844,
+    "scale": 1,
+    "fullscreen": false
+  },
+  "rotated": "true",
+  "frameLogical": {
+    "width": 844,
+    "height": 390
+  },
+  "frameVisual": {
+    "width": 390,
+    "height": 844,
+    "x": 0,
+    "y": 0
+  },
+  "world": {
+    "width": 844,
+    "height": 416.965
+  },
+  "aspect": 2.0241492864983535,
+  "scale": 0.45770065075921906,
+  "visible": {
+    "width": 1,
+    "height": 0.9353303035026921
+  },
+  "cropPercent": {
+    "x": 0,
+    "y": 6.466969649730792
+  },
+  "camera": "matrix(1, 0, 0, 1, 0, 0)",
+  "time": 3,
+  "generation": 4,
+  "startCount": 2,
+  "videos": [],
+  "body": "cris-cinematic-active",
+  "phases": [
+    "preparing",
+    "preroll",
+    "starting",
+    "presenting",
+    "preparing",
+    "preroll",
+    "starting",
+    "presenting",
+    "requesting-fullscreen",
+    "fullscreen-unavailable"
+  ],
+  "continuity": null
+}

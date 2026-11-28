@@ -52,7 +52,7 @@ A definição de prioridades/contratos e a documentação podem prosseguir enqua
 | UX-010 | Transformações intuitivas | P2 | Parcial | STUDIO-UX-02 | Arraste/escala/seleção/histórico existem; rotação e âncora por alças pendentes |
 | UX-011 | Reformular Tempo | P2 | Parcial | STUDIO-UX-02 | Trilhas/janelas e seek existem; edição temporal visual completa pendente |
 | UX-012 | Prévia fiel e útil | P1 | Parcial | STUDIO-UX-02 | Mesmo player, prévia contain e apresentação cover; seletor dos três modos pendente |
-| UX-013 | Corrigir o corte excessivo no celular | P1 | Parcial | MOBILE-FIT-01 | Cover/rotação/resize existem; correção do recorte e homologação com sujeitos nas bordas pendentes |
+| UX-013 | Corrigir o corte excessivo no celular | P1 | Parcial | MOBILE-FIT-01 | Medição local corrigida e nove viewports comparados no Chromium; homologação Android/PWA e fullscreen permitido pendentes |
 
 A matriz tem **13 requisitos: 11 Parciais, 2 Pendentes, 0 Concluídos**. CRUD, gerenciamento de arquivos, luzes arrastáveis, timeline visual, fullscreen do editor e enquadramento mobile permanecem explicitamente abertos.
 
@@ -296,7 +296,7 @@ As linhas abaixo se referem à `main` fixada na seção 2; o nome do símbolo é
 
 ### UX-013 · Corrigir o corte excessivo no celular
 
-**Prioridade:** P1. **Estado:** Parcial — correção do corte e homologação pendentes. **Evidências:** A14–A15. **Dependências:** G-34 e baseline estabilizada do player; definir contrato de viewport para UX-012. Não deve esperar toda a reformulação do Studio. **Entrega:** MOBILE-FIT-01, independente.
+**Prioridade:** P1. **Estado:** Parcial — correção implementada para revisão; homologação Android/PWA pendente. **Evidências:** A14–A15. **Dependências:** G-34 e baseline estabilizada do player; definir contrato de viewport para UX-012. Não deve esperar toda a reformulação do Studio. **Entrega:** MOBILE-FIT-01, independente.
 
 **Requisitos oficiais:**
 
@@ -312,6 +312,8 @@ As linhas abaixo se referem à `main` fixada na seção 2; o nome do símbolo é
 **Pendência e reaproveitamento:** cover, ResizeObserver e rotação CSS já existem; isso não comprova que o viewport efetivo é medido corretamente nem que o recorte é aceitável. Auditar dimensões antes/depois da rotação e interação com visual viewport/safe areas/barras. Não concluir que forçar fullscreen/orientação resolve o cálculo. Definir exemplos e limite de recorte aprovados com o responsável antes da correção; não inventar um percentual como requisito oficial. Preservar o player/tempo e isolar o ajuste de enquadramento; nenhuma alteração do renderer nesta execução documental.
 
 **Validação futura:** Windows desktop cover como controle; Android físico navegador/PWA em portrait e landscape; iOS se ambiente disponível, com limitações declaradas; barra expandida/recolhida, fullscreen permitido/negado, rotação durante câmera/WebM, retorno ao quadro. Usar cena 16:9 com personagens/rostos e marcadores nos dois extremos e no centro, registrar retângulo efetivo, proporção e área perdida. Verificar posições importantes, ausência de distorção, mesmo timestamp após resize e nenhuma regressão desktop. Viewport emulado não substitui homologação física.
+
+**Atualização MOBILE-FIT-01 (28/11/2026):** base `b151128`, após merge de #36. `fitComposition` usava o retângulo visual já rotacionado para dimensionar o mundo no frame horizontal. Correção usa `clientWidth/clientHeight` e `ResizeObserverEntry.contentRect`, preservando rotação 90°, cover, câmera e timeline. Na referência da mansão em 390 × 844, recorte X/Y passou de 50,60%/53,79% para 0%/6,47%; na fixture 16:9, de 43,75%/53,79% para 0%/17,85%. As três resoluções desktop mantiveram dimensões idênticas. **646/646 testes**, check e integração aprovados. Continuidade de câmera e dois WebM exercitada no Chromium com componentes reais; dados de teste e viewports em iframe, sem conta ou transporte real. Não houve Android/PWA físico nem fullscreen permitido real (API recusada no ensaio). [Relatório, capturas, medidas e roteiro de homologação](MOBILE-FIT-01.md). Branch `fix/mobile-fit-01-cinematic-framing`; [PR #37, em rascunho](https://github.com/MateusAnastacio599/cris-reescritos/pull/37), implementação em `0b5f0ef6c85788527240f617f2896b889f0f2277`. **UX-013 permanece Parcial**, sem implementação dos demais IDs.
 
 ## 9. Dependências e divisão das entregas futuras
 

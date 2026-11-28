@@ -1,0 +1,7 @@
+{
+  "clip": "hidden",
+  "darkness": "background: rgb(0, 0, 0); opacity: 0.24;",
+  "lights": 1,
+  "planes": 2,
+  "vignette": "background: radial-gradient(transparent 30%, rgba(0, 0, 0, 0.35) 100%);"
+}
