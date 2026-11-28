@@ -1,6 +1,6 @@
 # STUDIO-UX-01A · CRUD, arquivos e estados
 
-Implementação para revisão, em 28/11/2026, baseada na `main` `f4958ba5045d2ae47a2be628efda089e62c7e9e7` (PRs #33, #34 e #35 integrados). Branch: `feature/studio-ux-01a-crud-media-status`. Escopo: UX-002, UX-003 e UX-007 do [backlog oficial](STUDIO-UX-BACKLOG.md). Os três continuam **Parciais**, aguardando homologação e revisão; os demais IDs não foram implementados.
+Implementação para revisão, em 28/11/2026, baseada na `main` `f4958ba5045d2ae47a2be628efda089e62c7e9e7` (PRs #33, #34 e #35 integrados). Branch: `feature/studio-ux-01a-crud-media-status`. [PR #36, em rascunho](https://github.com/MateusAnastacio599/cris-reescritos/pull/36); implementação em `86d70cb1a8b175ea63ce24c4a97b2d451b9428cb`. Escopo: UX-002, UX-003 e UX-007 do [backlog oficial](STUDIO-UX-BACKLOG.md). Os três continuam **Parciais**, aguardando homologação e revisão; os demais IDs não foram implementados.
 
 ## Operação e segurança
 

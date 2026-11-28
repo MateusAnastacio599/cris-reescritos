@@ -358,7 +358,7 @@ Reexecutar `npm --prefix campaign-director run check`, `npm --prefix campaign-di
 
 Base de implementação: `f4958ba5045d2ae47a2be628efda089e62c7e9e7`, após os merges de #33, #34 e #35. A auditoria inicial e seus snapshots acima permanecem históricos. G-34 está consolidado na base; **G-33 continua aberto para SQL/RLS e sincronização real entre computadores**. Nenhum SQL foi aplicado nesta entrega.
 
-Branch: `feature/studio-ux-01a-crud-media-status`. PR: referência será registrada após sua criação. Evidências, capturas, limitações e roteiro de homologação: [STUDIO-UX-01A.md](STUDIO-UX-01A.md).
+Branch: `feature/studio-ux-01a-crud-media-status`. PR: [#36 — STUDIO-UX-01A, em rascunho](https://github.com/MateusAnastacio599/cris-reescritos/pull/36). Commit de implementação: `86d70cb1a8b175ea63ce24c4a97b2d451b9428cb`. Evidências, capturas, limitações e roteiro de homologação: [STUDIO-UX-01A.md](STUDIO-UX-01A.md).
 
 | ID | Evidência nova | Estado e aceitação restante |
 | --- | --- | --- |
