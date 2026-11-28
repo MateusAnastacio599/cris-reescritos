@@ -1,0 +1,14 @@
+{
+  "kind": "Browser observation: generated uncompressed PNG; not campaign media",
+  "originalBytes": 2098089,
+  "variantBytes": 598085,
+  "savedBytes": 1500004,
+  "importMs": 303.39999999990687,
+  "decodedRGBAEqual": true,
+  "alphaPreserved": true,
+  "browser": "Chrome/156",
+  "dimensions": [
+    1024,
+    512
+  ]
+}

@@ -1,0 +1,227 @@
+{
+  "master": {
+    "build": "directorcinematic02",
+    "prewarm": {
+      "sid": null,
+      "status": "local",
+      "cacheBytes": 0,
+      "budget": 25165824,
+      "participants": []
+    },
+    "reentryCache": null,
+    "environment": {
+      "mode": "browser",
+      "browser": "Chrome/156",
+      "secure": true,
+      "crypto": true,
+      "abort": true,
+      "abortCheck": true
+    },
+    "hostReady": true,
+    "hostFailure": null,
+    "active": true,
+    "coordination": {
+      "phase": "apresentando",
+      "startAt": 1795870057063,
+      "local": {
+        "imageMs": 54.5,
+        "videoMs": 71.10000000009313,
+        "videoFallbacks": 0,
+        "prepareMs": 118,
+        "startSkewMs": 18
+      },
+      "canProceed": false
+    },
+    "peers": [
+      {
+        "id": "live-fixture-player-director-aa841f00-71d1-4e82-807e-a737d57b0e25",
+        "phase": "participant-apresentando",
+        "failurePhase": null,
+        "errorType": null,
+        "build": "directorcinematic02",
+        "environment": {
+          "mode": "browser",
+          "browser": "Chrome/156",
+          "secure": true,
+          "crypto": true,
+          "abort": true,
+          "abortCheck": true
+        },
+        "status": "apresentando",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "metrics": {
+          "offeredAt": 1795870054990,
+          "totalBytes": 545394,
+          "bytes": 545394,
+          "reused": 0,
+          "reusedBytes": 0,
+          "base64Ms": 18,
+          "transferMs": 212,
+          "applicationChars": 727728,
+          "maxInFlight": 4,
+          "commandMs": 1.5,
+          "decodeBase64Ms": 3,
+          "integrityMs": 18,
+          "prepareMs": 56,
+          "firstFrameMs": 268,
+          "imageMs": 27.9,
+          "videoMs": 20,
+          "videoFallbacks": 0,
+          "readyAt": 1795870055262,
+          "readyToPlayMs": 1813,
+          "startSkewMs": 10.5
+        },
+        "version": 4
+      }
+    ],
+    "events": [
+      {
+        "at": 1795870031616,
+        "phase": "host-key-registered"
+      },
+      {
+        "at": 1795870031990,
+        "phase": "host-proof-signing"
+      },
+      {
+        "at": 1795870031990,
+        "phase": "host-proof-sent"
+      },
+      {
+        "at": 1795870031993,
+        "phase": "host-proof-confirmed"
+      },
+      {
+        "at": 1795870054964,
+        "phase": "director-start-request"
+      },
+      {
+        "at": 1795870054990,
+        "phase": "manifest-sent"
+      },
+      {
+        "at": 1795870055007,
+        "phase": "media-requested"
+      },
+      {
+        "at": 1795870055205,
+        "phase": "participant-carregando"
+      },
+      {
+        "at": 1795870055262,
+        "phase": "receiver-ready"
+      },
+      {
+        "at": 1795870057081,
+        "phase": "participant-apresentando"
+      }
+    ]
+  },
+  "player": {
+    "build": "directorcinematic02",
+    "prewarm": {
+      "sid": null,
+      "status": "local",
+      "cacheBytes": 545394,
+      "budget": 25165824,
+      "participants": []
+    },
+    "reentryCache": {
+      "available": true,
+      "restoredBytes": 0
+    },
+    "environment": {
+      "mode": "browser",
+      "browser": "Chrome/156",
+      "secure": true,
+      "crypto": true,
+      "abort": true,
+      "abortCheck": true
+    },
+    "hostReady": false,
+    "hostFailure": null,
+    "active": false,
+    "coordination": null,
+    "peers": [
+      {
+        "id": "host",
+        "phase": "player-started",
+        "failurePhase": null,
+        "errorType": null,
+        "build": "directorcinematic02",
+        "environment": null,
+        "status": "apresentando",
+        "code": null,
+        "verified": true,
+        "boardSynced": true,
+        "metrics": {},
+        "version": 4
+      }
+    ],
+    "events": [
+      {
+        "at": 1795870031992,
+        "phase": "host-key-reading"
+      },
+      {
+        "at": 1795870031993,
+        "phase": "host-proof-verified"
+      },
+      {
+        "at": 1795870054993,
+        "phase": "manifest-received"
+      },
+      {
+        "at": 1795870054993,
+        "phase": "receiver-setup"
+      },
+      {
+        "at": 1795870054994,
+        "phase": "preparing"
+      },
+      {
+        "at": 1795870055181,
+        "phase": "media-validated"
+      },
+      {
+        "at": 1795870055191,
+        "phase": "media-validated"
+      },
+      {
+        "at": 1795870055198,
+        "phase": "media-validated"
+      },
+      {
+        "at": 1795870055205,
+        "phase": "receiver-preparing"
+      },
+      {
+        "at": 1795870055262,
+        "phase": "media-ready"
+      },
+      {
+        "at": 1795870055264,
+        "phase": "preroll"
+      },
+      {
+        "at": 1795870057072,
+        "phase": "starting"
+      },
+      {
+        "at": 1795870057072,
+        "phase": "player-loading"
+      },
+      {
+        "at": 1795870057074,
+        "phase": "presenting"
+      },
+      {
+        "at": 1795870057074,
+        "phase": "player-started"
+      }
+    ]
+  },
+  "videoCount": 1
+}

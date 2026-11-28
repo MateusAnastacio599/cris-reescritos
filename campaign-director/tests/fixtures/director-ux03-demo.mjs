@@ -1,0 +1,14 @@
+// Disposable QA ONLY. Reuses the real Director/editor/frame with fake accounts
+// and the existing simulated multiplayer harness; never deploy this directory.
+import {spawnSync} from 'node:child_process';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {resolve,join} from 'node:path';
+import {importPNG} from './cinematic-import-png.mjs';
+const dest=resolve(process.argv[2]||'');if(!process.argv[2])throw Error('Diretório novo obrigatório.');
+const run=spawnSync(process.execPath,[new URL('./director-prewarm-demo.mjs',import.meta.url).pathname,dest],{encoding:'utf8'});if(run.status)throw Error(run.stderr);
+const web=join(dest,'public'),app=join(web,'campaign-director/dist/app.js');
+writeFileSync(app,readFileSync(app,'utf8')+`\nfor(const s of state.campaigns[0].pages[0].scenes){const item=s.cinematic?.items?.[0];if(item&&s.cinematic.items.length===1)s.markdown+='\\n\\n'+blocksToMarkdown([sceneCinematicCue(s,item)]);}renderApp();persist();\n`);
+const png=importPNG();writeFileSync(join(web,'qa-media/import-source.png'),new Uint8Array(await png.blob.arrayBuffer()));
+let html=readFileSync(join(web,'director-qa.html'),'utf8');html=html.replace('<button id="report">','<label>Director <select id="directorWidth"><option value="1280">Desktop</option><option value="390">Mobile</option></select></label><button id="optimizePNG">Medir PNG</button><button id="report">');html=html.replace("const master=$('#master')", "$('#directorWidth').onchange=e=>$('#director').style.width=e.target.value+'px';$('#optimizePNG').onclick=async()=>{const {optimizeCinematicPNG}=await import('./campaign-director/dist/cinematic-import.js?v=directorux03'),source=new Blob([await(await fetch('qa-media/import-source.png')).arrayBuffer()],{type:'image/png'}),at=performance.now(),result=await optimizeCinematicPNG(source),ms=performance.now()-at;const pixels=async blob=>{const bitmap=await createImageBitmap(blob),canvas=new OffscreenCanvas(bitmap.width,bitmap.height),ctx=canvas.getContext('2d');ctx.drawImage(bitmap,0,0);bitmap.close();return ctx.getImageData(0,0,canvas.width,canvas.height).data;},a=await pixels(source),b=await pixels(result.blob);$('#result').textContent=JSON.stringify({kind:'BROWSER PNG recompression; QA-generated uncompressed source, not campaign data',originalBytes:source.size,variantBytes:result.blob.size,savedBytes:result.savedBytes,importMs:ms,decodedRGBAEqual:a.length===b.length&&a.every((value,i)=>value===b[i]),alphaPreserved:a.some((value,i)=>i%4===3&&value<255)&&a.every((value,i)=>i%4!==3||value===b[i])},null,2);};const master=$('#master')");
+html=html.replace('JSON.stringify({master:master.CRIS_REMOTE_CINEMATICS',"JSON.stringify({director:$('#director').contentWindow.CRIS_DIRECTOR_CINEMATIC_DIAGNOSTICS?.(),master:master.CRIS_REMOTE_CINEMATICS");
+writeFileSync(join(web,'director-qa.html'),html);writeFileSync(join(web,'index.html'),html);console.log(dest);

@@ -6,8 +6,11 @@ export class CinematicLink{
     this.subscribers=new Set();
     this.requests=new Map();
     this.sequence=0;
-    this.message='';
+    this.message='';this.events=[];
+
   }
+  trace(phase,code){this.events.push({at:Date.now(),phase,...(code?{code}:{})});if(this.events.length>48)this.events.shift();}
+  diagnostics(){return {running:this.running,phase:this.active?.phase||null,requests:this.requests.size,events:this.events.slice()};}
   get running(){return !!(this.active||this.operation);}
   notify(message){
     this.message=message;
@@ -36,7 +39,7 @@ export class CinematicLink{
         manual:'Apresentação encerrada.',
         expired:'Apresentação encerrada por perda de comunicação.',
       }[reply.reason]);
-      if(reply.type==='started'){if(!reply.ok){if(!request)this.stop('Não foi possível iniciar a apresentação.');return;}active.phase='apresentando';active.motionReduced=reply.motionReduced;this.notify(this.activeMessage());}
+      if(reply.type==='started'){this.trace(reply.ok?'director-started':'director-start-failed');if(!reply.ok){if(!request)this.stop('Não foi possível iniciar a apresentação.');return;}active.phase='apresentando';active.motionReduced=reply.motionReduced;this.notify(this.activeMessage());}
       if(reply.type==='local-ended'){active.localEnded=true;this.notify(this.activeMessage());}
       if(reply.type==='remote-status'){active.remote=reply.participants;active.coordination=reply.coordination;this.notify(this.activeMessage());}
       if(reply.type==='motion'){active.motionReduced=reply.motionReduced;this.notify(this.activeMessage());}
@@ -66,6 +69,7 @@ export class CinematicLink{
     this.channel?.postMessage(cinematicEnvelope(scope,{...fields,type,senderId,boardId,sessionId,scene,requestId:crypto.randomUUID(),sequence:++this.sequence}));
   }
   async present(scope,scene,item,image,{replace=true}={}){
+    this.trace('director-cue-request');
     if(this.running&&!replace){this.notify('Apresentação atual mantida. A cue está configurada para não substituir.');return false;}
     if(this.operation&&replace)this.stop('Substituindo apresentação anterior.');
     if(!validBoard(scope))throw Error('Entre como mestre e vincule o Director à campanha do quadro em Conta e nuvem.');
@@ -76,17 +80,19 @@ export class CinematicLink{
     clearInterval(this.heartbeat);
     const operation={scope,scene,previous:this.active};
     this.operation=operation;
-    this.notify('Procurando a janela do quadro…');
+    this.trace('director-discovery');this.notify('Procurando a janela do quadro…');
     try{
       const prior=this.active;
       const boardId=prior?.boardId??(await this.request(scope,{type:'discover'},reply=>reply.type==='ready',1800,
         'Quadro indisponível. Abra o quadro ao vivo da campanha e deixe a mesa pronta nesta conta e navegador.',{collect:true})).boardId;
       if(this.operation!==operation)return;
       const active=this.active={scope,senderId:this.senderId,boardId,sessionId:crypto.randomUUID(),scene,itemKey:JSON.stringify(item),name:item.name,fadeOut:item.fadeOut??.3,lastSeen:Date.now()};
+      this.trace('director-start-sent');
       const reply=await this.request(scope,{type:'start',boardId,sessionId:active.sessionId,scene,item,image,sequence:++this.sequence},
         result=>['accepted','started'].includes(result.type)&&sameCinematicSession(active,result),6500,'O quadro não confirmou a abertura da imagem.');
       if(this.operation!==operation)return;
       if(reply.type==='started'&&!reply.ok)throw Error('O quadro não abriu a imagem. Confira o arquivo e se outra apresentação está ativa.');
+      this.trace(reply.type==='accepted'?'director-accepted':'director-start-confirmed');
       this.operation=null;
       active.started=true;active.phase=reply.type==='accepted'?'preparando':'apresentando';
       active.motionReduced=reply.motionReduced;
@@ -99,6 +105,7 @@ export class CinematicLink{
       return true;
     }catch(error){
       if(this.operation===operation){
+        this.trace('director-request-failed','board-unconfirmed');
         if(operation.previous)this.send(operation.previous,'stop');
         this.stop(error.message);
       }
@@ -127,6 +134,7 @@ export class CinematicLink{
     this.reset(message??'Apresentação encerrada.');
   }
   reset(message){
+    this.trace('director-reset');
     this.operation=null;
     this.active=null;
     clearTimeout(this.stopTimer);

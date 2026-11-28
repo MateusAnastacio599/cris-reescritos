@@ -182,7 +182,7 @@ export function renderReadBlocks(blocks,pages=[]) {
     if(list){if(!listType){html+=list==='numbered'?`<ol class="document-list" start="${b.number||1}">`:'<ul class="document-list">';listType=list;}html+=`<li>${text}</li>`;return;}
     if(b.type==='table'){html+=renderTable(b,pages);return;}
     if(b.type==='clue'){html+=`<div class="inline-board-clue"><div><span aria-hidden="true">◇</span><span><small>PISTA DO QUADRO</small>${text||'Escolher pista'}</span></div><button type="button" class="btn" data-inline-clue="${escapeHTML(b.itemId)}" data-board-campaign="${escapeHTML(b.campaignId)}" data-board-action="${b.action==='hide'?'hide':'reveal'}">${b.action==='hide'?'Ocultar':'Revelar pista'}</button></div>`;return;}
-    if(b.type==='cue'){html+=`<div class="inline-cue"><div><span class="cue-glyph">♫</span><span>${text}</span></div><button class="btn cue-fire" data-inline-cue="${escapeHTML(b.triggerId)}">▶ <span>Disparar</span></button></div>`;return;}
+    if(b.type==='cue'){html+=`<div class="inline-cue"><div><span class="cue-glyph">♫</span><span>${text}</span></div><button class="btn cue-fire" data-inline-cue="${escapeHTML(b.triggerId)}" aria-label="Disparar ${escapeHTML(b.text)}">▶ <span>Disparar</span></button></div>`;return;}
     if(b.type==='note'){html+=`<aside class="master-note"><span class="note-label">✦ NOTA DO MESTRE</span><p>${text}</p></aside>`;return;}
     if(b.type==='divider'){html+='<hr>';return;}
     if(b.type==='todo'){html+=`<label class="read-todo"><input type="checkbox" data-todo="${i}" ${b.checked?'checked':''}> <span>${text}</span></label>`;return;}
