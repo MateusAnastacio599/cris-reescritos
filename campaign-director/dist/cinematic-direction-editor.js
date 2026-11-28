@@ -1,4 +1,4 @@
-import {captureContext,restoreContext,numericInvalid} from './cinematic-studio-ui.js?v=directorcinematic02';
+import {captureContext,restoreContext,numericInvalid} from './cinematic-studio-ui.js?v=studioux01a';
 import {$,esc,option} from './ui.js';
 import {sceneSpan,defaultWindow,validWindow,windowRange} from './cinematic-timing.js?v=directorcinematic02';
 import {defaultCamera,lightingProfile,validLighting,LIGHT_PROFILES} from './cinematic-direction-model.js?v=directorcinematic02';

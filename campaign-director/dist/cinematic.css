@@ -1,4 +1,4 @@
-@import url('./cinematic-studio.css?v=directorcinematic02');
+@import url('./cinematic-studio.css?v=studioux01a');
 .cinematic-frame{position:relative;overflow:hidden;isolation:isolate;background:#100e14;color:#e8dfef;opacity:0;transition:opacity var(--cinematic-fade,300ms) ease-out!important}
 .cinematic-frame.cinematic-visible{opacity:1}
 .cinematic-frame[hidden]{display:none}

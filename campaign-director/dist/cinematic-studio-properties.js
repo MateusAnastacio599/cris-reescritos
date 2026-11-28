@@ -1,5 +1,5 @@
-import {numericInvalid,captureContext,restoreContext,editEffect} from './cinematic-studio-ui.js?v=directorcinematic02';
-import {renderBackgroundMedia} from './cinematic-background-editor.js?v=directorcinematic02';
+import {numericInvalid,captureContext,restoreContext,editEffect} from './cinematic-studio-ui.js?v=studioux01a';
+import {renderBackgroundMedia} from './cinematic-background-editor.js?v=studioux01a';
 import {renderWindows,renderLights} from './cinematic-direction-editor.js?v=directorcinematic02';
 import {sceneSpan} from './cinematic-timing.js?v=directorcinematic02';
 import {CinematicCameraEditor} from './cinematic-camera-editor.js?v=directorcinematic02';

@@ -2,7 +2,7 @@
 
 Registro: 28/11/2026. Repositório: `MateusAnastacio599/cris-reescritos`.
 
-**Natureza desta entrega: documentação e auditoria estática somente. Nenhuma melhoria deste backlog foi implementada nesta execução.** Este documento é a fonte de verdade para o escopo UX-001–UX-013; mantém a numeração e os critérios fornecidos pelo responsável do projeto. As prioridades, dependências, subdivisões e planos de validação abaixo são recomendações de planejamento, não resultados de homologação.
+**Registro histórico da auditoria inicial (atualizações de implementação na seção 12): documentação e auditoria estática somente. Nenhuma melhoria deste backlog foi implementada nesta execução.** Este documento é a fonte de verdade para o escopo UX-001–UX-013; mantém a numeração e os critérios fornecidos pelo responsável do projeto. As prioridades, dependências, subdivisões e planos de validação abaixo são recomendações de planejamento, não resultados de homologação.
 
 ## 1. Objetivo e limites
 
@@ -41,12 +41,12 @@ A definição de prioridades/contratos e a documentação podem prosseguir enqua
 | ID | Requisito | Prioridade | Estado auditado | Entrega oficial | Base / principal lacuna |
 | --- | --- | --- | --- | --- | --- |
 | UX-001 | Editor em tela ampla | P1 | Parcial | STUDIO-UX-01 | Diálogo amplo e painéis existem; workspace fora da experiência de popup e fullscreen do editor pendentes |
-| UX-002 | CRUD completo das Cinematics | P1 | Parcial | STUDIO-UX-01 | Criar/selecionar/renomear/duplicar; exclusão com análise de vínculos e organização completa pendentes |
-| UX-003 | Gerenciamento claro dos arquivos | P1 | Parcial | STUDIO-UX-01 | IDs/hash/cache existem; cartões de arquivo, nomes legados, ações e estados por arquivo pendentes |
+| UX-002 | CRUD completo das Cinematics | P1 | Parcial | STUDIO-UX-01 | CRUD/ordenação e exclusão com backup/reassociação implementados em STUDIO-UX-01A; recuperação pela UI e homologação final pendentes |
+| UX-003 | Gerenciamento claro dos arquivos | P1 | Parcial | STUDIO-UX-01 | Cartões, nomes conhecidos/legados, substituir/remover e estados implementados em STUDIO-UX-01A; homologação cloud/dispositivos pendente |
 | UX-004 | Campos e propriedades organizados | P1 | Parcial | STUDIO-UX-01 | Propriedades contextuais/CSS existem; consistência e usabilidade integral não homologadas |
 | UX-005 | Valores compreensíveis | P1 | Parcial | STUDIO-UX-01 | Parte dos controles já usa %/graus/segundos; conversões e rótulos ainda não uniformes |
 | UX-006 | Remover demonstrações do fluxo real | P2 | Pendente | STUDIO-UX-01 | Comandos de teatro de demonstração presentes no Fundo vivo |
-| UX-007 | Erros e estados corretos | P1 | Parcial | STUDIO-UX-01 | Validação/dirty/busy existem; aviso persistente e semântica unificada pendentes |
+| UX-007 | Erros e estados corretos | P1 | Parcial | STUDIO-UX-01 | Caixa de erro vazia corrigida e estados separados em STUDIO-UX-01A; homologação de falhas backend/dispositivos pendente |
 | UX-008 | Separar edição de apresentação | P1 | Parcial | STUDIO-UX-01 | Cues já existem na main; Studio ainda apresenta; PR #34 propõe separar controles no Director |
 | UX-009 | Manipulação visual das luzes | P2 | Pendente | STUDIO-UX-02 | Modelo e campos de luz existem; seleção/gizmos e arraste de luz não identificados |
 | UX-010 | Transformações intuitivas | P2 | Parcial | STUDIO-UX-02 | Arraste/escala/seleção/histórico existem; rotação e âncora por alças pendentes |
@@ -353,3 +353,19 @@ Reexecutar `npm --prefix campaign-director run check`, `npm --prefix campaign-di
 - Artefato: somente este arquivo de documentação, em branch documental independente da main e dos PRs #33/#34.
 - Não implementados: novo layout, CRUD, cartões de arquivo, conversões, correção de câmera, remoção de demos, gizmos, timeline, modos de prévia e correção de enquadramento.
 - Não realizados: mudanças no renderer/Studio/banco/campanhas, aplicação SQL, rebase ou alteração de #33/#34, merge/publicação e declaração de funcionalidades concluídas.
+
+## 12. Atualização STUDIO-UX-01A · 28/11/2026
+
+Base de implementação: `f4958ba5045d2ae47a2be628efda089e62c7e9e7`, após os merges de #33, #34 e #35. A auditoria inicial e seus snapshots acima permanecem históricos. G-34 está consolidado na base; **G-33 continua aberto para SQL/RLS e sincronização real entre computadores**. Nenhum SQL foi aplicado nesta entrega.
+
+Branch: `feature/studio-ux-01a-crud-media-status`. PR: referência será registrada após sua criação. Evidências, capturas, limitações e roteiro de homologação: [STUDIO-UX-01A.md](STUDIO-UX-01A.md).
+
+| ID | Evidência nova | Estado e aceitação restante |
+| --- | --- | --- |
+| UX-002 | `cinematic-crud.js`: confirmação, inventário/reassociação de ações, principal, ordenação, backup completo verificado, rollback; regressões em `cinematic-crud.test.js`; CRUD e exclusão exercitados no Chrome com dados fictícios | **Parcial**: exportação/restauração completa pela UI de recuperação e homologação em dispositivos ainda necessárias. Nenhum blob físico é excluído; última apresentação vinculada exige retirar vínculos antes |
+| UX-003 | `cinematic-file-card.js` integrado a fundo/camadas/PNG/WebM; nome opcional, MIME/tamanho, miniatura, substituir/remover, hash e disponibilidade; reabertura PNG/WebM verificada no Chrome; testes de status/nomes | **Parcial**: sincronização real entre computadores e homologação Windows/Android pendentes; manifesto da última revisão confirmada não é consulta contínua ao Storage |
+| UX-007 | `.cinematic-studio .form-error:empty` remove caixa vermelha vazia (24 px → 0 px); erro verdadeiro de câmera limpa ao corrigir; estados local/rascunho/cloud separados e confirmação por conta/caminho/hash/tipo/tamanho | **Parcial**: falhas reais de backend, conflitos e dispositivos ainda precisam de homologação. Sem falso “Salvo na nuvem” pelo simples upload escolhido |
+
+Validação automatizada: **641/641 testes**, check e integração aprovados. Base antes das mudanças: 624 testes. UI real do Studio testada em Chrome, conta/armazenamento remoto/rede simulados; não equivale a Supabase real, WebRTC independente ou celular físico. O evento de download do backup não foi obtido na automação. O seletor final de versões de recuperação tem testes de helpers, mas não um novo ensaio completo pela UI.
+
+Os 13 IDs e seus critérios oficiais permanecem preservados: **11 Parciais, 2 Pendentes, 0 Concluídos**. UX-001/004/005/006/008/009/010/011/012/013 continuam abertos. Renderer, Audio Engine, enquadramento mobile e campanhas reais não foram modificados.
