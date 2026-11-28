@@ -1,6 +1,6 @@
 # MOBILE-FIT-01 · UX-013
 
-Branch `fix/mobile-fit-01-cinematic-framing`, baseada em `b151128` (main após merge do PR #36), em 28/11/2026. Entrega para revisão, sem merge ou implantação. Requisito permanece **Parcial** até homologação Android/PWA. Referência do PR será registrada no backlog após abertura.
+Branch `fix/mobile-fit-01-cinematic-framing`, baseada em `b151128` (main após merge do PR #36), em 28/11/2026. Entrega para revisão, sem merge ou implantação. Requisito permanece **Parcial** até homologação Android/PWA. [PR #37, em rascunho](https://github.com/MateusAnastacio599/cris-reescritos/pull/37). Implementação em `0b5f0ef6c85788527240f617f2896b889f0f2277`.
 
 ## Diagnóstico confirmado
 
