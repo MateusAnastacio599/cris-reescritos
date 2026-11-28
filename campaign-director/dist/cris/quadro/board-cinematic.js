@@ -1,4 +1,4 @@
-import {CinematicFrame,CINEMATIC_FRAME_BUILD} from '../../cinematic-frame.js?v=directorcinematic02';
+import {CinematicFrame,CINEMATIC_FRAME_BUILD} from '../../cinematic-frame.js?v=mobilefit01';
 import {CINEMATIC_PROTOCOL_BUILD,CINEMATIC_CHANNEL,CinematicReceiver,validBoard} from '../../cinematic-protocol.js?v=directorcinematic02';
 import {CinematicPresentation,CINEMATIC_PRESENTATION_BUILD} from '../../cinematic-presentation.js?v=directorcinematic02';
 import {RemoteCinematics,CINEMATIC_REMOTE_BUILD} from '../../cinematic-remote.js?v=directorcinematic02';

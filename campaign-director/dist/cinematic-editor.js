@@ -6,11 +6,11 @@ import {sceneSpan} from './cinematic-timing.js?v=directorcinematic02';
 const DIRECTION_KEYS=['camera','lighting','sceneDuration','backgroundVideo'];
 import {StudioProperties} from './cinematic-studio-properties.js?v=studioux01a';
 import {StudioHistory} from './cinematic-studio-history.js?v=directorcinematic02';
-import {CinematicLayersEditor} from './cinematic-layers-editor.js?v=studioux01a';
+import {CinematicLayersEditor} from './cinematic-layers-editor.js?v=mobilefit01';
 import {cinematicItems,CINEMATIC_MAX_ITEMS,CINEMATIC_MOTIONS,CINEMATIC_TYPES,CINEMATIC_DEFAULTS,canLoopCinematic,cinematicEnding,cinematicFades,cinematicTotal,checkCinematicImage,checkCinematicUpload,withCinematic,duplicateCinematic} from './cinematic-model.js?v=directorcinematic02';
 import {cinematicImages,imageKey,loadCinematicMedia,validateCompositionMedia} from './cinematic-media.js?v=directorcinematic02';
 import {mountMotionNotice} from './cinematic-motion.js?v=directorcinematic02';
-import {CinematicFrame} from './cinematic-frame.js?v=directorcinematic02';
+import {CinematicFrame} from './cinematic-frame.js?v=mobilefit01';
 import {$,esc,field,openForm,option} from './ui.js';
 
 export function openCinematic({scene,save,present,stop,subscribe,cloud=()=>({}),backup=async()=>{throw Error('Backup indisponível.');},recoverBackup=()=>{},recoveryList=()=>[],onDeleted=()=>{},onClose=()=>{}}){

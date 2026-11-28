@@ -82,8 +82,13 @@ export async function loadComposition(asset,item,document,{signal,video=false,wa
 }
 
 export function fitComposition(composition,viewport,{contain=false}={}){
-  const fit=()=>{
-    const bounds=viewport.getBoundingClientRect(),size=contain?{width:Math.min(bounds.width,bounds.height*composition.aspect),height:Math.min(bounds.height,bounds.width/composition.aspect)}:compositionSize(bounds.width,bounds.height,composition.aspect);
+  // Fit in the element's own layout coordinates. Its visual bounding rectangle
+  // already includes presentation rotation (or editor/ancestor scale); feeding
+  // that rectangle back into the world applies cover in the wrong axes.
+  const fit=entries=>{
+    const bounds=entries?.[0]?.contentRect??{width:viewport.clientWidth,height:viewport.clientHeight};
+    if(!(bounds.width>0&&bounds.height>0))return;
+    const size=contain?{width:Math.min(bounds.width,bounds.height*composition.aspect),height:Math.min(bounds.height,bounds.width/composition.aspect)}:compositionSize(bounds.width,bounds.height,composition.aspect);
     composition.world.style.width=size.width+'px';composition.world.style.height=size.height+'px';
   };
   fit();

@@ -3,7 +3,7 @@ import {CinematicSequence} from './cinematic-sequence.js?v=directorux03';
 import {mountSceneCinematic} from './cinematic-scene-ui.js?v=directorux03';
 import {CinematicCues,sceneCinematicCue} from './cinematic-cues.js?v=directorcinematic02';
 import {cinematicImages} from './cinematic-media.js?v=directorcinematic02';
-import {openCinematic} from './cinematic-editor.js?v=studioux01a';
+import {openCinematic} from './cinematic-editor.js?v=mobilefit01';
 import {CinematicLink} from './cinematic-link.js?v=directorux03';
 import {mountScriptDisplay,scriptDisplayHTML} from './script-display.js';
 import {mountSceneSections,setupSessionTools,updateSceneSections} from './session-view.js';

@@ -7,7 +7,7 @@ import {duplicateCinematicLayer} from './cinematic-layer-operations.js?v=directo
 import {cameraPoints,cameraPoint} from './cinematic-camera-model.js?v=directorcinematic02';
 import {CINEMATIC_MAX_LAYERS,checkCinematicUpload} from './cinematic-model.js?v=directorcinematic02';
 import {cinematicImages,imageKey,cinematicDimensions,loadCinematicMedia} from './cinematic-media.js?v=directorcinematic02';
-import {loadComposition,fitComposition,positionCinematicLayer} from './cinematic-composition.js?v=directorcinematic02';
+import {loadComposition,fitComposition,positionCinematicLayer} from './cinematic-composition.js?v=mobilefit01';
 import {ANCHORS,bounded,safeCameraPose} from './cinematic-direction-model.js?v=directorcinematic02';
 import {checkCinematicVideo} from './cinematic-video.js?v=directorcinematic02';
 import {$,esc} from './ui.js';
